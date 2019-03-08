@@ -1,0 +1,52 @@
+******** 
+Command:compileMyMax.bat
+PWD:C:\Work\Training\V6.1_SP4\Inline
+Command Line:compileMyMax.bat 2 
+******** 
+Command:gcc
+PWD:C:\Work\Training\V6.1_SP4\Inline
+Command Line:gcc -DINLINE=inline -DDECLARATION -DDEFINITION -c -o useMyMax.o useMyMax.c 
+******** 
+Command:c:/vcast18_sp4/mingw/bin/../libexec/gcc/mingw32/6.3.0/cc1.exe
+PWD:C:\Work\Training\V6.1_SP4\Inline
+Command Line:c:/vcast18_sp4/mingw/bin/../libexec/gcc/mingw32/6.3.0/cc1.exe -quiet -iprefix c:\vcast18_sp4\mingw\bin\../lib/gcc/mingw32/6.3.0/ -D INLINE=inline -D DECLARATION -D DEFINITION useMyMax.c -quiet -dumpbase useMyMax.c -mtune=generic -march=i586 -auxbase-strip useMyMax.o -o C:\Users\VULPDI\AppData\Local\Temp\ccoS82ii.s 
+******** 
+Command:as
+PWD:C:\Work\Training\V6.1_SP4\Inline
+Command Line:as -o useMyMax.o C:\Users\VULPDI\AppData\Local\Temp\ccoS82ii.s 
+******** 
+Command:gcc
+PWD:C:\Work\Training\V6.1_SP4\Inline
+Command Line:gcc -DINLINE=inline -DDECLARATION -DDEFINITION -c -o otherUse.o otherUse.c 
+******** 
+Command:c:/vcast18_sp4/mingw/bin/../libexec/gcc/mingw32/6.3.0/cc1.exe
+PWD:C:\Work\Training\V6.1_SP4\Inline
+Command Line:c:/vcast18_sp4/mingw/bin/../libexec/gcc/mingw32/6.3.0/cc1.exe -quiet -iprefix c:\vcast18_sp4\mingw\bin\../lib/gcc/mingw32/6.3.0/ -D INLINE=inline -D DECLARATION -D DEFINITION otherUse.c -quiet -dumpbase otherUse.c -mtune=generic -march=i586 -auxbase-strip otherUse.o -o C:\Users\VULPDI\AppData\Local\Temp\ccX7V8Ss.s 
+******** 
+Command:as
+PWD:C:\Work\Training\V6.1_SP4\Inline
+Command Line:as -o otherUse.o C:\Users\VULPDI\AppData\Local\Temp\ccX7V8Ss.s 
+******** 
+Command:gcc
+PWD:C:\Work\Training\V6.1_SP4\Inline
+Command Line:gcc "-DINLINE=extern inline" -DDECLARATION -DDEFINITION -c -o myMain.o myMain.c 
+******** 
+Command:c:/vcast18_sp4/mingw/bin/../libexec/gcc/mingw32/6.3.0/cc1.exe
+PWD:C:\Work\Training\V6.1_SP4\Inline
+Command Line:c:/vcast18_sp4/mingw/bin/../libexec/gcc/mingw32/6.3.0/cc1.exe -quiet -iprefix c:\vcast18_sp4\mingw\bin\../lib/gcc/mingw32/6.3.0/ -D "INLINE=extern inline" -D DECLARATION -D DEFINITION myMain.c -quiet -dumpbase myMain.c -mtune=generic -march=i586 -auxbase-strip myMain.o -o C:\Users\VULPDI\AppData\Local\Temp\cchKAXqL.s 
+******** 
+Command:as
+PWD:C:\Work\Training\V6.1_SP4\Inline
+Command Line:as -o myMain.o C:\Users\VULPDI\AppData\Local\Temp\cchKAXqL.s 
+******** 
+Command:gcc
+PWD:C:\Work\Training\V6.1_SP4\Inline
+Command Line:gcc -o myMain.exe myMain.o useMyMax.o otherUse.o 
+******** 
+Command:c:/vcast18_sp4/mingw/bin/../libexec/gcc/mingw32/6.3.0/collect2.exe
+PWD:C:\Work\Training\V6.1_SP4\Inline
+Command Line:c:/vcast18_sp4/mingw/bin/../libexec/gcc/mingw32/6.3.0/collect2.exe -plugin c:/vcast18_sp4/mingw/bin/../libexec/gcc/mingw32/6.3.0/liblto_plugin-0.dll -plugin-opt=c:/vcast18_sp4/mingw/bin/../libexec/gcc/mingw32/6.3.0/lto-wrapper.exe -plugin-opt=-fresolution=C:\Users\VULPDI\AppData\Local\Temp\cc5zWZz2.res -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_eh -plugin-opt=-pass-through=-lmoldname -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-ladvapi32 -plugin-opt=-pass-through=-lshell32 -plugin-opt=-pass-through=-luser32 -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_eh -plugin-opt=-pass-through=-lmoldname -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -Bdynamic -o myMain.exe c:/vcast18_sp4/mingw/bin/../lib/gcc/mingw32/6.3.0/../../../crt2.o c:/vcast18_sp4/mingw/bin/../lib/gcc/mingw32/6.3.0/crtbegin.o -Lc:/vcast18_sp4/mingw/bin/../lib/gcc/mingw32/6.3.0 -Lc:/vcast18_sp4/mingw/bin/../lib/gcc -Lc:/vcast18_sp4/mingw/bin/../lib/gcc/mingw32/6.3.0/../../.. myMain.o useMyMax.o otherUse.o -lmingw32 -lgcc -lgcc_eh -lmoldname -lmingwex -lmsvcrt -ladvapi32 -lshell32 -luser32 -lkernel32 -lmingw32 -lgcc -lgcc_eh -lmoldname -lmingwex -lmsvcrt c:/vcast18_sp4/mingw/bin/../lib/gcc/mingw32/6.3.0/crtend.o 
+******** 
+Command:C:\VCAST18_SP4\MinGW\bin/ld.exe
+PWD:C:\Work\Training\V6.1_SP4\Inline
+Command Line:C:\VCAST18_SP4\MinGW\bin/ld.exe -plugin c:/vcast18_sp4/mingw/bin/../libexec/gcc/mingw32/6.3.0/liblto_plugin-0.dll -plugin-opt=c:/vcast18_sp4/mingw/bin/../libexec/gcc/mingw32/6.3.0/lto-wrapper.exe -plugin-opt=-fresolution=C:\Users\VULPDI\AppData\Local\Temp\cc5zWZz2.res -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_eh -plugin-opt=-pass-through=-lmoldname -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -plugin-opt=-pass-through=-ladvapi32 -plugin-opt=-pass-through=-lshell32 -plugin-opt=-pass-through=-luser32 -plugin-opt=-pass-through=-lkernel32 -plugin-opt=-pass-through=-lmingw32 -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_eh -plugin-opt=-pass-through=-lmoldname -plugin-opt=-pass-through=-lmingwex -plugin-opt=-pass-through=-lmsvcrt -Bdynamic -o myMain.exe c:/vcast18_sp4/mingw/bin/../lib/gcc/mingw32/6.3.0/../../../crt2.o c:/vcast18_sp4/mingw/bin/../lib/gcc/mingw32/6.3.0/crtbegin.o -Lc:/vcast18_sp4/mingw/bin/../lib/gcc/mingw32/6.3.0 -Lc:/vcast18_sp4/mingw/bin/../lib/gcc -Lc:/vcast18_sp4/mingw/bin/../lib/gcc/mingw32/6.3.0/../../.. myMain.o useMyMax.o otherUse.o -lmingw32 -lgcc -lgcc_eh -lmoldname -lmingwex -lmsvcrt -ladvapi32 -lshell32 -luser32 -lkernel32 -lmingw32 -lgcc -lgcc_eh -lmoldname -lmingwex -lmsvcrt c:/vcast18_sp4/mingw/bin/../lib/gcc/mingw32/6.3.0/crtend.o 

@@ -1,0 +1,15 @@
+
+myMax.o:: gcc -c -o myMax.o myMax.c
+C:\Work\Training\V6.1_SP4\Inline
+
+useMyMax.o:: gcc -DINLINE="inline" -DDECLARATION -DDEFINITION -c -o useMyMax.o useMyMax.c
+C:\Work\Training\V6.1_SP4\Inline
+
+otherUse.o:: gcc -DINLINE="inline" -DDECLARATION -DDEFINITION -c -o otherUse.o otherUse.c
+C:\Work\Training\V6.1_SP4\Inline
+
+myMain.o:: gcc -DINLINE="inline" -DDECLARATION -DDEFINITION -c -o myMain.o myMain.c
+C:\Work\Training\V6.1_SP4\Inline
+
+myMain.exe:: gcc -o myMain.exe myMain.o useMyMax.o otherUse.o myMax.o
+C:\Work\Training\V6.1_SP4\Inline

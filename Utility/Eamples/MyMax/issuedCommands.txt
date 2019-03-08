@@ -1,0 +1,56 @@
+
+vcshell
+
+%vectorcast_dir%\vcshell --vcbg --db="myMax.db" --tag="combo_1" --echo --out "combo_1.txt" compileMyMax.bat 1
+%vectorcast_dir%\vcshell --vcbg --db="myMax.db" --tag="combo_2" --echo --out "combo_2.txt" compileMyMax.bat 2
+
+vcdb
+
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cfg=..\MinGW_WorkDir getallcmdlines
+
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cfg=..\MinGW_WorkDir gettopcmd
+
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 dumpcommands
+
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 dumpverbs
+
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cfg=..\MinGW_WorkDir getapps
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cmd-verb=gcc --cflag=-c --outputflag=-o getapps
+
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cfg=..\MinGW_WorkDir getappfiles
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cmd-verb=gcc --cflag=-c --outputflag=-o --oext=.o getappfiles
+
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cfg=..\MinGW_WorkDir --app=myMain.exe getfiles
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cmd-verb=gcc --cflag=-c --outputflag=-o --oext=.o --app=myMain.exe getfiles
+
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cfg=..\MinGW_WorkDir --file=useMyMax.c getcmddir
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cmd-verb=gcc --file=useMyMax.c getcmddir
+
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cfg=..\MinGW_WorkDir --file=useMyMax.c getcommand
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cmd-verb=gcc --file=useMyMax.c getcommand
+
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cfg=..\MinGW_WorkDir --file=useMyMax.c getppoptions
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cmd-verb=gcc --file=useMyMax.c getppoptions
+
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cfg=..\MinGW_WorkDir --file=useMyMax.c getdefines
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cmd-verb=gcc --file=useMyMax.c getdefines
+
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cfg=..\MinGW_WorkDir --file=useMyMax.c getincludes
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cmd-verb=gcc --file=useMyMax.c getincludes
+
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cfg=..\MinGW_WorkDir --app=myMain.exe getlinkcmd
+%vectorcast_dir%\vcdb --db=myMax.db --tag=combo_1 --cmd-verb=gcc --app=myMain.exe getlinkcmd
+
+vcutil
+
+%vectorcast_dir%\vcutil --cfg=..\MinGW_WorkDir -lc get_option C_COMPILER_TAG
+
+%vectorcast_dir%\vcutil --db myMax.db --tag=combo_1 --cfg=..\MinGW_WorkDir --cmd=cmd.bat --all run
+%vectorcast_dir%\vcutil --db myMax.db --tag=combo_1 --cfg=..\MinGW_WorkDir --cmd=cmd.bat --allapps run
+%vectorcast_dir%\vcutil --db myMax.db --tag=combo_1 --cfg=..\MinGW_WorkDir --cmd=cmd.bat --allfiles run
+
+%vectorcast_dir%\vcutil --db myMax.db --tag=combo_1 --cfg=..\MinGW_WorkDir --file=useMyMax.c --destination_dir=.\Parse parse
+
+%vectorcast_dir%\vcutil --db myMax.db --tag=combo_1 --cfg=..\MinGW_WorkDir --file=useMyMax.c --coverage_type=statement --destination_dir=.\Inst instrument
+
+%vectorcast_dir%\vcutil --input=.\combo_1_build.txt --output=combo_1.log runmulti
