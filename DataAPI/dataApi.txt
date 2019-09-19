@@ -1,0 +1,85 @@
+
+# from vector/apps/DataApi/api import Api
+
+api = Api( <environment> )
+
+# Attributes of Api
+
+api.environment
+api.environment_directory
+api.full_environment_directory
+api.config_file
+
+# Unit
+
+units = api.Units.all() --> [Unit: USER_GLOBALS_VCAST, Unit: manager.c, Unit: uut_prototype_stubs]
+unit = api.Unit.get( "uut_prototype_stubs" )
+
+unit.name, unit.id
+unit.is_stubbed --> True/False
+
+# Function
+
+functions = api.TestCase.all()
+function = api.TestCase.get( "Add_Included_Dessert" )
+
+function.name, function.id
+function.unit, function.unit_id
+
+function.testcases
+
+parameters = function.parameters
+parameter = function.get_param_by_index( 1 )
+
+# Parameter
+
+parameters.name
+parameters.type
+
+# Parameter Type
+
+parameter.type.name
+parameter.type.kind
+parameter.type.is_pointer
+
+parameter.type.as_dict()
+parameter.type.element.child_fields[0].name
+
+# Test Case
+
+testCases = api.TestCase.all()
+testCase = api.TestCase.get( "All" )
+
+# Attribues (string)
+
+testCase.unit_display_name
+testCase.function_display_name
+testCase.name
+
+testCase.created --> datetime.datetime(2019, 9, 12, 13, 31, 10)
+
+testCase.notes
+
+testCase.input
+testCase.expected --> [expected in All: 0.9.2.1.0.4%PIE%CAKE%NO_DESSERT]
+
+# Requirements
+
+api.environment.requirementdb.filename
+
+api.environment.requirementdb.load_requirements()
+
+req = api.environment.requirementdb.get( 1 )
+
+# Attributes (string)
+
+req.title
+req.external_key
+req.id
+req.group
+req.created
+req.last_update
+
+req.get_tests( ? )
+req.need_review( ? )
+
