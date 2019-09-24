@@ -10,6 +10,19 @@ api.environment_directory
 api.full_environment_directory
 api.config_file
 
+api.get_managers()
+
+# Environment
+
+environments = api.Environment.all()
+environment = api.Environment.get( <environment> )
+
+environment = api.environment
+
+environment.env_code_stub_file, environment.env_code_stub_data
+environment.user_code_stub_file, environment.user_code_stub_data
+
+
 # Unit
 
 units = api.Units.all() --> [Unit: USER_GLOBALS_VCAST, Unit: manager.c, Unit: uut_prototype_stubs]
@@ -62,6 +75,15 @@ testCase.notes
 
 testCase.input
 testCase.expected --> [expected in All: 0.9.2.1.0.4%PIE%CAKE%NO_DESSERT]
+
+# Slots -- if testcase is a compound testcase
+
+testcase.is_compound_test
+
+slots = testcase.slots --> list of slots
+
+slots[0].testcase, slots[0].testcase_id
+slots[0].parent_id --> should be identical to testcase.id if slot is a direct child 
 
 # Requirements
 

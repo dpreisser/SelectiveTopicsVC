@@ -15,6 +15,9 @@ class TestCaseData( object ):
         self.dataApi = dataApi
         self.dataApi.loadApi( envName )
 
+        self.inputDataAsString = None
+        self.expectedDataAsString = None
+
 
     def __str__( self ):
 
@@ -27,15 +30,52 @@ class TestCaseData( object ):
         return msg
 
 
-    def getInputDataAsString( self ):
+    def buildInputDataAsString( self ):
 
         testcase = self.dataApi.getTestcase( self.envName, self.unitName, \
                                              self.functionName, self.tcName )
 
         self.inputDataAsString = ""
 
-        self.inputDataAsString = self.dataApi.getInputDataAsString( testcase.input_tree, \
-                                                                    self.inputDataAsString )
+        self.inputDataAsString = self.dataApi.getDataAsString( testcase.input_tree, \
+                                                               self.inputDataAsString )
+
+    def buildInputDataAsString_explicit( self ):
+
+        testcase = self.dataApi.getTestcase( self.envName, self.unitName, \
+                                             self.functionName, self.tcName )
+
+        self.inputDataAsString = ""
+
+        self.inputDataAsString = self.dataApi.getDataAsString_explicit( testcase, 0, \
+                                                                        self.inputDataAsString )
+
+    def getInputDataAsString( self ):
+
+        if None == self.inputDataAsString:
+            # self.buildInputDataAsString()
+            self.buildInputDataAsString_explicit()
+
+        return self.inputDataAsString
+
+
+    def buildExpectedDataAsString( self ):
+
+        testcase = self.dataApi.getTestcase( self.envName, self.unitName, \
+                                             self.functionName, self.tcName )
+
+        self.expectedDataAsString = ""
+
+        self.expectedDataAsString = self.dataApi.getDataAsString( testcase.expected_tree, \
+                                                                  self.expectedDataAsString )
+
+    def getExpectedDataAsString( self ):
+
+        if None == self.expectedDataAsString:
+            self.buildExpectedDataAsString()
+
+        return self.expectedDataAsString
+
 
 
 class DataAPI_Wrapper( object ):
@@ -45,6 +85,8 @@ class DataAPI_Wrapper( object ):
         self.workingDirVC = workingDirVC
 
         self.envApi = {}
+
+        self.indentUnit = "  "
 
         
     def loadApi( self, envName ):
@@ -77,20 +119,21 @@ class DataAPI_Wrapper( object ):
         for testcase in testcases:
             if testcase.unit_display_name == unitName:
                 if testcase.function_display_name == functionName:
-                    return testcase
+                    if testcase.name == tcName:
+                        return testcase
 
         return None
 
         
-    def getInputDataAsString( self, input_tree, inputDataAsString ):
+    def getDataAsString( self, tree, dataAsString ):
 
-        currentIndent = int( input_tree["indent"] )
+        currentIndent = int( tree["indent"] )
         currentIndentStr = ""
         for idx in range( currentIndent ):
-            currentIndentStr += "  "
+            currentIndentStr += self.indentUnit
 
-        label = input_tree["label"]
-        value = input_tree["value"]
+        label = tree["label"]
+        value = tree["value"]
 
         if None != label:
 
@@ -99,21 +142,84 @@ class DataAPI_Wrapper( object ):
             else:
                 newStr = label + "\n"
 
-            inputDataAsString += currentIndentStr + newStr
+            dataAsString += currentIndentStr + newStr
 
-        children = input_tree["children"]
+        children = tree["children"]
 
         for child in children:
-            inputDataAsString += self.getInputDataAsString( child, "" )
+            dataAsString += self.getDataAsString( child, "" )
 
-        return inputDataAsString
+        return dataAsString
+
+
+    def getDataAsString_explicit( self, testcase, currentIndent, dataAsString ):
+
+        currentIndentAsStr = ""
+        for idx in range( currentIndent ):
+            currentIndentAsStr += self.indentUnit
+
+        tcIndentAsStr = currentIndentAsStr
+
+        envIndentAsStr = currentIndentAsStr
+        unitIndentAsStr = currentIndentAsStr + self.indentUnit
+        functionIndentAsStr = currentIndentAsStr + self.indentUnit + self.indentUnit
+
+        envName = testcase.get_environment().name
+
+        if testcase.is_compound_test:
+
+            tcNameAsStr = testcase.name + " " + "(Compound)" + ":\n"
+            dataAsString += tcIndentAsStr + tcNameAsStr
+
+        elif testcase.is_unit_test:
+
+            tcNameAsStr = testcase.name() + " " + "(Unit)" + ":\n"
+            dataAsString += tcIndentAsStr + tcNameAsStr
+
+        if 0 == currentIndent:
+
+            envNameAsStr = "Environment: %s\n" % envName
+            dataAsString += envIndentAsStr + envNameAsStr
+
+            unitName = testcase.unit_display_name
+            unit = self.envApi[envName].Unit.get( unitName )
+
+            if None != unit:
+                unitNameAsStr = "UUT: %s\n" % unit.display_name
+            else:
+                unitNameAsStr = "UUT: %s\n" % unitName
+
+            dataAsString += unitIndentAsStr + unitNameAsStr
+
+            functionNameAsStr = "Subprogram: %s\n" % testcase.function_display_name
+            dataAsString += functionIndentAsStr + functionNameAsStr
+
+        if testcase.is_compound_test:
+
+            slotIndentAsStr = currentIndentAsStr + self.indentUnit + self.indentUnit + self.indentUnit
+
+            slots = testcase.slots
+            numSlots = len( slots )
+
+            for idx in range( numSlots ):
+                tc = slots[idx].testcase
+                slotName = ".".join( [tc.unit_display_name, tc.function_display_name, tc.name] )
+                slotAsStr = "Slot %s: %s (%s)\n" % ( str(idx), slotName, slots[idx].iteration_count )
+                dataAsString += slotIndentAsStr + slotAsStr
+
+        return dataAsString
+
 
 
 if "__main__" == __name__:
 
     dataApi = DataAPI_Wrapper( "C:\Work\Training\V6.4\MinGW_WorkDir" )
-    tcData = TestCaseData( "EXAMPLE", "example", "append", "append.001", dataApi )
+    # tcData = TestCaseData( "EXAMPLE", "example", "append", "append.001", dataApi )
+    # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Add_Party_To_Waiting_List", "TwoNames", dataApi )
+    # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Place_Order", "FoolTheBill", dataApi )
+    tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "<<COMPOUND>>", "<<COMPOUND>>", "Asterix&Obelix", dataApi )
+    # tcData = TestCaseData( "ADVANCED", "advanced_stubbing", "temp_monitor", "Celsius_Stub", dataApi )
     print( tcData )
 
-    tcData.getInputDataAsString()
-    print( tcData.inputDataAsString )
+    print( tcData.getInputDataAsString() )
+    # print( tcData.getExpectedDataAsString() )
