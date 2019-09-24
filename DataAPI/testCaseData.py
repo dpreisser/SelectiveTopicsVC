@@ -124,13 +124,15 @@ class DataAPI_Wrapper( object ):
 
         return None
 
+
+    def getIndentAsString( self, numIndentUnits ):
+        return self.indentUnit * numIndentUnits
+
         
     def getDataAsString( self, tree, dataAsString ):
 
         currentIndent = int( tree["indent"] )
-        currentIndentStr = ""
-        for idx in range( currentIndent ):
-            currentIndentStr += self.indentUnit
+        currentIndentAsStr = self.getIndentAsString( currentIndent ) 
 
         label = tree["label"]
         value = tree["value"]
@@ -142,7 +144,7 @@ class DataAPI_Wrapper( object ):
             else:
                 newStr = label + "\n"
 
-            dataAsString += currentIndentStr + newStr
+            dataAsString += currentIndentAsStr + newStr
 
         children = tree["children"]
 
@@ -158,25 +160,34 @@ class DataAPI_Wrapper( object ):
         for idx in range( currentIndent ):
             currentIndentAsStr += self.indentUnit
 
-        tcIndentAsStr = currentIndentAsStr
-
-        envIndentAsStr = currentIndentAsStr
-        unitIndentAsStr = currentIndentAsStr + self.indentUnit
-        functionIndentAsStr = currentIndentAsStr + self.indentUnit + self.indentUnit
-
         envName = testcase.get_environment().name
 
-        if testcase.is_compound_test:
-
-            tcNameAsStr = testcase.name + " " + "(Compound)" + ":\n"
-            dataAsString += tcIndentAsStr + tcNameAsStr
-
-        elif testcase.is_unit_test:
-
-            tcNameAsStr = testcase.name() + " " + "(Unit)" + ":\n"
-            dataAsString += tcIndentAsStr + tcNameAsStr
-
         if 0 == currentIndent:
+
+            tcIndent = currentIndent
+            tcIndentAsStr = self.getIndentAsString( tcIndent )
+
+            envIndent = currentIndent
+            envIndentAsStr = self.getIndentAsString( envIndent )
+
+            unitIndent = currentIndent + 1
+            unitIndentAsStr = self.getIndentAsString( unitIndent )
+            
+            functionIndent = currentIndent + 2
+            functionIndentAsStr = self.getIndentAsString( functionIndent )
+
+            slotIndent = currentIndent + 3
+            slotIndentAsStr = self.getIndentAsString( slotIndent )
+
+            if testcase.is_compound_test:
+
+                tcNameAsStr = testcase.name + " " + "(Compound)" + ":\n"
+                dataAsString += tcIndentAsStr + tcNameAsStr
+
+            elif testcase.is_unit_test:
+
+                tcNameAsStr = testcase.name() + " " + "(Unit)" + ":\n"
+                dataAsString += tcIndentAsStr + tcNameAsStr
 
             envNameAsStr = "Environment: %s\n" % envName
             dataAsString += envIndentAsStr + envNameAsStr
@@ -194,18 +205,26 @@ class DataAPI_Wrapper( object ):
             functionNameAsStr = "Subprogram: %s\n" % testcase.function_display_name
             dataAsString += functionIndentAsStr + functionNameAsStr
 
-        if testcase.is_compound_test:
+        else:
 
-            slotIndentAsStr = currentIndentAsStr + self.indentUnit + self.indentUnit + self.indentUnit
+            slotIndent = currentIndent
+            slotIndentAsStr = self.getIndentAsString( slotIndent )
+
+        if testcase.is_compound_test:
 
             slots = testcase.slots
             numSlots = len( slots )
 
             for idx in range( numSlots ):
+
                 tc = slots[idx].testcase
+
                 slotName = ".".join( [tc.unit_display_name, tc.function_display_name, tc.name] )
                 slotAsStr = "Slot %s: %s (%s)\n" % ( str(idx), slotName, slots[idx].iteration_count )
                 dataAsString += slotIndentAsStr + slotAsStr
+
+                if tc.is_compound_test:
+                    dataAsString += self.getDataAsString_explicit( tc, slotIndent+1, "" )
 
         return dataAsString
 
@@ -217,7 +236,8 @@ if "__main__" == __name__:
     # tcData = TestCaseData( "EXAMPLE", "example", "append", "append.001", dataApi )
     # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Add_Party_To_Waiting_List", "TwoNames", dataApi )
     # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Place_Order", "FoolTheBill", dataApi )
-    tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "<<COMPOUND>>", "<<COMPOUND>>", "Asterix&Obelix", dataApi )
+    # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "<<COMPOUND>>", "<<COMPOUND>>", "Asterix&Obelix", dataApi )
+    tcData = TestCaseData( "IO_WRAPPER_BUBEN", "<<COMPOUND>>", "<<COMPOUND>>", "Write&Read", dataApi )
     # tcData = TestCaseData( "ADVANCED", "advanced_stubbing", "temp_monitor", "Celsius_Stub", dataApi )
     print( tcData )
 
