@@ -256,31 +256,100 @@ class DataAPI_Wrapper( object ):
 
         currentIndentAsStr = self.getIndentAsString( currentIndent )
 
+        childIndent = currentIndent + 1
+        childIndentAsStr = self.getIndentAsString( childIndent )
+
         data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
         value = self.getData( dataObjectCoords )
 
-        if None == value:
-            return dataAsString
-        
         kind = parameter.type.kind
-        child_fields = parameter.type.element.child_fields
+        element = parameter.type.element
+
+        child_fields = []
+
+        if None != element:
+            if hasattr( element, "child_fields" ):
+                child_fields = element.child_fields
+
+        isBasicType = True
+        isArray = False
 
         if "ACCE_SS" == kind:
+
+            if None == value:
+                return dataAsString
+
+            isArray = True
+
             parameterNameAsStr = "%s: <<ACCESS %s>>\n" % ( parameter.name, value )
             dataAsString = currentIndentAsStr + parameterNameAsStr
-            numFields = int(value)
+            numArrayElements = int(value)
 
-            for fieldIdx in range( numFields ):
+        elif "AR_RAY" == kind:
 
-                child_str = "%s[%s]\n" %( parameter.name, str(fieldIdx) )
+            isArray = True
+
+            size = parameter.type.range.size # Still something like "4%%"
+            size = size.split( "%" )[0]
+
+            parameterNameAsStr = "%s: <<Size %s>>\n" % ( parameter.name, size )
+            dataAsString = currentIndentAsStr + parameterNameAsStr
+            numArrayElements = int(size)
+
+        elif "RE_CORD" == kind:
+
+            isBasicType = False
+
+        if isArray:
+
+            if "ACCE_SS" == element.kind or "AR_RAY" == element.kind or "RE_CORD" == element.kind:
+                isBasicType = False
+            else:
+                isBasicType = True
+
+            for arrayIdx in range( numArrayElements ):
 
                 child_dataObjectCoords = dataObjectCoords
-                child_dataObjectCoords.append( fieldIdx )
+                child_dataObjectCoords.append( arrayIdx )
+
+                if isBasicType:
+
+                    value = self.getData( child_dataObjectCoords )
+
+                    if None != value:
+                        elementAsStr = "[%s]: %s\n" % ( str(arrayIdx), value )
+                        dataAsString += childIndentAsStr + elementAsStr
+                    
+                else:
+                    
+                    elementAsStr = "[%s]\n" %str(arrayIdx)
+                    dataAsString += childIndentAsStr + elementAsStr
+
+
+                    for child in child_fields:
+
+                        dataAsString += self.walkParameter( unit, function, child, testcase, \
+                                                            child_dataObjectCoords, currentIndent+2, "" )
+
+        else:
+
+            child_dataObjectCoords = dataObjectCoords
+            child_dataObjectCoords.append( parameter.index )
+                
+            if isBasicType:
+
+                value = self.getData( child_dataObjectCoords )
+
+                if None != value:
+                    componentAsStr = "%s: %s\n" ( parameter.name, value )
+                    dataAsString += childIndentAsStr + componentAsStr
+
+            else:
 
                 for child in child_fields:
 
                     dataAsString += self.walkParameter( unit, function, child, testcase, \
-                                                        child_dataObjectCoords, currentIndent+2, child_str )
+                                                        dataObjectCoords, currentIndent+1, "" )
 
         return dataAsString
 
