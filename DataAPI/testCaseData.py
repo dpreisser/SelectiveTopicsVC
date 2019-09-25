@@ -85,6 +85,7 @@ class DataAPI_Wrapper( object ):
         self.workingDirVC = workingDirVC
 
         self.envApi = {}
+        self.inputData = {}
 
         self.indentUnit = "  "
 
@@ -158,6 +159,9 @@ class DataAPI_Wrapper( object ):
 
         envName = testcase.get_environment().name
 
+        unitName = testcase.unit_display_name
+        unit = self.envApi[envName].Unit.get( unitName )
+
         if 0 == currentIndent:
 
             tcIndent = currentIndent
@@ -172,8 +176,8 @@ class DataAPI_Wrapper( object ):
             functionIndent = currentIndent + 2
             functionIndentAsStr = self.getIndentAsString( functionIndent )
 
-            paramIndent = currentIndent + 3
-            paramIndentAsStr = self.getIndentAsString( paramIndent )
+            parameterIndent = currentIndent + 3
+            parameterIndentAsStr = self.getIndentAsString( parameterIndent )
 
             slotIndent = currentIndent + 3
             slotIndentAsStr = self.getIndentAsString( slotIndent )
@@ -191,9 +195,6 @@ class DataAPI_Wrapper( object ):
             envNameAsStr = "Environment: %s\n" % envName
             dataAsString += envIndentAsStr + envNameAsStr
 
-            unitName = testcase.unit_display_name
-            unit = self.envApi[envName].Unit.get( unitName )
-
             if None != unit:
                 unitNameAsStr = "UUT: %s\n" % unit.display_name
             else:
@@ -205,6 +206,9 @@ class DataAPI_Wrapper( object ):
             dataAsString += functionIndentAsStr + functionNameAsStr
 
         else:
+
+            parameterIndent = currentIndent
+            parameterIndentAsStr = self.getIndentAsString( parameterIndent )
 
             slotIndent = currentIndent
             slotIndentAsStr = self.getIndentAsString( slotIndent )
@@ -227,29 +231,89 @@ class DataAPI_Wrapper( object ):
 
         elif testcase.is_unit_test:
 
-            func = testcase.function
+            self.prepareData( testcase )
 
-            paramIndex = 1
-            param = func.get_param_by_index( paramIndex )
+            function = testcase.function
 
-            while None != param:
+            parameterIndex = 1
+            parameter = function.get_param_by_index( parameterIndex )
 
-                dataAsString += self.walkParameter( param, testcase, paramIndent, dataAsString )
+            while None != parameter:
 
-                paramIndex += 1
-                param = func.get_param_by_index( paramIndex )
+                dataObjectCoords = [ unit.id, function.index, parameterIndex ]
+
+                dataAsString += self.walkParameter( unit, function, parameter, testcase, \
+                                                    dataObjectCoords, parameterIndent, dataAsString )
+
+                parameterIndex += 1
+                parameter = function.get_param_by_index( parameterIndex )
 
         return dataAsString
 
 
-    def walkParameter( self, param, testcase, currentIndent, dataAsString ):
+    def walkParameter( self, unit, function, parameter, testcase, \
+                       dataObjectCoords, currentIndent, dataAsString ):
 
         currentIndentAsStr = self.getIndentAsString( currentIndent )
 
-        paramNameAsStr = "%s\n" % param.name
-        dataAsString = currentIndentAsStr + paramNameAsStr
+        data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
+        value = self.getData( dataObjectCoords )
+
+        if None != value:
+        
+          kind = parameter.type.kind
+
+          if "ACCE_SS" == kind:
+              parameterNameAsStr = "%s: <<ACCESS %s>>\n" % ( parameter.name, value )
+              dataAsString = currentIndentAsStr + parameterNameAsStr
 
         return dataAsString
+
+    
+    def prepareData( self, testcase ):
+
+        input = testcase.input
+
+        for currentInput in input:
+
+            data_oject_id = currentInput.data_object_id
+            value = currentInput.value
+
+            comp = data_oject_id.split( "." )
+
+            unitId = int( comp[0] )
+            functionIndex = int( comp[1] )
+            parameterIndex = int( comp[2] )
+
+            if not unitId in self.inputData.keys():
+                self.inputData[unitId] = {}
+
+            if not functionIndex in self.inputData[unitId].keys():
+                self.inputData[unitId][functionIndex] = {}
+
+            if not parameterIndex in self.inputData[unitId][functionIndex].keys():
+                self.inputData[unitId][functionIndex][parameterIndex] = {}
+
+            inputData = self.inputData[unitId][functionIndex][parameterIndex]
+
+            inputData[data_oject_id] = value
+
+            
+    def getData( self, dataObjectCoords ):
+
+        try:
+
+            inputData = self.inputData[dataObjectCoords[0]][dataObjectCoords[1]][dataObjectCoords[2]]
+
+            data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
+
+            value = inputData[data_object_id]
+
+        except KeyError:
+
+            value = None
+
+        return value
 
 
 
