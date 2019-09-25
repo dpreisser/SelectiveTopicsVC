@@ -1,6 +1,8 @@
 
 import os
 
+from copy import deepcopy
+
 from vector.apps.DataAPI.api import Api
 
 class TestCaseData( object ):
@@ -265,6 +267,9 @@ class DataAPI_Wrapper( object ):
         kind = parameter.type.kind
         element = parameter.type.element
 
+        print( data_object_id )
+        print( kind )
+
         child_fields = []
 
         if None != element:
@@ -282,7 +287,7 @@ class DataAPI_Wrapper( object ):
             isArray = True
 
             parameterNameAsStr = "%s: <<ACCESS %s>>\n" % ( parameter.name, value )
-            dataAsString = currentIndentAsStr + parameterNameAsStr
+            dataAsString += currentIndentAsStr + parameterNameAsStr
             numArrayElements = int(value)
 
         elif "AR_RAY" == kind:
@@ -293,38 +298,46 @@ class DataAPI_Wrapper( object ):
             size = size.split( "%" )[0]
 
             parameterNameAsStr = "%s: <<Size %s>>\n" % ( parameter.name, size )
-            dataAsString = currentIndentAsStr + parameterNameAsStr
+            dataAsString += currentIndentAsStr + parameterNameAsStr
             numArrayElements = int(size)
 
-        elif "RE_CORD" == kind:
+        elif "REC_ORD" == kind:
 
             isBasicType = False
 
         if isArray:
 
-            if "ACCE_SS" == element.kind or "AR_RAY" == element.kind or "RE_CORD" == element.kind:
+            print( element.kind )
+
+            if "ACCE_SS" == element.kind or "AR_RAY" == element.kind or "REC_ORD" == element.kind:
                 isBasicType = False
             else:
                 isBasicType = True
 
             for arrayIdx in range( numArrayElements ):
 
-                child_dataObjectCoords = dataObjectCoords
+                child_dataObjectCoords = deepcopy( dataObjectCoords )
                 child_dataObjectCoords.append( arrayIdx )
 
                 if isBasicType:
 
                     value = self.getData( child_dataObjectCoords )
 
+                    print( isArray, isBasicType )
+                    print( child_dataObjectCoords )
+                    print( value )
+
                     if None != value:
                         elementAsStr = "[%s]: %s\n" % ( str(arrayIdx), value )
                         dataAsString += childIndentAsStr + elementAsStr
                     
                 else:
-                    
-                    elementAsStr = "[%s]\n" %str(arrayIdx)
-                    dataAsString += childIndentAsStr + elementAsStr
 
+                    print( isArray, isBasicType )
+                    print( child_dataObjectCoords )
+                    
+                    elementAsStr = "[%s]\n" % str(arrayIdx)
+                    dataAsString += childIndentAsStr + elementAsStr
 
                     for child in child_fields:
 
@@ -333,23 +346,31 @@ class DataAPI_Wrapper( object ):
 
         else:
 
-            child_dataObjectCoords = dataObjectCoords
+            child_dataObjectCoords = deepcopy( dataObjectCoords )
             child_dataObjectCoords.append( parameter.index )
                 
             if isBasicType:
 
                 value = self.getData( child_dataObjectCoords )
 
+                print( isArray, isBasicType )
+                print( child_dataObjectCoords )
+                print( value )
+
                 if None != value:
-                    componentAsStr = "%s: %s\n" ( parameter.name, value )
-                    dataAsString += childIndentAsStr + componentAsStr
+                    componentAsStr = "%s: %s\n" % ( parameter.name, value )
+                    dataAsString += currentIndentAsStr + componentAsStr
 
             else:
+
+                print( isArray, isBasicType )
+                print( child_dataObjectCoords )
+                print( value )
 
                 for child in child_fields:
 
                     dataAsString += self.walkParameter( unit, function, child, testcase, \
-                                                        dataObjectCoords, currentIndent+1, "" )
+                                                        child_dataObjectCoords, currentIndent+1, "" )
 
         return dataAsString
 
