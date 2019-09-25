@@ -243,7 +243,7 @@ class DataAPI_Wrapper( object ):
                 dataObjectCoords = [ unit.id, function.index, parameterIndex ]
 
                 dataAsString += self.walkParameter( unit, function, parameter, testcase, \
-                                                    dataObjectCoords, parameterIndent, dataAsString )
+                                                    dataObjectCoords, parameterIndent, "" )
 
                 parameterIndex += 1
                 parameter = function.get_param_by_index( parameterIndex )
@@ -259,13 +259,28 @@ class DataAPI_Wrapper( object ):
         data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
         value = self.getData( dataObjectCoords )
 
-        if None != value:
+        if None == value:
+            return dataAsString
         
-          kind = parameter.type.kind
+        kind = parameter.type.kind
+        child_fields = parameter.type.element.child_fields
 
-          if "ACCE_SS" == kind:
-              parameterNameAsStr = "%s: <<ACCESS %s>>\n" % ( parameter.name, value )
-              dataAsString = currentIndentAsStr + parameterNameAsStr
+        if "ACCE_SS" == kind:
+            parameterNameAsStr = "%s: <<ACCESS %s>>\n" % ( parameter.name, value )
+            dataAsString = currentIndentAsStr + parameterNameAsStr
+            numFields = int(value)
+
+            for fieldIdx in range( numFields ):
+
+                child_str = "%s[%s]\n" %( parameter.name, str(fieldIdx) )
+
+                child_dataObjectCoords = dataObjectCoords
+                child_dataObjectCoords.append( fieldIdx )
+
+                for child in child_fields:
+
+                    dataAsString += self.walkParameter( unit, function, child, testcase, \
+                                                        child_dataObjectCoords, currentIndent+2, child_str )
 
         return dataAsString
 
