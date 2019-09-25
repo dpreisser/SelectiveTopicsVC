@@ -156,10 +156,6 @@ class DataAPI_Wrapper( object ):
 
     def getDataAsString_explicit( self, testcase, currentIndent, dataAsString ):
 
-        currentIndentAsStr = ""
-        for idx in range( currentIndent ):
-            currentIndentAsStr += self.indentUnit
-
         envName = testcase.get_environment().name
 
         if 0 == currentIndent:
@@ -176,6 +172,9 @@ class DataAPI_Wrapper( object ):
             functionIndent = currentIndent + 2
             functionIndentAsStr = self.getIndentAsString( functionIndent )
 
+            paramIndent = currentIndent + 3
+            paramIndentAsStr = self.getIndentAsString( paramIndent )
+
             slotIndent = currentIndent + 3
             slotIndentAsStr = self.getIndentAsString( slotIndent )
 
@@ -186,7 +185,7 @@ class DataAPI_Wrapper( object ):
 
             elif testcase.is_unit_test:
 
-                tcNameAsStr = testcase.name() + " " + "(Unit)" + ":\n"
+                tcNameAsStr = testcase.name + " " + "(Unit)" + ":\n"
                 dataAsString += tcIndentAsStr + tcNameAsStr
 
             envNameAsStr = "Environment: %s\n" % envName
@@ -226,6 +225,30 @@ class DataAPI_Wrapper( object ):
                 if tc.is_compound_test:
                     dataAsString += self.getDataAsString_explicit( tc, slotIndent+1, "" )
 
+        elif testcase.is_unit_test:
+
+            func = testcase.function
+
+            paramIndex = 1
+            param = func.get_param_by_index( paramIndex )
+
+            while None != param:
+
+                dataAsString += self.walkParameter( param, testcase, paramIndent, dataAsString )
+
+                paramIndex += 1
+                param = func.get_param_by_index( paramIndex )
+
+        return dataAsString
+
+
+    def walkParameter( self, param, testcase, currentIndent, dataAsString ):
+
+        currentIndentAsStr = self.getIndentAsString( currentIndent )
+
+        paramNameAsStr = "%s\n" % param.name
+        dataAsString = currentIndentAsStr + paramNameAsStr
+
         return dataAsString
 
 
@@ -233,11 +256,11 @@ class DataAPI_Wrapper( object ):
 if "__main__" == __name__:
 
     dataApi = DataAPI_Wrapper( "C:\Work\Training\V6.4\MinGW_WorkDir" )
-    # tcData = TestCaseData( "EXAMPLE", "example", "append", "append.001", dataApi )
+    tcData = TestCaseData( "EXAMPLE", "example", "append", "append.001", dataApi )
     # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Add_Party_To_Waiting_List", "TwoNames", dataApi )
     # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Place_Order", "FoolTheBill", dataApi )
     # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "<<COMPOUND>>", "<<COMPOUND>>", "Asterix&Obelix", dataApi )
-    tcData = TestCaseData( "IO_WRAPPER_BUBEN", "<<COMPOUND>>", "<<COMPOUND>>", "Write&Read", dataApi )
+    # tcData = TestCaseData( "IO_WRAPPER_BUBEN", "<<COMPOUND>>", "<<COMPOUND>>", "Write&Read", dataApi )
     # tcData = TestCaseData( "ADVANCED", "advanced_stubbing", "temp_monitor", "Celsius_Stub", dataApi )
     print( tcData )
 
