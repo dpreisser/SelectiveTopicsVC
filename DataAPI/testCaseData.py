@@ -316,15 +316,15 @@ class DataAPI_Wrapper( object ):
 
             for arrayIdx in range( numArrayElements ):
 
-                child_dataObjectCoords = deepcopy( dataObjectCoords )
-                child_dataObjectCoords.append( arrayIdx )
+                index_dataObjectCoords = deepcopy( dataObjectCoords )
+                index_dataObjectCoords.append( arrayIdx )
 
                 if isBasicType:
 
-                    value = self.getData( child_dataObjectCoords )
+                    value = self.getData( index_dataObjectCoords )
 
                     print( isArray, isBasicType )
-                    print( child_dataObjectCoords )
+                    print( index_dataObjectCoords )
                     print( value )
 
                     if None != value:
@@ -333,41 +333,47 @@ class DataAPI_Wrapper( object ):
                     
                 else:
 
-                    print( isArray, isBasicType )
-                    print( child_dataObjectCoords )
-                    
                     elementAsStr = "[%s]\n" % str(arrayIdx)
                     dataAsString += childIndentAsStr + elementAsStr
 
                     for child in child_fields:
+
+                        child_dataObjectCoords = deepcopy( index_dataObjectCoords )
+                        
+                        if "REC_ORD" == element.kind:
+                            child_dataObjectCoords.append( child.index )
+
+                        print( isArray, isBasicType )
+                        print( child_dataObjectCoords )
 
                         dataAsString += self.walkParameter( unit, function, child, testcase, \
                                                             child_dataObjectCoords, currentIndent+2, "" )
 
         else:
 
-            child_dataObjectCoords = deepcopy( dataObjectCoords )
-            child_dataObjectCoords.append( parameter.index )
-                
             if isBasicType:
 
-                value = self.getData( child_dataObjectCoords )
-
                 print( isArray, isBasicType )
-                print( child_dataObjectCoords )
+                print( dataObjectCoords )
                 print( value )
 
                 if None != value:
+
+                    if parameter.type.is_enumeration:
+                        value = self.getNameFromValue( parameter.type.enums, int(value) )
+
                     componentAsStr = "%s: %s\n" % ( parameter.name, value )
                     dataAsString += currentIndentAsStr + componentAsStr
 
             else:
 
-                print( isArray, isBasicType )
-                print( child_dataObjectCoords )
-                print( value )
-
                 for child in child_fields:
+
+                    child_dataObjectCoords = deepcopy( dataObjectCoords )
+                    child_dataObjectCoords.append( child.index )
+
+                    print( isArray, isBasicType )
+                    print( child_dataObjectCoords )
 
                     dataAsString += self.walkParameter( unit, function, child, testcase, \
                                                         child_dataObjectCoords, currentIndent+1, "" )
@@ -419,6 +425,15 @@ class DataAPI_Wrapper( object ):
             value = None
 
         return value
+
+
+    def getNameFromValue( self, enums, value ):
+
+        for enumItem in enums:
+            if enumItem.value == value:
+                return enumItem.name
+
+        return str(value)
 
 
 
