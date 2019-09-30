@@ -355,7 +355,7 @@ class DataAPI_Wrapper( object ):
                 else:
 
                     elementAsStr = "[%s]\n" % str(arrayIdx)
-                    dataAsString += childIndentAsStr + elementAsStr
+                    childDataAsString = ""
 
                     for child in child_fields:
 
@@ -367,8 +367,12 @@ class DataAPI_Wrapper( object ):
                         print( isArray, isBasicType )
                         print( child_dataObjectCoords )
 
-                        dataAsString += self.walkParameter( unit, function, child, testcase, \
-                                                            child_dataObjectCoords, currentIndent+2, "" )
+                        childDataAsString += self.walkParameter( unit, function, child, testcase, \
+                                                                 child_dataObjectCoords, currentIndent+2, "" )
+
+                    if "" != childDataAsString:
+                        dataAsString += childIndentAsStr + elementAsStr
+                        dataAsString += childDataAsString
 
         else:
 
@@ -402,25 +406,42 @@ class DataAPI_Wrapper( object ):
 
     
     def prepareInputData( self, testcase ):
+        self.prepareData( testcase, "input" )
 
-        self.inputData = {}
 
-        input = testcase.input
+    def prepareExpectedData( self, testcase ):
+        self.prepareData( testcase, "expected" )
 
-        for currentInput in input:
 
-            data_object_id = currentInput.data_object_id
-            valuesAsStr = currentInput.value
+    def prepareData( self, testcase, dataType ):
+
+        if "input" == dataType:
+            self.inputData = {}
+            container =  self.inputData = {}
+            source1 = testcase.input
+            source2 = testcase.input_user_code
+        elif "expected" == dataType:
+            self.expectedData = {}
+            container =  self.expectedData = {}
+            source1 = testcase.expected
+            source2 = testcase.expected_user_code
+        else:
+            return
+
+        for sourceData in source1:
+
+            data_object_id = sourceData.data_object_id
+            valuesAsStr = sourceData.value
 
             typeKey = "data"
 
-            if currentInput.is_allocate:
+            if sourceData.is_allocate:
                 typeKey = "allocate"
-            elif currentInput.is_control_flow:
+            elif sourceData.is_control_flow:
                 typeKey = "control_flow"
-            elif currentInput.is_csv_data:
+            elif sourceData.is_csv_data:
                 typeKey = "csv_data"
-            elif currentInput.is_exception:
+            elif sourceData.is_exception:
                 typeKey = "exception"
 
             comp = data_object_id.split( "." )
@@ -429,26 +450,65 @@ class DataAPI_Wrapper( object ):
             functionIndex = int( comp[1] )
             parameterIndex = int( comp[2] )
 
-            if not unitId in self.inputData.keys():
-                self.inputData[unitId] = {}
+            if not unitId in container.keys():
+                container[unitId] = {}
 
-            if not functionIndex in self.inputData[unitId].keys():
-                self.inputData[unitId][functionIndex] = {}
+            if not functionIndex in container[unitId].keys():
+                container[unitId][functionIndex] = {}
 
-            if not parameterIndex in self.inputData[unitId][functionIndex].keys():
-                self.inputData[unitId][functionIndex][parameterIndex] = {}
+            if not parameterIndex in container[unitId][functionIndex].keys():
+                container[unitId][functionIndex][parameterIndex] = {}
 
-            inputData = self.inputData[unitId][functionIndex][parameterIndex]
+            currentData = container[unitId][functionIndex][parameterIndex]
 
-            if not data_object_id in inputData.keys():
-                inputData[data_object_id] = {}
+            if not data_object_id in currentData.keys():
+                currentData[data_object_id] = {}
 
-            if typeKey not in inputData[data_object_id].keys():
-                inputData[data_object_id][typeKey] = valuesAsStr
+            if typeKey not in currentData[data_object_id].keys():
+                currentData[data_object_id][typeKey] = valuesAsStr
             else:
                 print( "Duplicated entry - catastrophic logic error.\n" )
                 print( data_oject_id, typeKey )
-                print( "Old value(s): %s" % inputData[data_object_id][typeKey] )
+                print( "Old value(s): %s" % currentData[data_object_id][typeKey] )
+                print( "New value(s): %s" % valuesAsStr )
+                sys.exit()
+
+        for sourceData in source2:
+
+            data_object_id = sourceData.data_object_id
+            valuesAsStr = sourceData.value
+
+            if sourceData.is_testcase_user_code:
+                typeKey = "testcase_user_code"
+            else:
+                typeKey = "parameter_user_code"
+
+            comp = data_object_id.split( "." )
+
+            unitId = int( comp[0] )
+            functionIndex = int( comp[1] )
+            parameterIndex = int( comp[2] )
+
+            if not unitId in container.keys():
+                container[unitId] = {}
+
+            if not functionIndex in container[unitId].keys():
+                container[unitId][functionIndex] = {}
+
+            if not parameterIndex in container[unitId][functionIndex].keys():
+                container[unitId][functionIndex][parameterIndex] = {}
+
+            currentData = container[unitId][functionIndex][parameterIndex]
+
+            if not data_object_id in currentData.keys():
+                currentData[data_object_id] = {}
+
+            if typeKey not in currentData[data_object_id].keys():
+                currentData[data_object_id][typeKey] = valuesAsStr
+            else:
+                print( "Duplicated entry - catastrophic logic error.\n" )
+                print( data_oject_id, typeKey )
+                print( "Old value(s): %s" % currentData[data_object_id][typeKey] )
                 print( "New value(s): %s" % valuesAsStr )
                 sys.exit()
 
@@ -507,7 +567,7 @@ if "__main__" == __name__:
 
     dataApi = DataAPI_Wrapper( "C:\Work\Training\V6.4\MinGW_WorkDir" )
     # tcData = TestCaseData( "EXAMPLE", "example", "append", "append.001", dataApi )
-    tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Add_Party_To_Waiting_List", "OneName_char", dataApi )
+    tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Add_Party_To_Waiting_List", "UserCode", dataApi )
     # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Place_Order", "FoolTheBill", dataApi )
     # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "<<COMPOUND>>", "<<COMPOUND>>", "Asterix&Obelix", dataApi )
     # tcData = TestCaseData( "IO_WRAPPER_BUBEN", "<<COMPOUND>>", "<<COMPOUND>>", "Write&Read", dataApi )
