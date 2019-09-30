@@ -263,7 +263,20 @@ class DataAPI_Wrapper( object ):
         childIndentAsStr = self.getIndentAsString( childIndent )
 
         data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
-        valuesAsStr = self.getData( dataObjectCoords, "data" )
+        valuesAsStr = self.getInputData( dataObjectCoords, "data" )
+
+        is_parameter_user_code = False
+
+        if None == valuesAsStr:
+            valuesAsStr = self.getInputData( dataObjectCoords, "parameter_user_code" )
+            if None != valuesAsStr:
+                is_parameter_user_code = True
+
+        if is_parameter_user_code:
+            parameterNameAsStr = "%s: User Code\n" % parameter.name
+            dataAsString += currentIndentAsStr + parameterNameAsStr
+            dataAsString += valuesAsStr
+            return dataAsString
 
         kind = parameter.type.kind
         element = parameter.type.element
@@ -282,7 +295,7 @@ class DataAPI_Wrapper( object ):
 
         if "ACCE_SS" == kind:
 
-            allocateAsStr = self.getData( dataObjectCoords, "allocate" )
+            allocateAsStr = self.getInputData( dataObjectCoords, "allocate" )
             if None == allocateAsStr:
                 return dataAsString
 
@@ -294,7 +307,7 @@ class DataAPI_Wrapper( object ):
 
         elif "STR_ING" == kind:
 
-            allocateAsStr = self.getData( dataObjectCoords, "allocate" )
+            allocateAsStr = self.getInputData( dataObjectCoords, "allocate" )
             if None == allocateAsStr:
                 return dataAsString
 
@@ -339,7 +352,7 @@ class DataAPI_Wrapper( object ):
 
                 if isBasicType:
 
-                    valuesAsStr = self.getData( index_dataObjectCoords, "data" )
+                    valuesAsStr = self.getInputData( index_dataObjectCoords, "data" )
 
                     print( isArray, isBasicType )
                     print( index_dataObjectCoords )
@@ -513,7 +526,7 @@ class DataAPI_Wrapper( object ):
                 sys.exit()
 
             
-    def getData( self, dataObjectCoords, typeKey ):
+    def getInputData( self, dataObjectCoords, typeKey ):
 
         try:
 
@@ -522,6 +535,23 @@ class DataAPI_Wrapper( object ):
             data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
 
             valuesAsStr = inputData[data_object_id][typeKey]
+
+        except KeyError:
+
+            valuesAsStr = None
+
+        return valuesAsStr
+
+
+    def getExpectedData( self, dataObjectCoords, typeKey ):
+
+        try:
+
+            expectedData = self.expectedData[dataObjectCoords[0]][dataObjectCoords[1]][dataObjectCoords[2]]
+
+            data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
+
+            valuesAsStr = expectedData[data_object_id][typeKey]
 
         except KeyError:
 
