@@ -292,6 +292,22 @@ class DataAPI_Wrapper( object ):
             dataAsString += currentIndentAsStr + parameterNameAsStr
             numArrayElements = int(allocateAsStr)
 
+        elif "STR_ING" == kind:
+
+            allocateAsStr = self.getData( dataObjectCoords, "allocate" )
+            if None == allocateAsStr:
+                return dataAsString
+
+            isArray = True
+
+            parameterNameAsStr = "%s: <<ACCESS %s>>\n" % ( parameter.name, allocateAsStr )
+            dataAsString += currentIndentAsStr + parameterNameAsStr
+            numArrayElements = int(allocateAsStr)
+
+            if "CHAR_ACTER" == element.kind:
+                if None != valuesAsStr:
+                    isArray = False
+
         elif "AR_RAY" == kind:
 
             isArray = True
@@ -311,7 +327,7 @@ class DataAPI_Wrapper( object ):
 
             print( element.kind )
 
-            if "ACCE_SS" == element.kind or "AR_RAY" == element.kind or "REC_ORD" == element.kind:
+            if "ACCE_SS" == element.kind or "STR_ING" == element.kind or "AR_RAY" == element.kind or "REC_ORD" == element.kind:
                 isBasicType = False
             else:
                 isBasicType = True
@@ -331,7 +347,7 @@ class DataAPI_Wrapper( object ):
 
                     if None != valuesAsStr:
 
-                        associatedNames = self.getAssociatedNames( parameter, valuesAsStr )
+                        associatedNames = self.getAssociatedNames( parameter, valuesAsStr, stringRepresent=False )
                         
                         elementAsStr = "[%s]: %s\n" % ( str(arrayIdx), ",".join( associatedNames ) )
                         dataAsString += childIndentAsStr + elementAsStr
@@ -364,7 +380,7 @@ class DataAPI_Wrapper( object ):
 
                 if None != valuesAsStr:
 
-                    associatedNames = self.getAssociatedNames( parameter, valuesAsStr )
+                    associatedNames = self.getAssociatedNames( parameter, valuesAsStr, stringRepresent=True )
 
                     componentAsStr = "%s: %s\n" % ( parameter.name, ",".join( associatedNames ) )
                     dataAsString += currentIndentAsStr + componentAsStr
@@ -454,19 +470,25 @@ class DataAPI_Wrapper( object ):
         return valuesAsStr
 
 
-    def getAssociatedNames( self, parameter, valuesAsStr ):
+    def getAssociatedNames( self, parameter, valuesAsStr, stringRepresent=True ):
+
+        print( parameter.type.kind )
 
         associatedNames = []
 
         values = valuesAsStr.split( "%" )
 
-        if parameter.type.is_enumeration:
+        if "ENUMERATION" == parameter.type.kind:
             for value in values:
                 name = self.getNameFromValue( parameter.type.enums, int(value) )
                 associatedNames.append( name )
-        else:
+        elif ( "STR_ING" == parameter.type.kind ) and ( not stringRepresent ):
             for value in values:
-                associatedNames.append( value )
+                print( int(value) )
+                name = unichr( int(value) )
+                associatedNames.append( name )
+        else:
+            associatedNames = values
 
         return associatedNames
 
@@ -484,8 +506,8 @@ class DataAPI_Wrapper( object ):
 if "__main__" == __name__:
 
     dataApi = DataAPI_Wrapper( "C:\Work\Training\V6.4\MinGW_WorkDir" )
-    tcData = TestCaseData( "EXAMPLE", "example", "append", "append.001", dataApi )
-    # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Add_Party_To_Waiting_List", "OneName_char", dataApi )
+    # tcData = TestCaseData( "EXAMPLE", "example", "append", "append.001", dataApi )
+    tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Add_Party_To_Waiting_List", "OneName_char", dataApi )
     # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Place_Order", "FoolTheBill", dataApi )
     # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "<<COMPOUND>>", "<<COMPOUND>>", "Asterix&Obelix", dataApi )
     # tcData = TestCaseData( "IO_WRAPPER_BUBEN", "<<COMPOUND>>", "<<COMPOUND>>", "Write&Read", dataApi )
