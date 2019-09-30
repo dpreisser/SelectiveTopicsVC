@@ -1,5 +1,6 @@
 
 import os
+import sys
 
 from copy import deepcopy
 
@@ -233,7 +234,7 @@ class DataAPI_Wrapper( object ):
 
         elif testcase.is_unit_test:
 
-            self.prepareData( testcase )
+            self.prepareInputData( testcase )
 
             function = testcase.function
 
@@ -262,7 +263,7 @@ class DataAPI_Wrapper( object ):
         childIndentAsStr = self.getIndentAsString( childIndent )
 
         data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
-        value = self.getData( dataObjectCoords )
+        valuesAsStr = self.getData( dataObjectCoords, "data" )
 
         kind = parameter.type.kind
         element = parameter.type.element
@@ -281,14 +282,15 @@ class DataAPI_Wrapper( object ):
 
         if "ACCE_SS" == kind:
 
-            if None == value:
+            allocateAsStr = self.getData( dataObjectCoords, "allocate" )
+            if None == allocateAsStr:
                 return dataAsString
 
             isArray = True
 
-            parameterNameAsStr = "%s: <<ACCESS %s>>\n" % ( parameter.name, value )
+            parameterNameAsStr = "%s: <<ACCESS %s>>\n" % ( parameter.name, allocateAsStr )
             dataAsString += currentIndentAsStr + parameterNameAsStr
-            numArrayElements = int(value)
+            numArrayElements = int(allocateAsStr)
 
         elif "AR_RAY" == kind:
 
@@ -321,14 +323,17 @@ class DataAPI_Wrapper( object ):
 
                 if isBasicType:
 
-                    value = self.getData( index_dataObjectCoords )
+                    valuesAsStr = self.getData( index_dataObjectCoords, "data" )
 
                     print( isArray, isBasicType )
                     print( index_dataObjectCoords )
-                    print( value )
+                    print( valuesAsStr )
 
-                    if None != value:
-                        elementAsStr = "[%s]: %s\n" % ( str(arrayIdx), value )
+                    if None != valuesAsStr:
+
+                        associatedNames = self.getAssociatedNames( parameter, valuesAsStr )
+                        
+                        elementAsStr = "[%s]: %s\n" % ( str(arrayIdx), ",".join( associatedNames ) )
                         dataAsString += childIndentAsStr + elementAsStr
                     
                 else:
@@ -355,14 +360,13 @@ class DataAPI_Wrapper( object ):
 
                 print( isArray, isBasicType )
                 print( dataObjectCoords )
-                print( value )
+                print( valuesAsStr )
 
-                if None != value:
+                if None != valuesAsStr:
 
-                    if parameter.type.is_enumeration:
-                        value = self.getNameFromValue( parameter.type.enums, int(value) )
+                    associatedNames = self.getAssociatedNames( parameter, valuesAsStr )
 
-                    componentAsStr = "%s: %s\n" % ( parameter.name, value )
+                    componentAsStr = "%s: %s\n" % ( parameter.name, ",".join( associatedNames ) )
                     dataAsString += currentIndentAsStr + componentAsStr
 
             else:
@@ -381,16 +385,29 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
     
-    def prepareData( self, testcase ):
+    def prepareInputData( self, testcase ):
+
+        self.inputData = {}
 
         input = testcase.input
 
         for currentInput in input:
 
-            data_oject_id = currentInput.data_object_id
-            value = currentInput.value
+            data_object_id = currentInput.data_object_id
+            valuesAsStr = currentInput.value
 
-            comp = data_oject_id.split( "." )
+            typeKey = "data"
+
+            if currentInput.is_allocate:
+                typeKey = "allocate"
+            elif currentInput.is_control_flow:
+                typeKey = "control_flow"
+            elif currentInput.is_csv_data:
+                typeKey = "csv_data"
+            elif currentInput.is_exception:
+                typeKey = "exception"
+
+            comp = data_object_id.split( "." )
 
             unitId = int( comp[0] )
             functionIndex = int( comp[1] )
@@ -407,10 +424,20 @@ class DataAPI_Wrapper( object ):
 
             inputData = self.inputData[unitId][functionIndex][parameterIndex]
 
-            inputData[data_oject_id] = value
+            if not data_object_id in inputData.keys():
+                inputData[data_object_id] = {}
+
+            if typeKey not in inputData[data_object_id].keys():
+                inputData[data_object_id][typeKey] = valuesAsStr
+            else:
+                print( "Duplicated entry - catastrophic logic error.\n" )
+                print( data_oject_id, typeKey )
+                print( "Old value(s): %s" % inputData[data_object_id][typeKey] )
+                print( "New value(s): %s" % valuesAsStr )
+                sys.exit()
 
             
-    def getData( self, dataObjectCoords ):
+    def getData( self, dataObjectCoords, typeKey ):
 
         try:
 
@@ -418,13 +445,30 @@ class DataAPI_Wrapper( object ):
 
             data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
 
-            value = inputData[data_object_id]
+            valuesAsStr = inputData[data_object_id][typeKey]
 
         except KeyError:
 
-            value = None
+            valuesAsStr = None
 
-        return value
+        return valuesAsStr
+
+
+    def getAssociatedNames( self, parameter, valuesAsStr ):
+
+        associatedNames = []
+
+        values = valuesAsStr.split( "%" )
+
+        if parameter.type.is_enumeration:
+            for value in values:
+                name = self.getNameFromValue( parameter.type.enums, int(value) )
+                associatedNames.append( name )
+        else:
+            for value in values:
+                associatedNames.append( value )
+
+        return associatedNames
 
 
     def getNameFromValue( self, enums, value ):
@@ -441,7 +485,7 @@ if "__main__" == __name__:
 
     dataApi = DataAPI_Wrapper( "C:\Work\Training\V6.4\MinGW_WorkDir" )
     tcData = TestCaseData( "EXAMPLE", "example", "append", "append.001", dataApi )
-    # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Add_Party_To_Waiting_List", "TwoNames", dataApi )
+    # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Add_Party_To_Waiting_List", "OneName_char", dataApi )
     # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Place_Order", "FoolTheBill", dataApi )
     # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "<<COMPOUND>>", "<<COMPOUND>>", "Asterix&Obelix", dataApi )
     # tcData = TestCaseData( "IO_WRAPPER_BUBEN", "<<COMPOUND>>", "<<COMPOUND>>", "Write&Read", dataApi )
