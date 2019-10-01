@@ -203,11 +203,6 @@ class DataAPI_Wrapper( object ):
             else:
                 unitNameAsStr = "UUT: %s\n" % unitName
 
-            dataAsString += unitIndentAsStr + unitNameAsStr
-
-            functionNameAsStr = "Subprogram: %s\n" % testcase.function_display_name
-            dataAsString += functionIndentAsStr + functionNameAsStr
-
         else:
 
             parameterIndent = currentIndent
@@ -217,6 +212,11 @@ class DataAPI_Wrapper( object ):
             slotIndentAsStr = self.getIndentAsString( slotIndent )
 
         if testcase.is_compound_test:
+
+            dataAsString += unitIndentAsStr + unitNameAsStr
+
+            functionNameAsStr = "Subprogram: %s\n" % testcase.function_display_name
+            dataAsString += functionIndentAsStr + functionNameAsStr
 
             slots = testcase.slots
             numSlots = len( slots )
@@ -237,8 +237,8 @@ class DataAPI_Wrapper( object ):
             self.prepareData( testcase, "input" )
             self.prepareData( testcase, "expected" )
 
-            dataAsString += self.getDataAsString_UserGlobalsVCAST( testcase, "input", 0 )
-            dataAsString += self.getDataAsString_parameters( testcase, 0 )
+            dataAsString += self.getDataAsString_UserGlobalsVCAST( testcase, "input", unitIndent )
+            dataAsString += self.getDataAsString_parameters( testcase, unitIndent )
 
         return dataAsString
 
@@ -247,7 +247,27 @@ class DataAPI_Wrapper( object ):
 
         dataAsString = ""
 
+        unitIndent = currentIndent
+        unitIndentAsStr = self.getIndentAsString( unitIndent )
+            
+        functionIndent = currentIndent + 1
+        functionIndentAsStr = self.getIndentAsString( functionIndent )
+
+        parameterIndent = currentIndent + 2
+        parameterIndentAsStr = self.getIndentAsString( parameterIndent )
+
+        envName = testcase.get_environment().name
+
+        unitName = testcase.unit_display_name
+        unit = self.envApi[envName].Unit.get( unitName )
+
         function = testcase.function
+
+        unitNameAsStr = "UUT: %s\n" % unit.display_name 
+        dataAsString += unitIndentAsStr + unitNameAsStr
+
+        functionNameAsStr = "Subprogram: %s\n" % testcase.function_display_name
+        dataAsString += functionIndentAsStr + functionNameAsStr
 
         parameterIndex = 1
         parameter = function.get_param_by_index( parameterIndex )
@@ -271,13 +291,13 @@ class DataAPI_Wrapper( object ):
 
         currentIndentAsStr = self.getIndentAsString( currentIndent )
 
-        unitIndent = currentIndent + 1
+        unitIndent = currentIndent
         unitIndentAsStr = self.getIndentAsString( unitIndent )
             
-        functionIndent = currentIndent + 2
+        functionIndent = currentIndent + 1
         functionIndentAsStr = self.getIndentAsString( functionIndent )
 
-        parameterIndent = currentIndent + 3
+        parameterIndent = currentIndent + 2
         parameterIndentAsStr = self.getIndentAsString( parameterIndent )
 
         if "input" == dataType:
@@ -340,7 +360,7 @@ class DataAPI_Wrapper( object ):
                 is_parameter_user_code = True
 
         if is_parameter_user_code:
-            parameterNameAsStr = "%s: User Code\n" % parameter.name
+            parameterNameAsStr = "%s: <<User Code>>\n" % parameter.name
             dataAsString += currentIndentAsStr + parameterNameAsStr
             dataAsString += valuesAsStr
             return dataAsString
@@ -694,8 +714,8 @@ class DataAPI_Wrapper( object ):
 if "__main__" == __name__:
 
     dataApi = DataAPI_Wrapper( "C:\Work\Training\V6.4\MinGW_WorkDir" )
-    # tcData = TestCaseData( "EXAMPLE", "example", "append", "append.001", dataApi )
-    tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Add_Party_To_Waiting_List", "UserCode", dataApi )
+    tcData = TestCaseData( "EXAMPLE", "example", "append", "append.001", dataApi )
+    # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Add_Party_To_Waiting_List", "UserCode", dataApi )
     # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Place_Order", "FoolTheBill", dataApi )
     # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "<<COMPOUND>>", "<<COMPOUND>>", "Asterix&Obelix", dataApi )
     # tcData = TestCaseData( "IO_WRAPPER_BUBEN", "<<COMPOUND>>", "<<COMPOUND>>", "Write&Read", dataApi )
