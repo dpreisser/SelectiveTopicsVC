@@ -234,27 +234,94 @@ class DataAPI_Wrapper( object ):
 
         elif testcase.is_unit_test:
 
-            self.prepareInputData( testcase )
+            self.prepareData( testcase, "input" )
+            self.prepareData( testcase, "expected" )
 
-            function = testcase.function
-
-            parameterIndex = 1
-            parameter = function.get_param_by_index( parameterIndex )
-
-            while None != parameter:
-
-                dataObjectCoords = [ unit.id, function.index, parameterIndex ]
-
-                dataAsString += self.walkParameter( unit, function, parameter, testcase, \
-                                                    dataObjectCoords, parameterIndent, "" )
-
-                parameterIndex += 1
-                parameter = function.get_param_by_index( parameterIndex )
+            dataAsString += self.getDataAsString_UserGlobalsVCAST( testcase, "input", 0 )
+            dataAsString += self.getDataAsString_parameters( testcase, 0 )
 
         return dataAsString
 
 
-    def walkParameter( self, unit, function, parameter, testcase, \
+    def getDataAsString_parameters( self, testcase, currentIndent ):
+
+        dataAsString = ""
+
+        function = testcase.function
+
+        parameterIndex = 1
+        parameter = function.get_param_by_index( parameterIndex )
+
+        while None != parameter:
+
+            dataObjectCoords = [ unit.id, function.index, parameterIndex ]
+
+            dataAsString += self.walkParameter( parameter, testcase, \
+                                                dataObjectCoords, parameterIndent, "" )
+
+            parameterIndex += 1
+            parameter = function.get_param_by_index( parameterIndex )
+
+        return dataAsString
+
+    
+    def getDataAsString_UserGlobalsVCAST( self, testcase, dataType, currentIndent ):
+
+        dataAsString = ""
+
+        currentIndentAsStr = self.getIndentAsString( currentIndent )
+
+        unitIndent = currentIndent + 1
+        unitIndentAsStr = self.getIndentAsString( unitIndent )
+            
+        functionIndent = currentIndent + 2
+        functionIndentAsStr = self.getIndentAsString( functionIndent )
+
+        parameterIndent = currentIndent + 3
+        parameterIndentAsStr = self.getIndentAsString( parameterIndent )
+
+        if "input" == dataType:
+            container = self.inputData
+            source = testcase.input_user_code
+        elif "expected" == dataType:
+            container = self.expectedData
+            source = testcase.expected_user_code
+
+        envName = testcase.get_environment().name
+
+        unitName = "USER_GLOBALS_VCAST"
+        unit = self.envApi[envName].Unit.get( unitName )
+
+        unitId = unit.id
+        functionIndex = 0
+
+        unitNameAsStr = "%s\n" % unit.display_name 
+        dataAsString += unitIndentAsStr + unitNameAsStr
+
+        functionNameAsStr = "<<GLOBAL>>\n"
+        dataAsString += functionIndentAsStr + functionNameAsStr
+
+        if not unitId in container.keys():
+            return dataAsString
+
+        if not functionIndex in container[unitId].keys():
+            return dataAsString
+
+        currentData = container[unitId][functionIndex]
+        
+        for globalVarIndex in currentData.keys():
+
+            dataObjectCoords = [ unitId, functionIndex, globalVarIndex ]
+
+            globalVar = self.getGlobalVarByIndex( testcase, unitId, globalVarIndex )
+
+            dataAsString += self.walkParameter( globalVar, testcase, \
+                                                dataObjectCoords, parameterIndent, "" )
+
+        return dataAsString
+
+
+    def walkParameter( self, parameter, testcase, \
                        dataObjectCoords, currentIndent, dataAsString ):
 
         currentIndentAsStr = self.getIndentAsString( currentIndent )
@@ -380,7 +447,7 @@ class DataAPI_Wrapper( object ):
                         print( isArray, isBasicType )
                         print( child_dataObjectCoords )
 
-                        childDataAsString += self.walkParameter( unit, function, child, testcase, \
+                        childDataAsString += self.walkParameter( child, testcase, \
                                                                  child_dataObjectCoords, currentIndent+2, "" )
 
                     if "" != childDataAsString:
@@ -412,18 +479,10 @@ class DataAPI_Wrapper( object ):
                     print( isArray, isBasicType )
                     print( child_dataObjectCoords )
 
-                    dataAsString += self.walkParameter( unit, function, child, testcase, \
+                    dataAsString += self.walkParameter( child, testcase, \
                                                         child_dataObjectCoords, currentIndent+1, "" )
 
         return dataAsString
-
-    
-    def prepareInputData( self, testcase ):
-        self.prepareData( testcase, "input" )
-
-
-    def prepareExpectedData( self, testcase ):
-        self.prepareData( testcase, "expected" )
 
 
     def prepareData( self, testcase, dataType ):
@@ -443,9 +502,6 @@ class DataAPI_Wrapper( object ):
 
         for sourceData in source1:
 
-            data_object_id = sourceData.data_object_id
-            valuesAsStr = sourceData.value
-
             typeKey = "data"
 
             if sourceData.is_allocate:
@@ -456,6 +512,9 @@ class DataAPI_Wrapper( object ):
                 typeKey = "csv_data"
             elif sourceData.is_exception:
                 typeKey = "exception"
+
+            data_object_id = sourceData.data_object_id
+            valuesAsStr = sourceData.value                
 
             comp = data_object_id.split( "." )
 
@@ -488,13 +547,13 @@ class DataAPI_Wrapper( object ):
 
         for sourceData in source2:
 
+            if not sourceData.is_testcase_user_code:
+                typeKey = "parameter_user_code"
+            else:
+                continue
+
             data_object_id = sourceData.data_object_id
             valuesAsStr = sourceData.value
-
-            if sourceData.is_testcase_user_code:
-                typeKey = "testcase_user_code"
-            else:
-                typeKey = "parameter_user_code"
 
             comp = data_object_id.split( "." )
 
@@ -524,6 +583,25 @@ class DataAPI_Wrapper( object ):
                 print( "Old value(s): %s" % currentData[data_object_id][typeKey] )
                 print( "New value(s): %s" % valuesAsStr )
                 sys.exit()
+
+
+    def getTestcaseUserCode( self, testcase, dataType ):
+
+        dataAsString = ""
+
+        if "input" == dataType:
+            container = self.inputData
+            source = testcase.input_user_code
+        elif "expected" == dataType:
+            container = self.expectedData
+            source = testcase.expected_user_code
+
+        for sourceData in source:
+
+            if sourceData.is_testcase_user_code:
+                dataAsString += sourceData.value + "\n"
+
+        return dataAsString
 
             
     def getInputData( self, dataObjectCoords, typeKey ):
@@ -558,6 +636,26 @@ class DataAPI_Wrapper( object ):
             valuesAsStr = None
 
         return valuesAsStr
+
+
+    def getGlobalVarByIndex( self, testcase, unitId, globalVarIndex ):
+
+        envName = testcase.get_environment().name
+        api = self.envApi[envName]
+
+        globalVarId = 1
+        globalVar = api.Global.get( globalVarId )
+
+        while( None != globalVar ):
+
+            if globalVar.unit_id == unitId:
+                if globalVar.index == globalVarIndex:
+                    return globalVar
+
+            globalVarId += 1
+            globalVar = api.Global.get( globalVarId )
+
+        return None
 
 
     def getAssociatedNames( self, parameter, valuesAsStr, stringRepresent=True ):
