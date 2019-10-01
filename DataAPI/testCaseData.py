@@ -40,8 +40,7 @@ class TestCaseData( object ):
 
         self.inputDataAsString = ""
 
-        self.inputDataAsString = self.dataApi.getDataAsString( testcase.input_tree, \
-                                                               self.inputDataAsString )
+        self.inputDataAsString = self.dataApi.getDataAsString( testcase.input_tree )
 
     def buildInputDataAsString_explicit( self ):
 
@@ -50,8 +49,7 @@ class TestCaseData( object ):
 
         self.inputDataAsString = ""
 
-        self.inputDataAsString = self.dataApi.getDataAsString_explicit( testcase, 0, \
-                                                                        self.inputDataAsString )
+        self.inputDataAsString = self.dataApi.getDataAsString_explicit( testcase, "input", 0 )
 
     def getInputDataAsString( self ):
 
@@ -69,13 +67,23 @@ class TestCaseData( object ):
 
         self.expectedDataAsString = ""
 
-        self.expectedDataAsString = self.dataApi.getDataAsString( testcase.expected_tree, \
-                                                                  self.expectedDataAsString )
+        self.expectedDataAsString = self.dataApi.getDataAsString( testcase.expected_tree )
+
+
+    def buildExpectedDataAsString_explicit( self ):
+
+        testcase = self.dataApi.getTestcase( self.envName, self.unitName, \
+                                             self.functionName, self.tcName )
+
+        self.expectedDataAsString = ""
+
+        self.expectedDataAsString = self.dataApi.getDataAsString_explicit( testcase, "expected", 0 )
 
     def getExpectedDataAsString( self ):
 
         if None == self.expectedDataAsString:
-            self.buildExpectedDataAsString()
+            # self.buildExpectedDataAsString()
+            self.buildInputDataAsString_explicit()
 
         return self.expectedDataAsString
 
@@ -133,7 +141,9 @@ class DataAPI_Wrapper( object ):
         return self.indentUnit * numIndentUnits
 
         
-    def getDataAsString( self, tree, dataAsString ):
+    def getDataAsString( self, tree ):
+
+        dataAsString = ""
 
         currentIndent = int( tree["indent"] )
         currentIndentAsStr = self.getIndentAsString( currentIndent ) 
@@ -158,7 +168,14 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
 
-    def getDataAsString_explicit( self, testcase, currentIndent, dataAsString ):
+    def getDataAsString_explicit( self, testcase, dataType, currentIndent ):
+
+        dataAsString = ""
+
+        if "input" == dataType:
+            dataTypeAsStr = "Input data"
+        elif "expected" == dataType:
+            dataTypeAsStr = "Expected data"
 
         envName = testcase.get_environment().name
 
@@ -170,29 +187,29 @@ class DataAPI_Wrapper( object ):
             tcIndent = currentIndent
             tcIndentAsStr = self.getIndentAsString( tcIndent )
 
-            envIndent = currentIndent
+            envIndent = currentIndent + 1
             envIndentAsStr = self.getIndentAsString( envIndent )
 
-            unitIndent = currentIndent + 1
+            unitIndent = currentIndent + 2
             unitIndentAsStr = self.getIndentAsString( unitIndent )
             
-            functionIndent = currentIndent + 2
+            functionIndent = currentIndent + 3
             functionIndentAsStr = self.getIndentAsString( functionIndent )
 
-            parameterIndent = currentIndent + 3
+            parameterIndent = currentIndent + 4
             parameterIndentAsStr = self.getIndentAsString( parameterIndent )
 
-            slotIndent = currentIndent + 3
+            slotIndent = currentIndent + 4
             slotIndentAsStr = self.getIndentAsString( slotIndent )
 
             if testcase.is_compound_test:
 
-                tcNameAsStr = testcase.name + " " + "(Compound)" + ":\n"
+                tcNameAsStr = "%s (Compound): %s:\n" %( testcase.name, dataTypeAsStr )
                 dataAsString += tcIndentAsStr + tcNameAsStr
 
             elif testcase.is_unit_test:
 
-                tcNameAsStr = testcase.name + " " + "(Unit)" + ":\n"
+                tcNameAsStr = "%s (Unit): %s:\n" %( testcase.name, dataTypeAsStr )
                 dataAsString += tcIndentAsStr + tcNameAsStr
 
             envNameAsStr = "Environment: %s\n" % envName
@@ -234,16 +251,15 @@ class DataAPI_Wrapper( object ):
 
         elif testcase.is_unit_test:
 
-            self.prepareData( testcase, "input" )
-            self.prepareData( testcase, "expected" )
+            self.prepareData( testcase, dataType )
 
-            dataAsString += self.getDataAsString_UserGlobalsVCAST( testcase, "input", unitIndent )
-            dataAsString += self.getDataAsString_parameters( testcase, unitIndent )
+            dataAsString += self.getDataAsString_globals( testcase, dataType, unitIndent )
+            dataAsString += self.getDataAsString_parameters( testcase, dataType, unitIndent )
 
         return dataAsString
 
 
-    def getDataAsString_parameters( self, testcase, currentIndent ):
+    def getDataAsString_parameters( self, testcase, dataType, currentIndent ):
 
         dataAsString = ""
 
@@ -276,7 +292,7 @@ class DataAPI_Wrapper( object ):
 
             dataObjectCoords = [ unit.id, function.index, parameterIndex ]
 
-            dataAsString += self.walkParameter( parameter, testcase, \
+            dataAsString += self.walkParameter( parameter, testcase, dataType, \
                                                 dataObjectCoords, parameterIndent, "" )
 
             parameterIndex += 1
@@ -284,8 +300,21 @@ class DataAPI_Wrapper( object ):
 
         return dataAsString
 
+
+    def getDataAsString_globals( self, testcase, dataType, currentIndent ):
+
+        dataAsString = ""
+
+        envName = testcase.get_environment().name
+        units = self.envApi[envName].Unit.all( )
+
+        for unit in units:
+            dataAsString += self.getDataAsString_globalsInUnit( unit, testcase, dataType, currentIndent )
+
+        return dataAsString
+
     
-    def getDataAsString_UserGlobalsVCAST( self, testcase, dataType, currentIndent ):
+    def getDataAsString_globalsInUnit( self, unit, testcase, dataType, currentIndent ):
 
         dataAsString = ""
 
@@ -306,11 +335,6 @@ class DataAPI_Wrapper( object ):
         elif "expected" == dataType:
             container = self.expectedData
             source = testcase.expected_user_code
-
-        envName = testcase.get_environment().name
-
-        unitName = "USER_GLOBALS_VCAST"
-        unit = self.envApi[envName].Unit.get( unitName )
 
         unitId = unit.id
         functionIndex = 0
@@ -335,13 +359,13 @@ class DataAPI_Wrapper( object ):
 
             globalVar = self.getGlobalVarByIndex( testcase, unitId, globalVarIndex )
 
-            dataAsString += self.walkParameter( globalVar, testcase, \
+            dataAsString += self.walkParameter( globalVar, testcase, dataType, \
                                                 dataObjectCoords, parameterIndent, "" )
 
         return dataAsString
 
 
-    def walkParameter( self, parameter, testcase, \
+    def walkParameter( self, parameter, testcase, dataType, \
                        dataObjectCoords, currentIndent, dataAsString ):
 
         currentIndentAsStr = self.getIndentAsString( currentIndent )
@@ -350,12 +374,18 @@ class DataAPI_Wrapper( object ):
         childIndentAsStr = self.getIndentAsString( childIndent )
 
         data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
-        valuesAsStr = self.getInputData( dataObjectCoords, "data" )
+        valuesAsStr = self.getData( dataType, dataObjectCoords, "data" )
+
+        kind = parameter.type.kind
+        element = parameter.type.element
+
+        print( data_object_id )
+        print( kind )
 
         is_parameter_user_code = False
 
         if None == valuesAsStr:
-            valuesAsStr = self.getInputData( dataObjectCoords, "parameter_user_code" )
+            valuesAsStr = self.getData( dataType, dataObjectCoords, "parameter_user_code" )
             if None != valuesAsStr:
                 is_parameter_user_code = True
 
@@ -364,12 +394,6 @@ class DataAPI_Wrapper( object ):
             dataAsString += currentIndentAsStr + parameterNameAsStr
             dataAsString += valuesAsStr
             return dataAsString
-
-        kind = parameter.type.kind
-        element = parameter.type.element
-
-        print( data_object_id )
-        print( kind )
 
         child_fields = []
 
@@ -382,7 +406,7 @@ class DataAPI_Wrapper( object ):
 
         if "ACCE_SS" == kind:
 
-            allocateAsStr = self.getInputData( dataObjectCoords, "allocate" )
+            allocateAsStr = self.getData( dataType, dataObjectCoords, "allocate" )
             if None == allocateAsStr:
                 return dataAsString
 
@@ -394,7 +418,7 @@ class DataAPI_Wrapper( object ):
 
         elif "STR_ING" == kind:
 
-            allocateAsStr = self.getInputData( dataObjectCoords, "allocate" )
+            allocateAsStr = self.getData( dataType, dataObjectCoords, "allocate" )
             if None == allocateAsStr:
                 return dataAsString
 
@@ -439,7 +463,7 @@ class DataAPI_Wrapper( object ):
 
                 if isBasicType:
 
-                    valuesAsStr = self.getInputData( index_dataObjectCoords, "data" )
+                    valuesAsStr = self.getData( dataType, index_dataObjectCoords, "data" )
 
                     print( isArray, isBasicType )
                     print( index_dataObjectCoords )
@@ -467,7 +491,7 @@ class DataAPI_Wrapper( object ):
                         print( isArray, isBasicType )
                         print( child_dataObjectCoords )
 
-                        childDataAsString += self.walkParameter( child, testcase, \
+                        childDataAsString += self.walkParameter( child, testcase, dataType, \
                                                                  child_dataObjectCoords, currentIndent+2, "" )
 
                     if "" != childDataAsString:
@@ -499,7 +523,7 @@ class DataAPI_Wrapper( object ):
                     print( isArray, isBasicType )
                     print( child_dataObjectCoords )
 
-                    dataAsString += self.walkParameter( child, testcase, \
+                    dataAsString += self.walkParameter( child, testcase, dataType, \
                                                         child_dataObjectCoords, currentIndent+1, "" )
 
         return dataAsString
@@ -624,32 +648,22 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
             
-    def getInputData( self, dataObjectCoords, typeKey ):
+    def getData( self, dataType, dataObjectCoords, typeKey ):
+
+        if "input" == dataType:
+            container = self.inputData
+        elif "expected" == dataType:
+            container = self.expectedData
+        else:
+            return None
 
         try:
 
-            inputData = self.inputData[dataObjectCoords[0]][dataObjectCoords[1]][dataObjectCoords[2]]
+            currentData = container[dataObjectCoords[0]][dataObjectCoords[1]][dataObjectCoords[2]]
 
             data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
 
-            valuesAsStr = inputData[data_object_id][typeKey]
-
-        except KeyError:
-
-            valuesAsStr = None
-
-        return valuesAsStr
-
-
-    def getExpectedData( self, dataObjectCoords, typeKey ):
-
-        try:
-
-            expectedData = self.expectedData[dataObjectCoords[0]][dataObjectCoords[1]][dataObjectCoords[2]]
-
-            data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
-
-            valuesAsStr = expectedData[data_object_id][typeKey]
+            valuesAsStr = currentData[data_object_id][typeKey]
 
         except KeyError:
 
