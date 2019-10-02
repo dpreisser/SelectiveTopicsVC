@@ -297,7 +297,7 @@ class DataAPI_Wrapper( object ):
             dataObjectCoords = [ unit.id, function.index, parameterIndex ]
 
             dataAsString += self.walkParameter( parameter, testcase, dataType, \
-                                                dataObjectCoords, parameterIndent, "" )
+                                                dataObjectCoords, parameterIndent )
 
             parameterIndex += 1
             parameter = function.get_param_by_index( parameterIndex )
@@ -364,18 +364,20 @@ class DataAPI_Wrapper( object ):
             globalVar = self.getGlobalVarByIndex( testcase, unitId, globalVarIndex )
 
             dataAsString += self.walkParameter( globalVar, testcase, dataType, \
-                                                dataObjectCoords, parameterIndent, "" )
+                                                dataObjectCoords, parameterIndent )
 
         return dataAsString
 
 
     def walkParameter( self, parameter, testcase, dataType, \
-                       dataObjectCoords, currentIndent, dataAsString ):
+                       dataObjectCoords, currentIndent ):
+
+        dataAsString = ""
 
         currentIndentAsStr = self.getIndentAsString( currentIndent )
 
-        childIndent = currentIndent + 1
-        childIndentAsStr = self.getIndentAsString( childIndent )
+        indexIndent = currentIndent + 1
+        indexIndentAsStr = self.getIndentAsString( indexIndent )
 
         data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
         valuesAsStr = self.getData( dataType, dataObjectCoords, "data" )
@@ -418,20 +420,21 @@ class DataAPI_Wrapper( object ):
                 if None == allocateAsStr:
                     return dataAsString
 
-                parameterNameAsStr = "%s: <<ACCESS %s>>\n" % ( parameter.name, allocateAsStr )
-                dataAsString += currentIndentAsStr + parameterNameAsStr
+                parameterNameAsStr = "%s: <<ALLOCATE %s>>\n" % ( parameter.name, allocateAsStr )
+
+            else:
+
+                parameterNameAsStr = "%s: <<ACCESS>>\n" % parameter.name
 
         elif "STR_ING" == kind:
+
+            isArray = True
 
             allocateAsStr = self.getData( dataType, dataObjectCoords, "allocate" )
             if None == allocateAsStr:
                 return dataAsString
 
-            isArray = True
-
-            parameterNameAsStr = "%s: <<ACCESS %s>>\n" % ( parameter.name, allocateAsStr )
-            dataAsString += currentIndentAsStr + parameterNameAsStr
-            numArrayElements = int(allocateAsStr)
+            parameterNameAsStr = "%s: <<ALLOCATE %s>>\n" % ( parameter.name, allocateAsStr )
 
             if "CHAR_ACTER" == element.kind:
                 if None != valuesAsStr:
@@ -445,8 +448,6 @@ class DataAPI_Wrapper( object ):
             size = size.split( "%" )[0]
 
             parameterNameAsStr = "%s: <<Size %s>>\n" % ( parameter.name, size )
-            dataAsString += currentIndentAsStr + parameterNameAsStr
-            numArrayElements = int(size)
 
         elif "REC_ORD" == kind:
 
@@ -461,13 +462,15 @@ class DataAPI_Wrapper( object ):
             else:
                 isBasicType = True
 
-            childIndices = self.getDataObjectCoords_childIndices( dataType, dataObjectCoords )
-            print( childIndices )
+            arrayIndices = self.getDataObjectCoords_arrayIndices( dataType, dataObjectCoords )
+            print( arrayIndices )
 
-            for childIndex in childIndices:
+            arrayDataAsStr = ""
+
+            for arrayIndex in arrayIndices:
 
                 index_dataObjectCoords = deepcopy( dataObjectCoords )
-                index_dataObjectCoords.append( childIndex )
+                index_dataObjectCoords.append( arrayIndex )
 
                 if isBasicType:
 
@@ -481,12 +484,12 @@ class DataAPI_Wrapper( object ):
 
                         associatedNames = self.getAssociatedNames( parameter, valuesAsStr, stringRepresent=False )
                         
-                        elementAsStr = "%s[%s]: %s\n" % ( parameter.name, str(childIndex), ",".join( associatedNames ) )
-                        dataAsString += childIndentAsStr + elementAsStr
+                        indexDataAsStr = "%s[%s]: %s\n" % ( parameter.name, str(arrayIndex), ",".join( associatedNames ) )
+                        arrayDataAsStr += indexIndentAsStr + indexDataAsStr
                     
                 else:
 
-                    elementAsStr = "%s[%s]\n" % ( parameter.name, str(childIndex) )
+                    indexDataAsStr = "%s[%s]\n" % ( parameter.name, str(arrayIndex) )
                     childDataAsString = ""
 
                     for child in child_fields:
@@ -500,11 +503,15 @@ class DataAPI_Wrapper( object ):
                         print( child_dataObjectCoords )
 
                         childDataAsString += self.walkParameter( child, testcase, dataType, \
-                                                                 child_dataObjectCoords, currentIndent+2, "" )
+                                                                 child_dataObjectCoords, currentIndent+2 )
 
                     if "" != childDataAsString:
-                        dataAsString += childIndentAsStr + elementAsStr
-                        dataAsString += childDataAsString
+                        arrayDataAsStr += indexIndentAsStr + indexDataAsStr
+                        arrayDataAsStr += childDataAsString
+
+            if "" != arrayDataAsStr:
+                dataAsString += currentIndentAsStr + parameterNameAsStr
+                dataAsString += arrayDataAsStr
 
         else:
 
@@ -518,10 +525,12 @@ class DataAPI_Wrapper( object ):
 
                     associatedNames = self.getAssociatedNames( parameter, valuesAsStr, stringRepresent=True )
 
-                    componentAsStr = "%s: %s\n" % ( parameter.name, ",".join( associatedNames ) )
-                    dataAsString += currentIndentAsStr + componentAsStr
+                    parameterDataAsStr = "%s: %s\n" % ( parameter.name, ",".join( associatedNames ) )
+                    dataAsString += currentIndentAsStr + parameterDataAsStr
 
             else:
+
+                childDataAsStr = ""
 
                 for child in child_fields:
 
@@ -531,8 +540,12 @@ class DataAPI_Wrapper( object ):
                     print( isArray, isBasicType )
                     print( child_dataObjectCoords )
 
-                    dataAsString += self.walkParameter( child, testcase, dataType, \
-                                                        child_dataObjectCoords, currentIndent+1, "" )
+                    childDataAsString += self.walkParameter( child, testcase, dataType, \
+                                                             child_dataObjectCoords, currentIndent+1 )
+
+                if "" != childDataAsStr:
+                    # dataAsString += currentIndentAsStr + parameterNameAsStr
+                    dataAsString += childDataAsString
 
         return dataAsString
 
@@ -656,25 +669,25 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
 
-    def getDataObjectCoords_childIndices( self, dataType, dataObjectCoords ):
+    def getDataObjectCoords_arrayIndices( self, dataType, dataObjectCoords ):
 
-        childIndices = []
+        arrayIndices = []
 
         if "input" == dataType:
             container = self.inputData
         elif "expected" == dataType:
             container = self.expectedData
         else:
-            return childIndices
+            return arrayIndices
 
         if not dataObjectCoords[0] in container.keys():
-            return childIndices
+            return arrayIndices
 
         if not dataObjectCoords[1] in container[dataObjectCoords[0]].keys():
-            return childIndices
+            return arrayIndices
 
         if not dataObjectCoords[2] in container[dataObjectCoords[0]][dataObjectCoords[1]].keys():
-            return childIndices
+            return arrayIndices
 
         currentData = container[dataObjectCoords[0]][dataObjectCoords[1]][dataObjectCoords[2]]
 
@@ -687,12 +700,12 @@ class DataAPI_Wrapper( object ):
 
             if numCurrentObjectCoords > numDataObjectCoords:
 
-                childIndex = int( currrentObjectCoords[numDataObjectCoords] )
+                arrayIndex = int( currrentObjectCoords[numDataObjectCoords] )
 
-                if not childIndex in childIndices:
-                    childIndices.append( childIndex )
+                if not arrayIndex in arrayIndices:
+                    arrayIndices.append( arrayIndex )
 
-        return childIndices
+        return arrayIndices
 
             
     def getData( self, dataType, dataObjectCoords, typeKey ):
@@ -793,5 +806,5 @@ if "__main__" == __name__:
     # tcData = TestCaseData( "ADVANCED", "advanced_stubbing", "temp_monitor", "Celsius_Stub", dataApi )
     print( tcData )
 
-    print( tcData.getInputDataAsString() )
-    # print( tcData.getExpectedDataAsString() )
+    # print( tcData.getInputDataAsString() )
+    print( tcData.getExpectedDataAsString() )
