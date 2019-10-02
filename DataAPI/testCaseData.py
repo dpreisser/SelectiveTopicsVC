@@ -258,6 +258,7 @@ class DataAPI_Wrapper( object ):
             print( self.expectedData )
 
             dataAsString += self.getDataAsString_globals( testcase, dataType, unitIndent )
+            dataAsString += self.getTestcaseUserCode( testcase, dataType, unitIndent )
             dataAsString += self.getDataAsString_parameters( testcase, dataType, unitIndent )
 
         return dataAsString
@@ -369,6 +370,50 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
 
+    def getTestcaseUserCode( self, testcase, dataType, currentIndent ):
+
+        currentIndentAsStr = self.getIndentAsString( currentIndent )
+
+        unitIndent = currentIndent
+        unitIndentAsStr = self.getIndentAsString( unitIndent )
+            
+        functionIndent = currentIndent + 1
+        functionIndentAsStr = self.getIndentAsString( functionIndent )
+
+        tcIndent = currentIndent + 2
+        tcIndentAsStr = self.getIndentAsString( tcIndent )
+
+        dataAsString = ""
+
+        if "input" == dataType:
+            container = self.inputData
+            source = testcase.input_user_code
+        elif "expected" == dataType:
+            container = self.expectedData
+            source = testcase.expected_user_code
+
+        envName = testcase.get_environment().name
+
+        unitName = testcase.unit_display_name
+        unit = self.envApi[envName].Unit.get( unitName )
+
+        unitNameAsStr = "UUT: %s\n" % unit.display_name 
+        dataAsString += unitIndentAsStr + unitNameAsStr
+
+        functionNameAsStr = "Subprogram: %s\n" % testcase.function_display_name
+        dataAsString += functionIndentAsStr + functionNameAsStr
+
+        tcNameAsStr = "Testcase: %s: %s\n" % ( testcase.name, "<<Testcase User Code>>" )
+        dataAsString += tcIndentAsStr + tcNameAsStr
+
+        for sourceData in source:
+
+            if sourceData.is_testcase_user_code:
+                dataAsString += sourceData.value + "\n"
+
+        return dataAsString
+
+
     def walkParameter( self, parameter, testcase, dataType, \
                        dataObjectCoords, currentIndent ):
 
@@ -385,8 +430,9 @@ class DataAPI_Wrapper( object ):
         kind = parameter.type.kind
         element = parameter.type.element
 
-        print( data_object_id )
+        print( parameter.name )
         print( kind )
+        print( data_object_id )
 
         is_parameter_user_code = False
 
@@ -406,9 +452,12 @@ class DataAPI_Wrapper( object ):
         if None != element:
             if hasattr( element, "child_fields" ):
                 child_fields = element.child_fields
+        else:
+            if hasattr( parameter.type, "child_fields" ):
+                child_fields = parameter.type.child_fields
 
-        isBasicType = True
         isArray = False
+        isBasicType = True
 
         if "ACCE_SS" == kind:
 
@@ -430,11 +479,17 @@ class DataAPI_Wrapper( object ):
 
             isArray = True
 
-            allocateAsStr = self.getData( dataType, dataObjectCoords, "allocate" )
-            if None == allocateAsStr:
-                return dataAsString
+            if "input" == dataType:
 
-            parameterNameAsStr = "%s: <<ALLOCATE %s>>\n" % ( parameter.name, allocateAsStr )
+                allocateAsStr = self.getData( dataType, dataObjectCoords, "allocate" )
+                if None == allocateAsStr:
+                    return dataAsString
+
+                parameterNameAsStr = "%s: <<ALLOCATE %s>>\n" % ( parameter.name, allocateAsStr )
+
+            else:
+
+                parameterNameAsStr = "%s: <<ACCESS>>\n" % parameter.name
 
             if "CHAR_ACTER" == element.kind:
                 if None != valuesAsStr:
@@ -453,9 +508,11 @@ class DataAPI_Wrapper( object ):
 
             isBasicType = False
 
+            parameterNameAsStr = "%s\n" % parameter.name
+
         if isArray:
 
-            print( element.kind )
+            print( "A.0", element.kind )
 
             if "ACCE_SS" == element.kind or "STR_ING" == element.kind or "AR_RAY" == element.kind or "REC_ORD" == element.kind:
                 isBasicType = False
@@ -476,9 +533,9 @@ class DataAPI_Wrapper( object ):
 
                     valuesAsStr = self.getData( dataType, index_dataObjectCoords, "data" )
 
-                    print( isArray, isBasicType )
-                    print( index_dataObjectCoords )
-                    print( valuesAsStr )
+                    print( "A.1", isArray, isBasicType )
+                    print( "A.1", index_dataObjectCoords )
+                    print( "A.1", valuesAsStr )
 
                     if None != valuesAsStr:
 
@@ -486,11 +543,11 @@ class DataAPI_Wrapper( object ):
                         
                         indexDataAsStr = "%s[%s]: %s\n" % ( parameter.name, str(arrayIndex), ",".join( associatedNames ) )
                         arrayDataAsStr += indexIndentAsStr + indexDataAsStr
-                    
+
                 else:
 
                     indexDataAsStr = "%s[%s]\n" % ( parameter.name, str(arrayIndex) )
-                    childDataAsString = ""
+                    childDataAsStr = ""
 
                     for child in child_fields:
 
@@ -499,15 +556,15 @@ class DataAPI_Wrapper( object ):
                         if "REC_ORD" == element.kind:
                             child_dataObjectCoords.append( child.index )
 
-                        print( isArray, isBasicType )
-                        print( child_dataObjectCoords )
+                        print( "A.2", isArray, isBasicType )
+                        print( "A.2", child_dataObjectCoords )
 
-                        childDataAsString += self.walkParameter( child, testcase, dataType, \
-                                                                 child_dataObjectCoords, currentIndent+2 )
+                        childDataAsStr += self.walkParameter( child, testcase, dataType, \
+                                                              child_dataObjectCoords, currentIndent+2 )
 
-                    if "" != childDataAsString:
+                    if "" != childDataAsStr:
                         arrayDataAsStr += indexIndentAsStr + indexDataAsStr
-                        arrayDataAsStr += childDataAsString
+                        arrayDataAsStr += childDataAsStr
 
             if "" != arrayDataAsStr:
                 dataAsString += currentIndentAsStr + parameterNameAsStr
@@ -517,9 +574,9 @@ class DataAPI_Wrapper( object ):
 
             if isBasicType:
 
-                print( isArray, isBasicType )
-                print( dataObjectCoords )
-                print( valuesAsStr )
+                print( "B.1", isArray, isBasicType )
+                print( "B.1", dataObjectCoords )
+                print( "B.1", valuesAsStr )
 
                 if None != valuesAsStr:
 
@@ -537,15 +594,15 @@ class DataAPI_Wrapper( object ):
                     child_dataObjectCoords = deepcopy( dataObjectCoords )
                     child_dataObjectCoords.append( child.index )
 
-                    print( isArray, isBasicType )
-                    print( child_dataObjectCoords )
+                    print( "B.2", isArray, isBasicType )
+                    print( "B.2", child_dataObjectCoords )
 
-                    childDataAsString += self.walkParameter( child, testcase, dataType, \
-                                                             child_dataObjectCoords, currentIndent+1 )
+                    childDataAsStr += self.walkParameter( child, testcase, dataType, \
+                                                          child_dataObjectCoords, currentIndent+1 )
 
                 if "" != childDataAsStr:
-                    # dataAsString += currentIndentAsStr + parameterNameAsStr
-                    dataAsString += childDataAsString
+                    dataAsString += currentIndentAsStr + parameterNameAsStr
+                    dataAsString += childDataAsStr
 
         return dataAsString
 
@@ -648,25 +705,6 @@ class DataAPI_Wrapper( object ):
                 print( "Old value(s): %s" % currentData[data_object_id][typeKey] )
                 print( "New value(s): %s" % valuesAsStr )
                 sys.exit()
-
-
-    def getTestcaseUserCode( self, testcase, dataType ):
-
-        dataAsString = ""
-
-        if "input" == dataType:
-            container = self.inputData
-            source = testcase.input_user_code
-        elif "expected" == dataType:
-            container = self.expectedData
-            source = testcase.expected_user_code
-
-        for sourceData in source:
-
-            if sourceData.is_testcase_user_code:
-                dataAsString += sourceData.value + "\n"
-
-        return dataAsString
 
 
     def getDataObjectCoords_arrayIndices( self, dataType, dataObjectCoords ):
@@ -806,5 +844,5 @@ if "__main__" == __name__:
     # tcData = TestCaseData( "ADVANCED", "advanced_stubbing", "temp_monitor", "Celsius_Stub", dataApi )
     print( tcData )
 
-    # print( tcData.getInputDataAsString() )
-    print( tcData.getExpectedDataAsString() )
+    print( tcData.getInputDataAsString() )
+    # print( tcData.getExpectedDataAsString() )
