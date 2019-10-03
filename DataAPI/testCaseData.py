@@ -7,6 +7,23 @@ from copy import deepcopy
 from vector.apps.DataAPI.api import Api
 
 
+DEBUG = False
+
+
+def trace( str1, str2, newLine=False):
+
+    global DEBUG
+
+    if not DEBUG:
+        return
+
+    if newLine:
+        print( str1 )
+        print( str2 )
+    else:
+        print( str1 + " " + str2 )
+
+
 class TestCaseData( object ):
 
     def __init__( self, envName, unitName, functionName, tcName, dataApi ):
@@ -257,8 +274,8 @@ class DataAPI_Wrapper( object ):
 
             self.prepareData( testcase, dataType )
 
-            print( self.inputData )
-            print( self.expectedData )
+            trace( "Input Data:", self.inputData, newLine=True )
+            trace( "Expected Data:", self.expectedData, newLine=True )
 
             dataAsString += self.getDataAsString_globals( testcase, dataType, unitIndent )
             dataAsString += self.getTestcaseUserCode( testcase, dataType, unitIndent )
@@ -435,9 +452,9 @@ class DataAPI_Wrapper( object ):
         kind = parameter.type.kind
         element = parameter.type.element
 
-        print( parameter.name )
-        print( kind )
-        print( data_object_id )
+        trace( "Parameter name:", parameter.name )
+        trace( "Type kind:", kind )
+        trace( "data_object_id:", data_object_id )
 
         is_parameter_user_code = False
 
@@ -518,7 +535,7 @@ class DataAPI_Wrapper( object ):
 
         if isArray:
 
-            print( "A.0", element.kind )
+            trace( "Array: element kind:", element.kind )
 
             if "ACCE_SS" == element.kind or "STR_ING" == element.kind or "AR_RAY" == element.kind or "REC_ORD" == element.kind:
                 isBasicType = False
@@ -526,7 +543,7 @@ class DataAPI_Wrapper( object ):
                 isBasicType = True
 
             arrayIndices = self.getDataObjectCoords_arrayIndices( dataType, dataObjectCoords )
-            print( arrayIndices )
+            trace( "Array: arrayIndices:", str(arrayIndices) )
 
             arrayDataAsStr = ""
 
@@ -539,9 +556,8 @@ class DataAPI_Wrapper( object ):
 
                     valuesAsStr = self.getData( dataType, index_dataObjectCoords, "data" )
 
-                    print( "A.1", isArray, isBasicType )
-                    print( "A.1", index_dataObjectCoords )
-                    print( "A.1", valuesAsStr )
+                    trace( "Array: Basic Type: index_dataObjectCoords:", str(index_dataObjectCoords) )
+                    trace( "Array: Basic Type: valuesAsStr:", str(valuesAsStr) )
 
                     if None != valuesAsStr:
 
@@ -562,8 +578,7 @@ class DataAPI_Wrapper( object ):
                         if "REC_ORD" == element.kind:
                             child_dataObjectCoords.append( child.index )
 
-                        print( "A.2", isArray, isBasicType )
-                        print( "A.2", child_dataObjectCoords )
+                        trace( "Array: None Basic Type: child_dataObjectCoords:", str(child_dataObjectCoords) )
 
                         childDataAsStr += self.walkParameter( child, testcase, dataType, \
                                                               child_dataObjectCoords, currentIndent+2 )
@@ -580,9 +595,8 @@ class DataAPI_Wrapper( object ):
 
             if isBasicType:
 
-                print( "B.1", isArray, isBasicType )
-                print( "B.1", dataObjectCoords )
-                print( "B.1", valuesAsStr )
+                trace( "Basic Type: dataObjectCoords:", str(dataObjectCoords) )
+                trace( "Basic Type: valuesAsStr:", str(valuesAsStr) )
 
                 if None != valuesAsStr:
 
@@ -600,8 +614,7 @@ class DataAPI_Wrapper( object ):
                     child_dataObjectCoords = deepcopy( dataObjectCoords )
                     child_dataObjectCoords.append( child.index )
 
-                    print( "B.2", isArray, isBasicType )
-                    print( "B.2", child_dataObjectCoords )
+                    trace( "None Basic Type: child_dataObjectCoords:", str(child_dataObjectCoords) )
 
                     childDataAsStr += self.walkParameter( child, testcase, dataType, \
                                                           child_dataObjectCoords, currentIndent+1 )
@@ -799,8 +812,6 @@ class DataAPI_Wrapper( object ):
 
 
     def getAssociatedNames( self, parameter, valuesAsStr, stringRepresent=True ):
-
-        print( parameter.type.kind )
 
         associatedNames = []
 
