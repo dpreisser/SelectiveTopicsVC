@@ -6,6 +6,7 @@ from copy import deepcopy
 
 from vector.apps.DataAPI.api import Api
 
+
 class TestCaseData( object ):
 
     def __init__( self, envName, unitName, functionName, tcName, dataApi ):
@@ -42,6 +43,7 @@ class TestCaseData( object ):
 
         self.inputDataAsString = self.dataApi.getDataAsString( testcase.input_tree )
 
+
     def buildInputDataAsString_explicit( self ):
 
         testcase = self.dataApi.getTestcase( self.envName, self.unitName, \
@@ -50,6 +52,7 @@ class TestCaseData( object ):
         self.inputDataAsString = ""
 
         self.inputDataAsString = self.dataApi.getDataAsString_explicit( testcase, "input", 0 )
+
 
     def getInputDataAsString( self ):
 
@@ -284,7 +287,7 @@ class DataAPI_Wrapper( object ):
 
         function = testcase.function
 
-        unitNameAsStr = "UUT: %s\n" % unit.display_name 
+        unitNameAsStr = "UUT: %s\n" % unitName
         dataAsString += unitIndentAsStr + unitNameAsStr
 
         functionNameAsStr = "Subprogram: %s\n" % testcase.function_display_name
@@ -344,7 +347,11 @@ class DataAPI_Wrapper( object ):
         unitId = unit.id
         functionIndex = 0
 
-        unitNameAsStr = "%s\n" % unit.display_name 
+        if "USER_GLOBALS_VCAST" == unit.name or "uut_prototype_stubs" == unit.name:
+            unitNameAsStr = "%s\n" % unit.name
+        else:
+            unitNameAsStr = "UUT: %s\n" % unit.name
+
         dataAsString += unitIndentAsStr + unitNameAsStr
 
         functionNameAsStr = "<<GLOBAL>>\n"
@@ -394,10 +401,7 @@ class DataAPI_Wrapper( object ):
 
         envName = testcase.get_environment().name
 
-        unitName = testcase.unit_display_name
-        unit = self.envApi[envName].Unit.get( unitName )
-
-        unitNameAsStr = "UUT: %s\n" % unit.display_name 
+        unitNameAsStr = "UUT: %s\n" % testcase.unit_display_name 
         dataAsString += unitIndentAsStr + unitNameAsStr
 
         functionNameAsStr = "Subprogram: %s\n" % testcase.function_display_name
@@ -409,7 +413,8 @@ class DataAPI_Wrapper( object ):
         for sourceData in source:
 
             if sourceData.is_testcase_user_code:
-                dataAsString += sourceData.value + "\n"
+                formattedUserCode= self.formatUserCode( sourceData.value, tcIndent+1 )
+                dataAsString += formattedUserCode
 
         return dataAsString
 
@@ -443,8 +448,9 @@ class DataAPI_Wrapper( object ):
 
         if is_parameter_user_code:
             parameterNameAsStr = "%s: <<User Code>>\n" % parameter.name
+            formattedUserCode = self.formatUserCode( valuesAsStr, currentIndent+1 )
             dataAsString += currentIndentAsStr + parameterNameAsStr
-            dataAsString += valuesAsStr
+            dataAsString += formattedUserCode
             return dataAsString
 
         child_fields = []
@@ -743,6 +749,8 @@ class DataAPI_Wrapper( object ):
                 if not arrayIndex in arrayIndices:
                     arrayIndices.append( arrayIndex )
 
+        arrayIndices = sorted( arrayIndices )
+
         return arrayIndices
 
             
@@ -801,7 +809,7 @@ class DataAPI_Wrapper( object ):
         isConvertible = True
 
         try:
-            int_value = int(values[0])
+            float_value = float( values[0] )
         except ValueError:
             isConvertible = False
 
@@ -815,7 +823,7 @@ class DataAPI_Wrapper( object ):
                 associatedNames.append( name )
         elif ( "STR_ING" == parameter.type.kind ) and ( not stringRepresent ):
             for value in values:
-                name = unichr( int(value) )
+                name = unichr( int(float(value)) )
                 associatedNames.append( name )
         else:
             associatedNames = values
@@ -831,6 +839,19 @@ class DataAPI_Wrapper( object ):
 
         return str(value)
 
+
+    def formatUserCode( self, userCode, currentIndent ):
+
+        formattedUserCode = ""
+
+        currentIndentAsStr = self.getIndentAsString( currentIndent )
+
+        lines = userCode.split( "\n" )
+
+        for line in lines:
+            formattedUserCode += currentIndentAsStr + line + "\n"
+
+        return formattedUserCode
 
 
 if "__main__" == __name__:
