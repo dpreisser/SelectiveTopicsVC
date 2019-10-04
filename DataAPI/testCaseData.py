@@ -317,8 +317,8 @@ class DataAPI_Wrapper( object ):
 
             dataObjectCoords = [ unit.id, function.index, parameterIndex ]
 
-            dataAsString += self.walkParameter( parameter, testcase, dataType, \
-                                                dataObjectCoords, parameterIndent )
+            dataAsString += self.walkType( parameter, testcase, dataType, \
+                                           dataObjectCoords, parameterIndent )
 
             parameterIndex += 1
             parameter = function.get_param_by_index( parameterIndex )
@@ -388,8 +388,8 @@ class DataAPI_Wrapper( object ):
 
             globalVar = self.getGlobalVarByIndex( testcase, unitId, globalVarIndex )
 
-            dataAsString += self.walkParameter( globalVar, testcase, dataType, \
-                                                dataObjectCoords, parameterIndent )
+            dataAsString += self.walkType( globalVar, testcase, dataType, \
+                                           dataObjectCoords, parameterIndent )
 
         return dataAsString
 
@@ -436,8 +436,8 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
 
-    def walkParameter( self, parameter, testcase, dataType, \
-                       dataObjectCoords, currentIndent ):
+    def walkType( self, parameter, testcase, dataType, \
+                  dataObjectCoords, currentIndent ):
 
         dataAsString = ""
 
@@ -561,9 +561,25 @@ class DataAPI_Wrapper( object ):
 
                     if None != valuesAsStr:
 
-                        associatedNames = self.getAssociatedNames( parameter, valuesAsStr, stringRepresent=False )
+                        associatedValues = self.getAssociatedValues( parameter, valuesAsStr, stringRepresent=False )
+
+                        if "expected" == dataType:
+
+                            actuals = self.getData( dataType, index_dataObjectCoords, "actuals" )
+                            results = self.getData( dataType, index_dataObjectCoords, "results" )
+
+                            indexDataAsStr = "%s[%s]: %s --> %s (%s)\n" % ( parameter.name, \
+                                                                            str(arrayIndex), \
+                                                                            ",".join( associatedValues ), \
+                                                                            ",".join( actuals ), \
+                                                                            ",".join( results ) )
+
+                        else:
                         
-                        indexDataAsStr = "%s[%s]: %s\n" % ( parameter.name, str(arrayIndex), ",".join( associatedNames ) )
+                            indexDataAsStr = "%s[%s]: %s\n" % ( parameter.name, \
+                                                                str(arrayIndex), \
+                                                                ",".join( associatedValues ) )
+                        
                         arrayDataAsStr += indexIndentAsStr + indexDataAsStr
 
                 else:
@@ -580,8 +596,8 @@ class DataAPI_Wrapper( object ):
 
                         trace( "Array: None Basic Type: child_dataObjectCoords:", str(child_dataObjectCoords) )
 
-                        childDataAsStr += self.walkParameter( child, testcase, dataType, \
-                                                              child_dataObjectCoords, currentIndent+2 )
+                        childDataAsStr += self.walkType( child, testcase, dataType, \
+                                                         child_dataObjectCoords, currentIndent+2 )
 
                     if "" != childDataAsStr:
                         arrayDataAsStr += indexIndentAsStr + indexDataAsStr
@@ -600,9 +616,23 @@ class DataAPI_Wrapper( object ):
 
                 if None != valuesAsStr:
 
-                    associatedNames = self.getAssociatedNames( parameter, valuesAsStr, stringRepresent=True )
+                    associatedValues = self.getAssociatedValues( parameter, valuesAsStr, stringRepresent=True )
 
-                    parameterDataAsStr = "%s: %s\n" % ( parameter.name, ",".join( associatedNames ) )
+                    if "expected" == dataType:
+
+                        actuals = self.getData( dataType, dataObjectCoords, "actuals" )
+                        results = self.getData( dataType, dataObjectCoords, "results" )
+
+                        parameterDataAsStr = "%s: %s --> %s (%s)\n" % ( parameter.name, \
+                                                                        ",".join( associatedValues ), \
+                                                                        ",".join( actuals ), \
+                                                                        ",".join( results ) )
+
+                    else:
+
+                        parameterDataAsStr = "%s: %s\n" % ( parameter.name, \
+                                                            ",".join( associatedValues ) )
+                        
                     dataAsString += currentIndentAsStr + parameterDataAsStr
 
             else:
@@ -616,8 +646,8 @@ class DataAPI_Wrapper( object ):
 
                     trace( "None Basic Type: child_dataObjectCoords:", str(child_dataObjectCoords) )
 
-                    childDataAsStr += self.walkParameter( child, testcase, dataType, \
-                                                          child_dataObjectCoords, currentIndent+1 )
+                    childDataAsStr += self.walkType( child, testcase, dataType, \
+                                                     child_dataObjectCoords, currentIndent+1 )
 
                 if "" != childDataAsStr:
                     dataAsString += currentIndentAsStr + parameterNameAsStr
@@ -629,11 +659,13 @@ class DataAPI_Wrapper( object ):
     def prepareData( self, testcase, dataType ):
 
         if "input" == dataType:
+            isExpected = False
             self.inputData = {}
             container =  self.inputData = {}
             source1 = testcase.input
             source2 = testcase.input_user_code
         elif "expected" == dataType:
+            isExpected = True
             self.expectedData = {}
             container =  self.expectedData = {}
             source1 = testcase.expected
@@ -655,7 +687,17 @@ class DataAPI_Wrapper( object ):
                 typeKey = "exception"
 
             data_object_id = sourceData.data_object_id
-            valuesAsStr = sourceData.value                
+            valuesAsStr = sourceData.value
+
+            if isExpected:
+                actuals = []
+                results = []
+                for result in sourceData.results:
+                    actuals.append( result.value )
+                    if 1 == result.match:
+                        results.append( "PASS" )
+                    else:
+                        results.append( "FAIL" )
 
             comp = data_object_id.split( "." )
 
@@ -678,8 +720,15 @@ class DataAPI_Wrapper( object ):
                 currentData[data_object_id] = {}
 
             if typeKey not in currentData[data_object_id].keys():
+
                 currentData[data_object_id][typeKey] = valuesAsStr
+
+                if isExpected:
+                    currentData[data_object_id]["actuals"] = actuals
+                    currentData[data_object_id]["results"] = results
+                    
             else:
+
                 print( "Duplicated entry - catastrophic logic error.\n" )
                 print( data_oject_id, typeKey )
                 print( "Old value(s): %s" % currentData[data_object_id][typeKey] )
@@ -778,17 +827,17 @@ class DataAPI_Wrapper( object ):
 
         try:
 
-            currentData = container[dataObjectCoords[0]][dataObjectCoords[1]][dataObjectCoords[2]]
+            currentDataSet = container[dataObjectCoords[0]][dataObjectCoords[1]][dataObjectCoords[2]]
 
             data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
 
-            valuesAsStr = currentData[data_object_id][typeKey]
+            data = currentDataSet[data_object_id][typeKey]
 
         except KeyError:
 
-            valuesAsStr = None
+            data = None
 
-        return valuesAsStr
+        return data
 
 
     def getGlobalVarByIndex( self, testcase, unitId, globalVarIndex ):
@@ -811,7 +860,7 @@ class DataAPI_Wrapper( object ):
         return None
 
 
-    def getAssociatedNames( self, parameter, valuesAsStr, stringRepresent=True ):
+    def getAssociatedValues( self, parameter, valuesAsStr, stringRepresent=True ):
 
         associatedNames = []
 
@@ -877,4 +926,4 @@ if "__main__" == __name__:
     print( tcData )
 
     print( tcData.getInputDataAsString() )
-    # print( tcData.getExpectedDataAsString() )
+    print( tcData.getExpectedDataAsString() )
