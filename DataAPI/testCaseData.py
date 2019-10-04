@@ -34,15 +34,24 @@ class TestCaseData( object ):
         self.tcName = tcName
 
         self.dataApi = dataApi
-        self.dataApi.loadApi( envName )
 
         self.inputDataAsString = None
         self.expectedDataAsString = None
 
+        self.initialize()
+
+
+    def initialize( self ):
+
+        self.dataApi.loadApi( self.envName )
+
+        self.testcase = self.dataApi.getTestcase( self.envName, self.unitName, \
+                                                  self.functionName, self.tcName )
+
 
     def __str__( self ):
 
-        msg = "TestCase:\n"
+        msg = "TestCaseData:\n"
         msg += "Environment: %s\n" % self.envName
         msg += "Unit: %s\n" % self.unitName
         msg += "Function: %s\n" % self.functionName
@@ -53,22 +62,12 @@ class TestCaseData( object ):
 
     def buildInputDataAsString( self ):
 
-        testcase = self.dataApi.getTestcase( self.envName, self.unitName, \
-                                             self.functionName, self.tcName )
-
-        self.inputDataAsString = ""
-
-        self.inputDataAsString = self.dataApi.getDataAsString( testcase.input_tree )
+        self.inputDataAsString = self.dataApi.getDataAsString( self.testcase.input_tree )
 
 
     def buildInputDataAsString_explicit( self ):
 
-        testcase = self.dataApi.getTestcase( self.envName, self.unitName, \
-                                             self.functionName, self.tcName )
-
-        self.inputDataAsString = ""
-
-        self.inputDataAsString = self.dataApi.getDataAsString_explicit( testcase, "input", 0 )
+        self.inputDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, "input", 0 )
 
 
     def getInputDataAsString( self ):
@@ -82,22 +81,13 @@ class TestCaseData( object ):
 
     def buildExpectedDataAsString( self ):
 
-        testcase = self.dataApi.getTestcase( self.envName, self.unitName, \
-                                             self.functionName, self.tcName )
-
-        self.expectedDataAsString = ""
-
-        self.expectedDataAsString = self.dataApi.getDataAsString( testcase.expected_tree )
+        self.expectedDataAsString = self.dataApi.getDataAsString( self.testcase.expected_tree )
 
 
     def buildExpectedDataAsString_explicit( self ):
 
-        testcase = self.dataApi.getTestcase( self.envName, self.unitName, \
-                                             self.functionName, self.tcName )
+        self.expectedDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, "expected", 0 )
 
-        self.expectedDataAsString = ""
-
-        self.expectedDataAsString = self.dataApi.getDataAsString_explicit( testcase, "expected", 0 )
 
     def getExpectedDataAsString( self ):
 
@@ -916,14 +906,48 @@ class DataAPI_Wrapper( object ):
 
 if "__main__" == __name__:
 
-    dataApi = DataAPI_Wrapper( "C:\Work\Training\V6.4\MinGW_WorkDir" )
-    tcData = TestCaseData( "EXAMPLE", "example", "append", "append.001", dataApi )
-    # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Add_Party_To_Waiting_List", "UserCode", dataApi )
-    # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Place_Order", "FoolTheBill", dataApi )
-    # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "<<COMPOUND>>", "<<COMPOUND>>", "Asterix&Obelix", dataApi )
-    # tcData = TestCaseData( "IO_WRAPPER_BUBEN", "<<COMPOUND>>", "<<COMPOUND>>", "Write&Read", dataApi )
-    # tcData = TestCaseData( "ADVANCED", "advanced_stubbing", "temp_monitor", "Celsius_Stub", dataApi )
-    print( tcData )
+    numParameters = len( sys.argv ) - 1
 
-    print( tcData.getInputDataAsString() )
-    print( tcData.getExpectedDataAsString() )
+    if 0 == numParameters:
+
+        dataApi = DataAPI_Wrapper( "C:\Work\Training\V6.4\MinGW_WorkDir" )
+        tcData = TestCaseData( "EXAMPLE", "example", "append", "append.001", dataApi )
+        # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Add_Party_To_Waiting_List", "UserCode", dataApi )
+        # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "manager", "Place_Order", "FoolTheBill", dataApi )
+        # tcData = TestCaseData( "MANAGER_BUBENREUTH_W", "<<COMPOUND>>", "<<COMPOUND>>", "Asterix&Obelix", dataApi )
+        # tcData = TestCaseData( "IO_WRAPPER_BUBEN", "<<COMPOUND>>", "<<COMPOUND>>", "Write&Read", dataApi )
+        # tcData = TestCaseData( "ADVANCED", "advanced_stubbing", "temp_monitor", "Celsius_Stub", dataApi )
+
+        print( tcData )
+
+        print( tcData.getInputDataAsString() )
+        print( tcData.getExpectedDataAsString() )
+
+    elif 2 == numParameters:
+
+        dataApi = DataAPI_Wrapper( sys.argv[1] )
+        api = dataApi.getApi( sys.argv[2] )
+
+        testcases = api.TestCase.all()
+
+        for testcase in testcases:
+
+            inputDataAsString = dataApi.getDataAsString_explicit( testcase, "input", 0 )
+            expectedDataAsString = dataApi.getDataAsString_explicit( testcase, "expected", 0 )
+
+            print( inputDataAsString )
+            print( expectedDataAsString )
+
+    elif 5 == numParameters:
+
+        dataApi = DataAPI_Wrapper( sys.argv[1] )
+        tcData = TestCaseData( sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], dataApi )
+        
+        print( tcData )
+
+        print( tcData.getInputDataAsString() )
+        print( tcData.getExpectedDataAsString() )
+
+    else:
+
+        print( "Inappropriate number of parameters." )
