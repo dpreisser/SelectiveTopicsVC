@@ -7,7 +7,7 @@ from copy import deepcopy
 from vector.apps.DataAPI.api import Api
 
 
-DEBUG = False
+DEBUG = True
 
 
 def trace( str1, str2, newLine=False):
@@ -267,7 +267,7 @@ class DataAPI_Wrapper( object ):
             trace( "Input Data:", self.inputData, newLine=True )
             trace( "Expected Data:", self.expectedData, newLine=True )
 
-            dataAsString += self.getDataAsString_globals( testcase, dataType, unitIndent )
+            dataAsString += self.getDataAsString_globals( envName, dataType, unitIndent )
             dataAsString += self.getTestcaseUserCode( testcase, dataType, unitIndent )
             dataAsString += self.getDataAsString_parameters( testcase, dataType, unitIndent )
 
@@ -307,7 +307,7 @@ class DataAPI_Wrapper( object ):
 
             dataObjectCoords = [ unit.id, function.index, parameterIndex ]
 
-            dataAsString += self.walkType( parameter, testcase, dataType, \
+            dataAsString += self.walkType( parameter, dataType, \
                                            dataObjectCoords, parameterIndent )
 
             parameterIndex += 1
@@ -316,22 +316,24 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
 
-    def getDataAsString_globals( self, testcase, dataType, currentIndent ):
+    def getDataAsString_globals( self, envName, dataType, currentIndent ):
 
         dataAsString = ""
 
-        envName = testcase.get_environment().name
         units = self.envApi[envName].Unit.all( )
 
         for unit in units:
-            dataAsString += self.getDataAsString_globalsInUnit( unit, testcase, dataType, currentIndent )
+            dataAsString += self.getDataAsString_globalsInUnit( envName, unit, dataType, currentIndent )
 
         return dataAsString
 
     
-    def getDataAsString_globalsInUnit( self, unit, testcase, dataType, currentIndent ):
+    def getDataAsString_globalsInUnit( self, envName, unit, dataType, currentIndent ):
 
         dataAsString = ""
+
+        if "uut_prototype_stubs" == unit.name:
+            return dataAsString
 
         currentIndentAsStr = self.getIndentAsString( currentIndent )
 
@@ -346,15 +348,15 @@ class DataAPI_Wrapper( object ):
 
         if "input" == dataType:
             container = self.inputData
-            source = testcase.input_user_code
         elif "expected" == dataType:
             container = self.expectedData
-            source = testcase.expected_user_code
+        else:
+            return dataAsString
 
         unitId = unit.id
         functionIndex = 0
 
-        if "USER_GLOBALS_VCAST" == unit.name or "uut_prototype_stubs" == unit.name:
+        if "USER_GLOBALS_VCAST" == unit.name:
             unitNameAsStr = "%s\n" % unit.name
         else:
             unitNameAsStr = "UUT: %s\n" % unit.name
@@ -376,9 +378,9 @@ class DataAPI_Wrapper( object ):
 
             dataObjectCoords = [ unitId, functionIndex, globalVarIndex ]
 
-            globalVar = self.getGlobalVarByIndex( testcase, unitId, globalVarIndex )
+            globalVar = self.getGlobalVarByIndex( envName, unitId, globalVarIndex )
 
-            dataAsString += self.walkType( globalVar, testcase, dataType, \
+            dataAsString += self.walkType( globalVar, dataType, \
                                            dataObjectCoords, parameterIndent )
 
         return dataAsString
@@ -426,7 +428,7 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
 
-    def walkType( self, parameter, testcase, dataType, \
+    def walkType( self, parameter, dataType, \
                   dataObjectCoords, currentIndent ):
 
         dataAsString = ""
@@ -586,7 +588,7 @@ class DataAPI_Wrapper( object ):
 
                         trace( "Array: None Basic Type: child_dataObjectCoords:", str(child_dataObjectCoords) )
 
-                        childDataAsStr += self.walkType( child, testcase, dataType, \
+                        childDataAsStr += self.walkType( child, dataType, \
                                                          child_dataObjectCoords, currentIndent+2 )
 
                     if "" != childDataAsStr:
@@ -636,7 +638,7 @@ class DataAPI_Wrapper( object ):
 
                     trace( "None Basic Type: child_dataObjectCoords:", str(child_dataObjectCoords) )
 
-                    childDataAsStr += self.walkType( child, testcase, dataType, \
+                    childDataAsStr += self.walkType( child, dataType, \
                                                      child_dataObjectCoords, currentIndent+1 )
 
                 if "" != childDataAsStr:
@@ -830,9 +832,8 @@ class DataAPI_Wrapper( object ):
         return data
 
 
-    def getGlobalVarByIndex( self, testcase, unitId, globalVarIndex ):
+    def getGlobalVarByIndex( self, envName, unitId, globalVarIndex ):
 
-        envName = testcase.get_environment().name
         api = self.envApi[envName]
 
         globalVarId = 1
