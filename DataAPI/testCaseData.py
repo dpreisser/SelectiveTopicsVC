@@ -269,12 +269,48 @@ class DataAPI_Wrapper( object ):
 
             dataAsString += self.getDataAsString_globals( envName, dataType, unitIndent )
             dataAsString += self.getTestcaseUserCode( testcase, dataType, unitIndent )
-            dataAsString += self.getDataAsString_parameters( testcase, dataType, unitIndent )
+            dataAsString += self.getDataAsString_functions( testcase, dataType, unitIndent )
 
         return dataAsString
 
 
-    def getDataAsString_parameters( self, testcase, dataType, currentIndent ):
+    def getDataAsString_functions( self, testcase, dataType, currentIndent ):
+
+        dataAsString = ""
+
+        if "input" == dataType:
+            container = self.inputData
+        elif "expected" == dataType:
+            container = self.expectedData
+        else:
+            return dataAsString
+
+        envName = testcase.get_environment().name
+
+        unitName = testcase.unit_display_name
+        unit = self.envApi[envName].Unit.get( unitName )
+
+        function = testcase.function
+
+        dataAsString += self.getDataAsString_parameters( unit, function, dataType, currentIndent )
+
+        unitName = "uut_prototype_stubs"
+        unit = self.envApi[envName].Unit.get( unitName )
+        unitId = unit.id
+
+        if not unitId in container.keys():
+            return dataAsString
+
+        for functionIndex in container[unitId].keys():
+
+            function = self.getFunctionByIndex( unit, functionIndex )
+
+            dataAsString += self.getDataAsString_parameters( unit, function, dataType, currentIndent )
+
+        return dataAsString
+
+
+    def getDataAsString_parameters( self, unit, function, dataType, currentIndent ):
 
         dataAsString = ""
 
@@ -287,17 +323,10 @@ class DataAPI_Wrapper( object ):
         parameterIndent = currentIndent + 2
         parameterIndentAsStr = self.getIndentAsString( parameterIndent )
 
-        envName = testcase.get_environment().name
-
-        unitName = testcase.unit_display_name
-        unit = self.envApi[envName].Unit.get( unitName )
-
-        function = testcase.function
-
-        unitNameAsStr = "UUT: %s\n" % unitName
+        unitNameAsStr = "UUT: %s\n" % unit.name
         dataAsString += unitIndentAsStr + unitNameAsStr
 
-        functionNameAsStr = "Subprogram: %s\n" % testcase.function_display_name
+        functionNameAsStr = "Subprogram: %s\n" % function.name
         dataAsString += functionIndentAsStr + functionNameAsStr
 
         parameterIndex = 1
@@ -847,6 +876,17 @@ class DataAPI_Wrapper( object ):
 
             globalVarId += 1
             globalVar = api.Global.get( globalVarId )
+
+        return None
+
+
+    def getFunctionByIndex( self, unit, functionIndex ):
+
+        functions = unit.functions
+
+        for function in functions:
+            if function.index == functionIndex:
+                return function
 
         return None
 
