@@ -7,7 +7,7 @@ from copy import deepcopy
 from vector.apps.DataAPI.api import Api
 
 
-DEBUG = True
+DEBUG = False
 
 
 def trace( str1, str2, newLine=False):
@@ -336,8 +336,8 @@ class DataAPI_Wrapper( object ):
 
             dataObjectCoords = [ unit.id, function.index, parameterIndex ]
 
-            dataAsString += self.walkType( parameter, dataType, \
-                                           dataObjectCoords, parameterIndent )
+            dataAsString += self.walkType_Wrapper( parameter, dataType, \
+                                                   dataObjectCoords, parameterIndent )
 
             parameterIndex += 1
             parameter = function.get_param_by_index( parameterIndex )
@@ -409,8 +409,8 @@ class DataAPI_Wrapper( object ):
 
             globalVar = self.getGlobalVarByIndex( envName, unitId, globalVarIndex )
 
-            dataAsString += self.walkType( globalVar, dataType, \
-                                           dataObjectCoords, parameterIndent )
+            dataAsString += self.walkType_Wrapper( globalVar, dataType, \
+                                                   dataObjectCoords, parameterIndent )
 
         return dataAsString
 
@@ -457,7 +457,16 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
 
-    def walkType( self, parameter, dataType, \
+    def walkType_Wrapper( self, parameter, dataType, \
+                          dataObjectCoords, currentIndent ):
+
+        dataAsString = self.walkType( parameter.name,  parameter.type, dataType, \
+                                      dataObjectCoords, currentIndent )
+
+        return dataAsString
+
+
+    def walkType( self, parameterName, parameterType, dataType, \
                   dataObjectCoords, currentIndent ):
 
         dataAsString = ""
@@ -470,10 +479,10 @@ class DataAPI_Wrapper( object ):
         data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
         valuesAsStr = self.getData( dataType, dataObjectCoords, "data" )
 
-        kind = parameter.type.kind
-        element = parameter.type.element
+        kind = parameterType.kind
+        element = parameterType.element
 
-        trace( "Parameter name:", parameter.name )
+        trace( "Parameter/Field name:", parameterName )
         trace( "Type kind:", kind )
         trace( "data_object_id:", data_object_id )
 
@@ -485,23 +494,16 @@ class DataAPI_Wrapper( object ):
                 is_parameter_user_code = True
 
         if is_parameter_user_code:
-            parameterNameAsStr = "%s: <<User Code>>\n" % parameter.name
+            parameterNameAsStr = "%s: <<User Code>>\n" % parameterName
             formattedUserCode = self.formatUserCode( valuesAsStr, currentIndent+1 )
             dataAsString += currentIndentAsStr + parameterNameAsStr
             dataAsString += formattedUserCode
             return dataAsString
 
-        child_fields = []
-
-        if None != element:
-            if hasattr( element, "child_fields" ):
-                child_fields = element.child_fields
-        else:
-            if hasattr( parameter.type, "child_fields" ):
-                child_fields = parameter.type.child_fields
-
         isArray = False
         isBasicType = True
+
+        parameterNameAdded = False
 
         if "ACCE_SS" == kind:
 
@@ -513,15 +515,21 @@ class DataAPI_Wrapper( object ):
                 if None == allocateAsStr:
                     return dataAsString
 
-                parameterNameAsStr = "%s: <<ALLOCATE %s>>\n" % ( parameter.name, allocateAsStr )
+                parameterNameAsStr = "%s: <<ALLOCATE %s>>\n" % ( parameterName, allocateAsStr )
+                dataAsString += currentIndentAsStr + parameterNameAsStr
+                parameterNameAdded = True
 
             else:
 
-                parameterNameAsStr = "%s: <<ACCESS>>\n" % parameter.name
+                parameterNameAsStr = "%s: <<ACCESS>>\n" % parameterName
 
         elif "STR_ING" == kind:
 
             isArray = True
+
+            if "CHAR_ACTER" == element.kind:
+                if None != valuesAsStr:
+                    isArray = False
 
             if "input" == dataType:
 
@@ -529,39 +537,33 @@ class DataAPI_Wrapper( object ):
                 if None == allocateAsStr:
                     return dataAsString
 
-                parameterNameAsStr = "%s: <<ALLOCATE %s>>\n" % ( parameter.name, allocateAsStr )
+                parameterNameAsStr = "%s: <<ALLOCATE %s>>\n" % ( parameterName, allocateAsStr )
+                if isArray:
+                    dataAsString += currentIndentAsStr + parameterNameAsStr
+                    parameterNameAdded = True
 
             else:
 
-                parameterNameAsStr = "%s: <<ACCESS>>\n" % parameter.name
-
-            if "CHAR_ACTER" == element.kind:
-                if None != valuesAsStr:
-                    isArray = False
+                parameterNameAsStr = "%s: <<ACCESS>>\n" % parameterName
 
         elif "AR_RAY" == kind:
 
             isArray = True
 
-            size = parameter.type.range.size # Still something like "4%%"
+            size = parameterType.range.size # Still something like "4%%"
             size = size.split( "%" )[0]
 
-            parameterNameAsStr = "%s: <<Size %s>>\n" % ( parameter.name, size )
+            parameterNameAsStr = "%s: <<Size %s>>\n" % ( parameterName, size )
 
         elif "REC_ORD" == kind:
 
             isBasicType = False
 
-            parameterNameAsStr = "%s\n" % parameter.name
+            parameterNameAsStr = "%s\n" % parameterName
+
+            child_fields = parameterType.child_fields
 
         if isArray:
-
-            trace( "Array: element kind:", element.kind )
-
-            if "ACCE_SS" == element.kind or "STR_ING" == element.kind or "AR_RAY" == element.kind or "REC_ORD" == element.kind:
-                isBasicType = False
-            else:
-                isBasicType = True
 
             arrayIndices = self.getDataObjectCoords_arrayIndices( dataType, dataObjectCoords )
             trace( "Array: arrayIndices:", str(arrayIndices) )
@@ -573,59 +575,17 @@ class DataAPI_Wrapper( object ):
                 index_dataObjectCoords = deepcopy( dataObjectCoords )
                 index_dataObjectCoords.append( arrayIndex )
 
-                if isBasicType:
+                trace( "Array: Basic Type: index_dataObjectCoords:", str(index_dataObjectCoords) )
+                trace( "Array: Basic Type: valuesAsStr:", str(valuesAsStr) )
 
-                    valuesAsStr = self.getData( dataType, index_dataObjectCoords, "data" )
+                indexName = "%s[%s]" % ( parameterName, str(arrayIndex) )
 
-                    trace( "Array: Basic Type: index_dataObjectCoords:", str(index_dataObjectCoords) )
-                    trace( "Array: Basic Type: valuesAsStr:", str(valuesAsStr) )
-
-                    if None != valuesAsStr:
-
-                        associatedValues = self.getAssociatedValues( parameter, valuesAsStr, stringRepresent=False )
-
-                        if "expected" == dataType:
-
-                            actuals = self.getData( dataType, index_dataObjectCoords, "actuals" )
-                            results = self.getData( dataType, index_dataObjectCoords, "results" )
-
-                            indexDataAsStr = "%s[%s]: %s --> %s (%s)\n" % ( parameter.name, \
-                                                                            str(arrayIndex), \
-                                                                            ",".join( associatedValues ), \
-                                                                            ",".join( actuals ), \
-                                                                            ",".join( results ) )
-
-                        else:
-                        
-                            indexDataAsStr = "%s[%s]: %s\n" % ( parameter.name, \
-                                                                str(arrayIndex), \
-                                                                ",".join( associatedValues ) )
-                        
-                        arrayDataAsStr += indexIndentAsStr + indexDataAsStr
-
-                else:
-
-                    indexDataAsStr = "%s[%s]\n" % ( parameter.name, str(arrayIndex) )
-                    childDataAsStr = ""
-
-                    for child in child_fields:
-
-                        child_dataObjectCoords = deepcopy( index_dataObjectCoords )
-                        
-                        if "REC_ORD" == element.kind:
-                            child_dataObjectCoords.append( child.index )
-
-                        trace( "Array: None Basic Type: child_dataObjectCoords:", str(child_dataObjectCoords) )
-
-                        childDataAsStr += self.walkType( child, dataType, \
-                                                         child_dataObjectCoords, currentIndent+2 )
-
-                    if "" != childDataAsStr:
-                        arrayDataAsStr += indexIndentAsStr + indexDataAsStr
-                        arrayDataAsStr += childDataAsStr
+                arrayDataAsStr += self.walkType( indexName, element, dataType, \
+                                                 index_dataObjectCoords, indexIndent )
 
             if "" != arrayDataAsStr:
-                dataAsString += currentIndentAsStr + parameterNameAsStr
+                if not parameterNameAdded:
+                    dataAsString += currentIndentAsStr + parameterNameAsStr
                 dataAsString += arrayDataAsStr
 
         else:
@@ -637,23 +597,23 @@ class DataAPI_Wrapper( object ):
 
                 if None != valuesAsStr:
 
-                    associatedValues = self.getAssociatedValues( parameter, valuesAsStr, stringRepresent=True )
+                    associatedValues = self.getAssociatedValues( parameterType, valuesAsStr )
 
                     if "expected" == dataType:
 
                         actuals = self.getData( dataType, dataObjectCoords, "actuals" )
                         results = self.getData( dataType, dataObjectCoords, "results" )
 
-                        parameterDataAsStr = "%s: %s --> %s (%s)\n" % ( parameter.name, \
+                        parameterDataAsStr = "%s: %s --> %s (%s)\n" % ( parameterName, \
                                                                         ",".join( associatedValues ), \
                                                                         ",".join( actuals ), \
                                                                         ",".join( results ) )
 
                     else:
 
-                        parameterDataAsStr = "%s: %s\n" % ( parameter.name, \
+                        parameterDataAsStr = "%s: %s\n" % ( parameterName, \
                                                             ",".join( associatedValues ) )
-                        
+
                     dataAsString += currentIndentAsStr + parameterDataAsStr
 
             else:
@@ -667,11 +627,12 @@ class DataAPI_Wrapper( object ):
 
                     trace( "None Basic Type: child_dataObjectCoords:", str(child_dataObjectCoords) )
 
-                    childDataAsStr += self.walkType( child, dataType, \
-                                                     child_dataObjectCoords, currentIndent+1 )
+                    childDataAsStr += self.walkType_Wrapper( child, dataType, \
+                                                             child_dataObjectCoords, currentIndent+1 )
 
                 if "" != childDataAsStr:
-                    dataAsString += currentIndentAsStr + parameterNameAsStr
+                    if not parameterNameAdded:
+                        dataAsString += currentIndentAsStr + parameterNameAsStr
                     dataAsString += childDataAsStr
 
         return dataAsString
@@ -891,7 +852,7 @@ class DataAPI_Wrapper( object ):
         return None
 
 
-    def getAssociatedValues( self, parameter, valuesAsStr, stringRepresent=True ):
+    def getAssociatedValues( self, parameterType, valuesAsStr ):
 
         associatedNames = []
 
@@ -908,11 +869,11 @@ class DataAPI_Wrapper( object ):
             associatedNames = values
             return associatedNames
 
-        if "ENUMERATION" == parameter.type.kind:
+        if "ENUMERATION" == parameterType.kind:
             for value in values:
-                name = self.getNameFromValue( parameter.type.enums, int(value) )
+                name = self.getNameFromValue( parameterType.enums, int(value) )
                 associatedNames.append( name )
-        elif ( "STR_ING" == parameter.type.kind ) and ( not stringRepresent ):
+        elif "CHAR_ACTER" == parameterType.kind:
             for value in values:
                 name = unichr( int(float(value)) )
                 associatedNames.append( name )
