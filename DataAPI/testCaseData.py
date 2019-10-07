@@ -67,7 +67,7 @@ class TestCaseData( object ):
 
     def buildInputDataAsString_explicit( self ):
 
-        self.inputDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, "input", 0 )
+        self.inputDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, False, 0 )
 
 
     def getInputDataAsString( self ):
@@ -86,7 +86,7 @@ class TestCaseData( object ):
 
     def buildExpectedDataAsString_explicit( self ):
 
-        self.expectedDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, "expected", 0 )
+        self.expectedDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, True, 0 )
 
 
     def getExpectedDataAsString( self ):
@@ -179,14 +179,14 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
 
-    def getDataAsString_explicit( self, testcase, dataType, currentIndent ):
+    def getDataAsString_explicit( self, testcase, isExpectedData, currentIndent ):
 
         dataAsString = ""
 
-        if "input" == dataType:
-            dataTypeAsStr = "Input data"
-        elif "expected" == dataType:
+        if isExpectedData:
             dataTypeAsStr = "Expected data"
+        else:
+            dataTypeAsStr = "Input data"
 
         envName = testcase.get_environment().name
 
@@ -262,28 +262,26 @@ class DataAPI_Wrapper( object ):
 
         elif testcase.is_unit_test:
 
-            self.prepareData( testcase, dataType )
+            self.prepareData( testcase, isExpectedData )
 
             trace( "Input Data:", self.inputData, newLine=True )
             trace( "Expected Data:", self.expectedData, newLine=True )
 
-            dataAsString += self.getDataAsString_globals( envName, dataType, unitIndent )
-            dataAsString += self.getTestcaseUserCode( testcase, dataType, unitIndent )
-            dataAsString += self.getDataAsString_functions( testcase, dataType, unitIndent )
+            dataAsString += self.getDataAsString_globals( envName, isExpectedData, unitIndent )
+            dataAsString += self.getTestcaseUserCode( testcase, isExpectedData, unitIndent )
+            dataAsString += self.getDataAsString_functions( testcase, isExpectedData, unitIndent )
 
         return dataAsString
 
 
-    def getDataAsString_functions( self, testcase, dataType, currentIndent ):
+    def getDataAsString_functions( self, testcase, isExpectedData, currentIndent ):
 
         dataAsString = ""
 
-        if "input" == dataType:
-            container = self.inputData
-        elif "expected" == dataType:
+        if isExpectedData:
             container = self.expectedData
         else:
-            return dataAsString
+            container = self.inputData
 
         envName = testcase.get_environment().name
 
@@ -292,7 +290,7 @@ class DataAPI_Wrapper( object ):
 
         function = testcase.function
 
-        dataAsString += self.getDataAsString_parameters( unit, function, dataType, currentIndent )
+        dataAsString += self.getDataAsString_parameters( unit, function, isExpectedData, currentIndent )
 
         unitName = "uut_prototype_stubs"
         unit = self.envApi[envName].Unit.get( unitName )
@@ -306,12 +304,12 @@ class DataAPI_Wrapper( object ):
             # function = self.getFunctionByIndex( unit, functionIndex )
             function = unit.get_function( functionIndex )
 
-            dataAsString += self.getDataAsString_parameters( unit, function, dataType, currentIndent )
+            dataAsString += self.getDataAsString_parameters( unit, function, isExpectedData, currentIndent )
 
         return dataAsString
 
 
-    def getDataAsString_parameters( self, unit, function, dataType, currentIndent ):
+    def getDataAsString_parameters( self, unit, function, isExpectedData, currentIndent ):
 
         dataAsString = ""
 
@@ -337,7 +335,7 @@ class DataAPI_Wrapper( object ):
 
             dataObjectCoords = [ unit.id, function.index, parameterIndex ]
 
-            dataAsString += self.walkType_Wrapper( parameter, dataType, \
+            dataAsString += self.walkType_Wrapper( parameter, isExpectedData, \
                                                    dataObjectCoords, parameterIndent )
 
             parameterIndex += 1
@@ -346,19 +344,19 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
 
-    def getDataAsString_globals( self, envName, dataType, currentIndent ):
+    def getDataAsString_globals( self, envName, isExpectedData, currentIndent ):
 
         dataAsString = ""
 
         units = self.envApi[envName].Unit.all( )
 
         for unit in units:
-            dataAsString += self.getDataAsString_globalsInUnit( envName, unit, dataType, currentIndent )
+            dataAsString += self.getDataAsString_globalsInUnit( envName, unit, isExpectedData, currentIndent )
 
         return dataAsString
 
     
-    def getDataAsString_globalsInUnit( self, envName, unit, dataType, currentIndent ):
+    def getDataAsString_globalsInUnit( self, envName, unit, isExpectedData, currentIndent ):
 
         dataAsString = ""
 
@@ -376,12 +374,10 @@ class DataAPI_Wrapper( object ):
         parameterIndent = currentIndent + 2
         parameterIndentAsStr = self.getIndentAsString( parameterIndent )
 
-        if "input" == dataType:
-            container = self.inputData
-        elif "expected" == dataType:
+        if isExpectedData:
             container = self.expectedData
         else:
-            return dataAsString
+            container = self.inputData
 
         unitId = unit.id
         functionIndex = 0
@@ -411,13 +407,13 @@ class DataAPI_Wrapper( object ):
             # globalVar = self.getGlobalVarByIndex( envName, unitId, globalVarIndex )
             globalVar = unit.get_global_by_index( globalVarIndex )
 
-            dataAsString += self.walkType_Wrapper( globalVar, dataType, \
+            dataAsString += self.walkType_Wrapper( globalVar, isExpectedData, \
                                                    dataObjectCoords, parameterIndent )
 
         return dataAsString
 
 
-    def getTestcaseUserCode( self, testcase, dataType, currentIndent ):
+    def getTestcaseUserCode( self, testcase, isExpectedData, currentIndent ):
 
         currentIndentAsStr = self.getIndentAsString( currentIndent )
 
@@ -432,12 +428,12 @@ class DataAPI_Wrapper( object ):
 
         dataAsString = ""
 
-        if "input" == dataType:
-            container = self.inputData
-            source = testcase.input_user_code
-        elif "expected" == dataType:
+        if isExpectedData:
             container = self.expectedData
             source = testcase.expected_user_code
+        else:
+            container = self.inputData
+            source = testcase.input_user_code
 
         envName = testcase.get_environment().name
 
@@ -459,16 +455,16 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
 
-    def walkType_Wrapper( self, parameter, dataType, \
+    def walkType_Wrapper( self, parameter, isExpectedData, \
                           dataObjectCoords, currentIndent ):
 
-        dataAsString = self.walkType( parameter.name,  parameter.type, dataType, \
+        dataAsString = self.walkType( parameter.name,  parameter.type, isExpectedData, \
                                       dataObjectCoords, currentIndent )
 
         return dataAsString
 
 
-    def walkType( self, parameterName, parameterType, dataType, \
+    def walkType( self, parameterName, parameterType, isExpectedData, \
                   dataObjectCoords, currentIndent ):
 
         dataAsString = ""
@@ -479,7 +475,7 @@ class DataAPI_Wrapper( object ):
         indexIndentAsStr = self.getIndentAsString( indexIndent )
 
         data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
-        valuesAsStr = self.getData( dataType, dataObjectCoords, "data" )
+        valuesAsStr = self.getData( isExpectedData, dataObjectCoords, "data" )
 
         kind = parameterType.kind
         element = parameterType.element
@@ -491,7 +487,7 @@ class DataAPI_Wrapper( object ):
         is_parameter_user_code = False
 
         if None == valuesAsStr:
-            valuesAsStr = self.getData( dataType, dataObjectCoords, "parameter_user_code" )
+            valuesAsStr = self.getData( isExpectedData, dataObjectCoords, "parameter_user_code" )
             if None != valuesAsStr:
                 is_parameter_user_code = True
 
@@ -511,19 +507,19 @@ class DataAPI_Wrapper( object ):
 
             isArray = True
 
-            if "input" == dataType:
-                
-                allocateAsStr = self.getData( dataType, dataObjectCoords, "allocate" )
+            if isExpectedData:
+
+                parameterNameAsStr = "%s: <<ACCESS>>\n" % parameterName
+
+            else:
+
+                allocateAsStr = self.getData( isExpectedData, dataObjectCoords, "allocate" )
                 if None == allocateAsStr:
                     return dataAsString
 
                 parameterNameAsStr = "%s: <<ALLOCATE %s>>\n" % ( parameterName, allocateAsStr )
                 dataAsString += currentIndentAsStr + parameterNameAsStr
                 parameterNameAdded = True
-
-            else:
-
-                parameterNameAsStr = "%s: <<ACCESS>>\n" % parameterName
 
         elif "STR_ING" == kind:
 
@@ -533,9 +529,13 @@ class DataAPI_Wrapper( object ):
                 if None != valuesAsStr:
                     isArray = False
 
-            if "input" == dataType:
+            if isExpectedData:
 
-                allocateAsStr = self.getData( dataType, dataObjectCoords, "allocate" )
+                parameterNameAsStr = "%s: <<ACCESS>>\n" % parameterName
+
+            else:
+
+                allocateAsStr = self.getData( isExpectedData, dataObjectCoords, "allocate" )
                 if None == allocateAsStr:
                     return dataAsString
 
@@ -543,10 +543,6 @@ class DataAPI_Wrapper( object ):
                 if isArray:
                     dataAsString += currentIndentAsStr + parameterNameAsStr
                     parameterNameAdded = True
-
-            else:
-
-                parameterNameAsStr = "%s: <<ACCESS>>\n" % parameterName
 
         elif "AR_RAY" == kind:
 
@@ -567,7 +563,7 @@ class DataAPI_Wrapper( object ):
 
         if isArray:
 
-            arrayIndices = self.getDataObjectCoords_arrayIndices( dataType, dataObjectCoords )
+            arrayIndices = self.getDataObjectCoords_arrayIndices( isExpectedData, dataObjectCoords )
             trace( "Array: arrayIndices:", str(arrayIndices) )
 
             arrayDataAsStr = ""
@@ -582,7 +578,7 @@ class DataAPI_Wrapper( object ):
 
                 indexName = "%s[%s]" % ( parameterName, str(arrayIndex) )
 
-                arrayDataAsStr += self.walkType( indexName, element, dataType, \
+                arrayDataAsStr += self.walkType( indexName, element, isExpectedData, \
                                                  index_dataObjectCoords, indexIndent )
 
             if "" != arrayDataAsStr:
@@ -601,10 +597,10 @@ class DataAPI_Wrapper( object ):
 
                     associatedValues = self.getAssociatedValues( parameterType, valuesAsStr )
 
-                    if "expected" == dataType:
+                    if isExpectedData:
 
-                        actuals = self.getData( dataType, dataObjectCoords, "actuals" )
-                        results = self.getData( dataType, dataObjectCoords, "results" )
+                        actuals = self.getData( isExpectedData, dataObjectCoords, "actuals" )
+                        results = self.getData( isExpectedData, dataObjectCoords, "results" )
 
                         parameterDataAsStr = "%s: %s --> %s (%s)\n" % ( parameterName, \
                                                                         ",".join( associatedValues ), \
@@ -629,7 +625,7 @@ class DataAPI_Wrapper( object ):
 
                     trace( "None Basic Type: child_dataObjectCoords:", str(child_dataObjectCoords) )
 
-                    childDataAsStr += self.walkType_Wrapper( child, dataType, \
+                    childDataAsStr += self.walkType_Wrapper( child, isExpectedData, \
                                                              child_dataObjectCoords, currentIndent+1 )
 
                 if "" != childDataAsStr:
@@ -640,22 +636,18 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
 
-    def prepareData( self, testcase, dataType ):
+    def prepareData( self, testcase, isExpectedData ):
 
-        if "input" == dataType:
-            isExpected = False
-            self.inputData = {}
-            container =  self.inputData = {}
-            source1 = testcase.input
-            source2 = testcase.input_user_code
-        elif "expected" == dataType:
-            isExpected = True
+        if isExpectedData:
             self.expectedData = {}
             container =  self.expectedData = {}
             source1 = testcase.expected
             source2 = testcase.expected_user_code
         else:
-            return
+            self.inputData = {}
+            container =  self.inputData = {}
+            source1 = testcase.input
+            source2 = testcase.input_user_code
 
         for sourceData in source1:
 
@@ -673,7 +665,7 @@ class DataAPI_Wrapper( object ):
             data_object_id = sourceData.data_object_id
             valuesAsStr = sourceData.value
 
-            if isExpected:
+            if isExpectedData:
                 actuals = []
                 results = []
                 for result in sourceData.results:
@@ -707,7 +699,7 @@ class DataAPI_Wrapper( object ):
 
                 currentData[data_object_id][typeKey] = valuesAsStr
 
-                if isExpected:
+                if isExpectedData:
                     currentData[data_object_id]["actuals"] = actuals
                     currentData[data_object_id]["results"] = results
                     
@@ -759,16 +751,14 @@ class DataAPI_Wrapper( object ):
                 sys.exit()
 
 
-    def getDataObjectCoords_arrayIndices( self, dataType, dataObjectCoords ):
+    def getDataObjectCoords_arrayIndices( self, isExpectedData, dataObjectCoords ):
 
         arrayIndices = []
 
-        if "input" == dataType:
-            container = self.inputData
-        elif "expected" == dataType:
+        if isExpectedData:
             container = self.expectedData
         else:
-            return arrayIndices
+            container = self.inputData
 
         if not dataObjectCoords[0] in container.keys():
             return arrayIndices
@@ -800,14 +790,12 @@ class DataAPI_Wrapper( object ):
         return arrayIndices
 
             
-    def getData( self, dataType, dataObjectCoords, typeKey ):
+    def getData( self, isExpectedData, dataObjectCoords, typeKey ):
 
-        if "input" == dataType:
-            container = self.inputData
-        elif "expected" == dataType:
+        if isExpectedData:
             container = self.expectedData
         else:
-            return None
+            container = self.inputData
 
         try:
 
@@ -940,8 +928,8 @@ if "__main__" == __name__:
 
         for testcase in testcases:
 
-            inputDataAsString = dataApi.getDataAsString_explicit( testcase, "input", 0 )
-            expectedDataAsString = dataApi.getDataAsString_explicit( testcase, "expected", 0 )
+            inputDataAsString = dataApi.getDataAsString_explicit( testcase, False, 0 )
+            expectedDataAsString = dataApi.getDataAsString_explicit( testcase, True, 0 )
 
             print( inputDataAsString )
             print( expectedDataAsString )
