@@ -303,7 +303,8 @@ class DataAPI_Wrapper( object ):
 
         for functionIndex in container[unitId].keys():
 
-            function = self.getFunctionByIndex( unit, functionIndex )
+            # function = self.getFunctionByIndex( unit, functionIndex )
+            function = unit.get_function( functionIndex )
 
             dataAsString += self.getDataAsString_parameters( unit, function, dataType, currentIndent )
 
@@ -407,7 +408,8 @@ class DataAPI_Wrapper( object ):
 
             dataObjectCoords = [ unitId, functionIndex, globalVarIndex ]
 
-            globalVar = self.getGlobalVarByIndex( envName, unitId, globalVarIndex )
+            # globalVar = self.getGlobalVarByIndex( envName, unitId, globalVarIndex )
+            globalVar = unit.get_global_by_index( globalVarIndex )
 
             dataAsString += self.walkType_Wrapper( globalVar, dataType, \
                                                    dataObjectCoords, parameterIndent )
@@ -854,7 +856,7 @@ class DataAPI_Wrapper( object ):
 
     def getAssociatedValues( self, parameterType, valuesAsStr ):
 
-        associatedNames = []
+        associatedValues = []
 
         values = valuesAsStr.split( "%" )
 
@@ -866,28 +868,32 @@ class DataAPI_Wrapper( object ):
             isConvertible = False
 
         if not isConvertible:
-            associatedNames = values
-            return associatedNames
+            associatedValues = values
+            return associatedValues
 
         if "ENUMERATION" == parameterType.kind:
             for value in values:
-                name = self.getNameFromValue( parameterType.enums, int(value) )
-                associatedNames.append( name )
+                assocValue = self.getEnumNameByValue( parameterType, int(value) )
+                associatedValues.append( assocValue )
         elif "CHAR_ACTER" == parameterType.kind:
             for value in values:
-                name = unichr( int(float(value)) )
-                associatedNames.append( name )
+                assocValue = unichr( int(float(value)) )
+                associatedValues.append( assocValue )
         else:
-            associatedNames = values
+            associatedValues = values
 
-        return associatedNames
+        return associatedValues
 
 
-    def getNameFromValue( self, enums, value ):
+    def getEnumNameByValue( self, parameterType, value ):
 
-        for enumItem in enums:
-            if enumItem.value == value:
-                return enumItem.name
+        # for enum in parameterType.enums:
+        #     if enum.value == value:
+        #         return enum.name
+
+        enum = parameterType.get_enum_by_value( value )
+        if None != enum:
+            return enum.name
 
         return str(value)
 
