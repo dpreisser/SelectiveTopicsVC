@@ -179,7 +179,7 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
 
-    def getDataAsString_explicit( self, testcase, isExpectedData, currentIndent ):
+    def getDataAsString_explicit( self, testcase, isExpectedData, currentIndent, level=0, unit_tc_info=[] ):
 
         dataAsString = ""
 
@@ -191,7 +191,7 @@ class DataAPI_Wrapper( object ):
         envName = testcase.get_environment().name
         unitName = testcase.unit_display_name
 
-        if 0 == currentIndent:
+        if 0 == level:
 
             tcIndent = currentIndent
             tcIndentAsStr = self.getIndentAsString( tcIndent )
@@ -226,6 +226,8 @@ class DataAPI_Wrapper( object ):
 
             unitNameAsStr = "UUT: %s\n" % unitName
 
+            unit_tc_info = []
+
         else:
 
             parameterIndent = currentIndent
@@ -253,7 +255,41 @@ class DataAPI_Wrapper( object ):
                 dataAsString += slotIndentAsStr + slotAsStr
 
                 if tc.is_compound_test:
-                    dataAsString += self.getDataAsString_explicit( tc, slotIndent+1, "" )
+                    slotDataAsString, unit_tc_info = \
+                        self.getDataAsString_explicit( tc, isExpectedData, slotIndent+1, \
+                                                       level=level+1, unit_tc_info=unit_tc_info )
+                    dataAsString += slotDataAsString
+                else:
+                    unit_tc_info.append( ( slotName, tc.id ) )
+
+            if level > 0:
+                return dataAsString, unit_tc_info
+
+            for info in unit_tc_info:
+
+                slotName = info[0]
+                tc_id = info[1]
+
+                slotNameAsStr = "%s (Slot): %s:\n" %( slotName, dataTypeAsStr )
+                dataAsString += tcIndentAsStr + slotNameAsStr
+
+                tc = self.envApi[envName].TestCase.get( tc_id )
+
+                self.prepareData( tc, isExpectedData )
+
+                trace( "Input Data:", self.inputData, newLine=True )
+                trace( "Expected Data:", self.expectedData, newLine=True )
+
+                if isExpectedData:
+                    dataAsString += self.getDataAsString_globals( envName, isExpectedData, unitIndent )
+                    dataAsString += self.getDataAsString_functions( tc, isExpectedData, unitIndent )
+                    dataAsString += self.getTestcaseUserCode( tc, isExpectedData, unitIndent )
+                else:
+                    dataAsString += self.getTestcaseUserCode( tc, isExpectedData, unitIndent )
+                    dataAsString += self.getDataAsString_globals( envName, isExpectedData, unitIndent )
+                    dataAsString += self.getDataAsString_functions( tc, isExpectedData, unitIndent )
+
+            return dataAsString
 
         elif testcase.is_unit_test:
 
@@ -271,7 +307,7 @@ class DataAPI_Wrapper( object ):
                 dataAsString += self.getDataAsString_globals( envName, isExpectedData, unitIndent )
                 dataAsString += self.getDataAsString_functions( testcase, isExpectedData, unitIndent )
 
-        return dataAsString
+            return dataAsString
 
 
     def getDataAsString_functions( self, testcase, isExpectedData, currentIndent ):
