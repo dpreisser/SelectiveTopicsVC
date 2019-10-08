@@ -189,9 +189,7 @@ class DataAPI_Wrapper( object ):
             dataTypeAsStr = "Input data"
 
         envName = testcase.get_environment().name
-
         unitName = testcase.unit_display_name
-        unit = self.envApi[envName].Unit.get( unitName )
 
         if 0 == currentIndent:
 
@@ -226,10 +224,7 @@ class DataAPI_Wrapper( object ):
             envNameAsStr = "Environment: %s\n" % envName
             dataAsString += envIndentAsStr + envNameAsStr
 
-            if None != unit:
-                unitNameAsStr = "UUT: %s\n" % unit.display_name
-            else:
-                unitNameAsStr = "UUT: %s\n" % unitName
+            unitNameAsStr = "UUT: %s\n" % unitName
 
         else:
 
@@ -267,9 +262,14 @@ class DataAPI_Wrapper( object ):
             trace( "Input Data:", self.inputData, newLine=True )
             trace( "Expected Data:", self.expectedData, newLine=True )
 
-            dataAsString += self.getDataAsString_globals( envName, isExpectedData, unitIndent )
-            dataAsString += self.getTestcaseUserCode( testcase, isExpectedData, unitIndent )
-            dataAsString += self.getDataAsString_functions( testcase, isExpectedData, unitIndent )
+            if isExpectedData:
+                dataAsString += self.getDataAsString_globals( envName, isExpectedData, unitIndent )
+                dataAsString += self.getDataAsString_functions( testcase, isExpectedData, unitIndent )
+                dataAsString += self.getTestcaseUserCode( testcase, isExpectedData, unitIndent )
+            else:
+                dataAsString += self.getTestcaseUserCode( testcase, isExpectedData, unitIndent )
+                dataAsString += self.getDataAsString_globals( envName, isExpectedData, unitIndent )
+                dataAsString += self.getDataAsString_functions( testcase, isExpectedData, unitIndent )
 
         return dataAsString
 
@@ -283,6 +283,8 @@ class DataAPI_Wrapper( object ):
         else:
             container = self.inputData
 
+        # UUT
+
         envName = testcase.get_environment().name
 
         unitName = testcase.unit_display_name
@@ -290,21 +292,56 @@ class DataAPI_Wrapper( object ):
 
         function = testcase.function
 
-        dataAsString += self.getDataAsString_parameters( unit, function, isExpectedData, currentIndent )
+        dataAsString_UUT = self.getDataAsString_parameters( unit, function, isExpectedData, currentIndent )
 
-        unitName = "uut_prototype_stubs"
-        unit = self.envApi[envName].Unit.get( unitName )
-        unitId = unit.id
+        # SBF
 
-        if not unitId in container.keys():
-            return dataAsString
+        dataAsString_SBF = ""
 
-        for functionIndex in container[unitId].keys():
+        tc_unitId = unit.id
+        tc_functionIndex = function.index
+
+        for functionIndex in container[tc_unitId].keys():
+
+            # Skip globals
+            if functionIndex == 0:
+                continue
+
+            # Skip the function associated with the testcase.
+            if functionIndex == tc_functionIndex:
+                continue            
 
             # function = self.getFunctionByIndex( unit, functionIndex )
             function = unit.get_function( functionIndex )
 
-            dataAsString += self.getDataAsString_parameters( unit, function, isExpectedData, currentIndent )
+            dataAsString_SBF += self.getDataAsString_parameters( unit, function, isExpectedData, currentIndent )
+
+        # All other stubs (different units)
+
+        dataAsString_Stub = ""
+
+        for unitId in container.keys():
+
+            # Skip the unit associated with the testcase.
+            if unitId == tc_unitId:
+                continue
+
+            unit = self.envApi[envName].Unit.get( unitId )
+
+            for functionIndex in container[unitId].keys():
+
+                # Skip globals
+                if functionIndex == 0:
+                    continue
+
+                # function = self.getFunctionByIndex( unit, functionIndex )
+                function = unit.get_function( functionIndex )
+
+                dataAsString_Stub += self.getDataAsString_parameters( unit, function, isExpectedData, currentIndent )
+
+        dataAsString += dataAsString_SBF
+        dataAsString += dataAsString_UUT
+        dataAsString += dataAsString_Stub
 
         return dataAsString
 
@@ -325,8 +362,18 @@ class DataAPI_Wrapper( object ):
         unitNameAsStr = "UUT: %s\n" % unit.name
         dataAsString += unitIndentAsStr + unitNameAsStr
 
-        functionNameAsStr = "Subprogram: %s\n" % function.name
-        dataAsString += functionIndentAsStr + functionNameAsStr
+        functionDataAsStr = None
+        
+        if unit.stub_by_function:
+            dataObjectCoords = [ unit.id, function.index, function.sbf_index ]
+            functionDataAsStr = self.getData( isExpectedData, dataObjectCoords, "data" )
+
+        if None == functionDataAsStr:
+            functionNameAsStr = "Subprogram: %s\n" % function.name
+            dataAsString += functionIndentAsStr + functionNameAsStr
+        else:
+            functionNameAsStr = "Subprogram: %s: %s\n" % ( function.name, functionDataAsStr )
+            dataAsString += functionIndentAsStr + functionNameAsStr
 
         parameterIndex = 1
         parameter = function.get_param_by_index( parameterIndex )
@@ -514,10 +561,14 @@ class DataAPI_Wrapper( object ):
             else:
 
                 allocateAsStr = self.getData( isExpectedData, dataObjectCoords, "allocate" )
+                
                 if None == allocateAsStr:
-                    return dataAsString
+                    # Unfortunately not possible because there is no allocate within stubs.
+                    # return dataAsString
+                    parameterNameAsStr = "%s: <<ALLOCATE>>\n" % parameterName
+                else:
+                    parameterNameAsStr = "%s: <<ALLOCATE %s>>\n" % ( parameterName, allocateAsStr )
 
-                parameterNameAsStr = "%s: <<ALLOCATE %s>>\n" % ( parameterName, allocateAsStr )
                 dataAsString += currentIndentAsStr + parameterNameAsStr
                 parameterNameAdded = True
 
