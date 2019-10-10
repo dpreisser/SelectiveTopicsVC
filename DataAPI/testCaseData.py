@@ -238,10 +238,10 @@ class DataAPI_Wrapper( object ):
 
         if testcase.is_compound_test:
 
-            dataAsString += unitIndentAsStr + unitNameAsStr
+            # dataAsString += unitIndentAsStr + unitNameAsStr
 
-            functionNameAsStr = "Subprogram: %s\n" % testcase.function_display_name
-            dataAsString += functionIndentAsStr + functionNameAsStr
+            # functionNameAsStr = "Subprogram: %s\n" % testcase.function_display_name
+            # dataAsString += functionIndentAsStr + functionNameAsStr
 
             slots = testcase.slots
             numSlots = len( slots )
@@ -264,6 +264,11 @@ class DataAPI_Wrapper( object ):
 
             if level > 0:
                 return dataAsString, unit_tc_info
+
+            self.prepareSlotData( testcase )
+            print( self.slotData )
+
+            s = 1/0
 
             for info in unit_tc_info:
 
@@ -836,6 +841,78 @@ class DataAPI_Wrapper( object ):
                 print( "Old value(s): %s" % currentData[data_object_id][typeKey] )
                 print( "New value(s): %s" % valuesAsStr )
                 sys.exit()
+
+
+    def prepareSlotData( self, testcase, level=0 ):
+
+        if not testcase.is_compound_test:
+            return
+
+        if 0 == level:
+            self.historyId = testcase.history_id
+            self.slotData = {}
+
+        for slot in testcase.slots:
+
+            tc = slot.testcase
+            print( tc.name )
+
+            if tc.is_compound_test:
+
+                self.prepareSlotData( tc, level=level+1 )
+
+            else:
+
+                self.slotData[slot.id] = {}
+
+                for slot_history in slot.slot_histories:
+
+                    if slot_history.testhistory_id != self.historyId:
+                        continue
+
+                    ancestry = slot_history.get_slot_ancestry()
+
+                    ancestryAsStr = ""
+
+                    for ancestor in ancestry:
+
+                        ancestorAsStr = "%s Slot %s (%s) Iteration %s\n" % \
+                                        ( ancestor.testcase.name, ancestor.slot.index, \
+                                          ancestor.slot.testcase.name, ancestor.iteration )
+
+                        ancestryAsStr += ancestorAsStr
+
+                    self.slotData[slot.id]["ancestry"] = ancestryAsStr
+
+                    for iteration in slot_history.iterations:
+
+                        for range_iteration in iteration.range_iterations:
+
+                            for event in range_iteration.events:
+
+                                for actual in event.actuals:
+
+                                    if not actual.is_result:
+                                        continue
+
+                                    data_object_id = actual.data_object_id
+
+                                    if not data_object_id in self.slotData[slot.id].keys():
+                                        self.slotData[slot.id][data_object_id] = {}
+                                        self.slotData[slot.id][data_object_id]["actuals"] = []
+                                        self.slotData[slot.id][data_object_id]["results"] = []
+
+                                    theSlotData = self.slotData[slot.id][data_object_id]
+                                        
+                                    if None != actual.value:
+                                        theSlotData["actuals"].append( actual.value )
+                                    else:
+                                        theSlotData["actuals"].append( actual.usercode_name )
+
+                                    if 1 == actual.match:
+                                        theSlotData["results"].append( "PASS" )
+                                    else:
+                                        theSlotData["results"].append( "FAIL" )
 
 
     def getDataObjectCoords_arrayIndices( self, isExpectedData, dataObjectCoords ):
