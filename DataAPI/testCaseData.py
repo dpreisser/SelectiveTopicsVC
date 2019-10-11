@@ -2,6 +2,8 @@
 import os
 import sys
 
+import pprint
+
 from copy import deepcopy
 
 from vector.apps.DataAPI.api import Api
@@ -266,7 +268,7 @@ class DataAPI_Wrapper( object ):
                 return dataAsString, unit_tc_info
 
             self.prepareSlotData( testcase )
-            print( self.slotData )
+            pprint.pprint( self.slotData )
 
             s = 1/0
 
@@ -872,23 +874,42 @@ class DataAPI_Wrapper( object ):
 
                     ancestry = slot_history.get_slot_ancestry()
 
-                    ancestryAsStr = ""
+                    ancestryList = []
 
                     for ancestor in ancestry:
 
-                        ancestorAsStr = "%s Slot %s (%s) Iteration %s\n" % \
-                                        ( ancestor.testcase.name, ancestor.slot.index, \
-                                          ancestor.slot.testcase.name, ancestor.iteration )
-
-                        ancestryAsStr += ancestorAsStr
-
-                    self.slotData[slot.id]["ancestry"] = ancestryAsStr
+                        ancestryList.append( [ ancestor.testcase.name, ancestor.slot.index, \
+                                               ancestor.slot.testcase.name, ancestor.iteration ] )
 
                     for iteration in slot_history.iterations:
+
+                        numRangeItr = len( iteration.range_iterations )
+
+                        defaultList = [None]*numRangeItr
 
                         for range_iteration in iteration.range_iterations:
 
                             for event in range_iteration.events:
+
+                                itrIdx = event.iteration_index - 1
+                                rangeItrIdx = event.range_iteration_index - 1
+
+                                if not itrIdx in self.slotData[slot.id].keys():
+                                    self.slotData[slot.id][itrIdx] = {}
+
+                                ancestryList[-1][-1] = event.iteration_index
+
+                                ancestryAsStr = ""
+                                
+                                for ancestor in ancestryList:
+
+                                    ancestorAsStr = "%s Slot %s (%s) Iteration %s\n" % \
+                                        ( ancestor[0], str(ancestor[1]), \
+                                          ancestor[2], str(ancestor[3]) )
+
+                                    ancestryAsStr += ancestorAsStr
+
+                                    self.slotData[slot.id][itrIdx]["ancestry"] = ancestryAsStr
 
                                 for actual in event.actuals:
 
@@ -897,22 +918,22 @@ class DataAPI_Wrapper( object ):
 
                                     data_object_id = actual.data_object_id
 
-                                    if not data_object_id in self.slotData[slot.id].keys():
-                                        self.slotData[slot.id][data_object_id] = {}
-                                        self.slotData[slot.id][data_object_id]["actuals"] = []
-                                        self.slotData[slot.id][data_object_id]["results"] = []
+                                    if not data_object_id in self.slotData[slot.id][itrIdx].keys():
+                                        self.slotData[slot.id][itrIdx][data_object_id] = {}
+                                        self.slotData[slot.id][itrIdx][data_object_id]["actuals"] = deepcopy( defaultList )
+                                        self.slotData[slot.id][itrIdx][data_object_id]["results"] = deepcopy( defaultList )
 
-                                    theSlotData = self.slotData[slot.id][data_object_id]
+                                    theSlotData = self.slotData[slot.id][itrIdx][data_object_id]
                                         
                                     if None != actual.value:
-                                        theSlotData["actuals"].append( actual.value )
+                                        theSlotData["actuals"][rangeItrIdx] = actual.value
                                     else:
-                                        theSlotData["actuals"].append( actual.usercode_name )
+                                        theSlotData["actuals"][rangeItrIdx] = actual.usercode_name                                        
 
                                     if 1 == actual.match:
-                                        theSlotData["results"].append( "PASS" )
+                                        theSlotData["results"][rangeItrIdx] = "PASS"
                                     else:
-                                        theSlotData["results"].append( "FAIL" )
+                                        theSlotData["results"][rangeItrIdx] = "FAIL"
 
 
     def getDataObjectCoords_arrayIndices( self, isExpectedData, dataObjectCoords ):
