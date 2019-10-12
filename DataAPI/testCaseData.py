@@ -586,7 +586,6 @@ class DataAPI_Wrapper( object ):
             formattedUserCode = self.formatUserCode( valuesAsStr, currentIndent+1 )
             dataAsString += currentIndentAsStr + parameterNameAsStr
             dataAsString += formattedUserCode
-            return dataAsString
 
         isArray = False
         isBasicType = True
@@ -689,6 +688,9 @@ class DataAPI_Wrapper( object ):
 
                 if None != valuesAsStr:
 
+                    parameterDataAsStr = ""
+                    dataIndentAsStr = currentIndentAsStr
+
                     associatedValues = self.getAssociatedValues( parameterType, valuesAsStr )
 
                     if isExpectedData:
@@ -696,17 +698,27 @@ class DataAPI_Wrapper( object ):
                         actuals = self.getData( isExpectedData, dataObjectCoords, "actuals" )
                         results = self.getData( isExpectedData, dataObjectCoords, "results" )
 
-                        parameterDataAsStr = "%s: %s --> %s (%s)\n" % ( parameterName, \
-                                                                        ",".join( associatedValues ), \
-                                                                        ",".join( actuals ), \
-                                                                        ",".join( results ) )
+                        if is_parameter_user_code:
+
+                            dataIndentAsStr = ""
+
+                            for idx in range( len(actuals) ):
+                                parameterDataAsStr += indexIndentAsStr + \
+                                                      "--> %s (%s)\n" % ( actuals[idx], results[idx] )
+
+                        else:
+
+                            parameterDataAsStr = "%s: %s --> %s (%s)\n" % ( parameterName, \
+                                                                            ",".join( associatedValues ), \
+                                                                            ",".join( actuals ), \
+                                                                            ",".join( results ) )
 
                     else:
 
                         parameterDataAsStr = "%s: %s\n" % ( parameterName, \
                                                             ",".join( associatedValues ) )
 
-                    dataAsString += currentIndentAsStr + parameterDataAsStr
+                    dataAsString += dataIndentAsStr + parameterDataAsStr
 
             else:
 
@@ -760,14 +772,17 @@ class DataAPI_Wrapper( object ):
             valuesAsStr = sourceData.value
 
             if isExpectedData:
-                actuals = []
-                results = []
+                numRangeItr = len( sourceData.results[0].slothistory.iterations[0].range_iterations )
+                defaultList = ["None"]*numRangeItr
+                actuals = deepcopy( defaultList )
+                results = deepcopy( defaultList )
                 for result in sourceData.results:
-                    actuals.append( result.value )
+                    rangeItrIdx = result.event.range_iteration_index - 1
+                    actuals[rangeItrIdx] = result.value
                     if 1 == result.match:
-                        results.append( "PASS" )
+                        results[rangeItrIdx] = "PASS"
                     else:
-                        results.append( "FAIL" )
+                        results[rangeItrIdx] = "FAIL"
 
             comp = data_object_id.split( "." )
 
@@ -815,6 +830,20 @@ class DataAPI_Wrapper( object ):
             data_object_id = sourceData.data_object_id
             valuesAsStr = sourceData.value
 
+            if isExpectedData:
+                numRangeItr = len( sourceData.results[0].slothistory.iterations[0].range_iterations )
+                defaultList = ["None"]*numRangeItr
+                actuals = deepcopy( defaultList )
+                results = deepcopy( defaultList )
+                for result in sourceData.results:
+                    rangeItrIdx = result.event.range_iteration_index - 1
+                    actuals[rangeItrIdx] = result.usercode_name
+                    if 1 == result.match:
+                        results[rangeItrIdx] = "PASS"
+                    else:
+                        results[rangeItrIdx] = "FAIL"
+
+
             comp = data_object_id.split( "." )
 
             unitId = int( comp[0] )
@@ -836,8 +865,15 @@ class DataAPI_Wrapper( object ):
                 currentData[data_object_id] = {}
 
             if typeKey not in currentData[data_object_id].keys():
+
                 currentData[data_object_id][typeKey] = valuesAsStr
+
+                if isExpectedData:
+                    currentData[data_object_id]["actuals"] = actuals
+                    currentData[data_object_id]["results"] = results
+
             else:
+
                 print( "Duplicated entry - catastrophic logic error.\n" )
                 print( data_oject_id, typeKey )
                 print( "Old value(s): %s" % currentData[data_object_id][typeKey] )
@@ -853,6 +889,7 @@ class DataAPI_Wrapper( object ):
         if 0 == level:
             self.historyId = testcase.history_id
             self.slotData = {}
+            self.slotData["slotIdSequence"] = []
 
         for slot in testcase.slots:
 
@@ -865,6 +902,7 @@ class DataAPI_Wrapper( object ):
 
             else:
 
+                self.slotData["slotIdSequence"].append( slot.id )
                 self.slotData[slot.id] = {}
 
                 for slot_history in slot.slot_histories:
@@ -885,7 +923,7 @@ class DataAPI_Wrapper( object ):
 
                         numRangeItr = len( iteration.range_iterations )
 
-                        defaultList = [None]*numRangeItr
+                        defaultList = ["None"]*numRangeItr
 
                         for range_iteration in iteration.range_iterations:
 
