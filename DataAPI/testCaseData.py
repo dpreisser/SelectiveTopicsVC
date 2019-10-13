@@ -742,18 +742,73 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
 
-    def prepareData( self, testcase, isExpectedData ):
+    def prepareTestcaseData( self, testcase, isExpectedData, level=0 ):
+
+        if 0 == level:
+
+            self.slotIdSequence = []
+
+            if isExpectedData:
+                self.expectedData = {}
+                self.actualData = {}
+            else:
+                self.inputData = {}
+
+            self.historyId = testcase.history_id
+
+            if not testcase.is_compound_test:
+
+                self.slotIdSequence.append( testcase.id )
+
+                self.prepareInpExpData( testcase, isExpectedData )
+                
+                if isExpectedData:
+                    self.prepareActuals( self, testcase.id, testcase.history.slot_histories )
+
+            return
+
+        for slot in testcase.slots:
+
+            tc = slot.testcase
+
+            if tc.is_compound_test:
+
+                self.prepareTestcaseData( tc, level=level+1 )
+
+            else:
+
+                self.slotIdSequence.append( slot.id )
+
+                self.prepareInpExpData( testcase, isExpectedData )
+                
+                if isExpectedData:
+                    self.prepareActuals( self, slot.id, slot.slot_histories )
+
+
+    def prepareInpExpData( self, testcase, isExpectedData ):
+
+        if testcase.is_compound_test:
+            return
 
         if isExpectedData:
-            self.expectedData = {}
-            container =  self.expectedData = {}
-            source1 = testcase.expected
-            source2 = testcase.expected_user_code
+
+            if not testcase.id in self.expectedData.keys():
+                self.expectedData[testcase.id] = {}
+                container =  self.expectedData[testcase.id]
+                source1 = testcase.expected
+                source2 = testcase.expected_user_code
+            else:
+                return
+            
         else:
-            self.inputData = {}
-            container =  self.inputData = {}
-            source1 = testcase.input
-            source2 = testcase.input_user_code
+
+            if not testcase.id in self.inputData.keys():
+                self.inputData[testcase.id] = {}
+                container =  self.inputData[testcase.id]
+                source1 = testcase.input
+                source2 = testcase.input_user_code
+            else:
+                return
 
         for sourceData in source1:
 
@@ -770,19 +825,6 @@ class DataAPI_Wrapper( object ):
 
             data_object_id = sourceData.data_object_id
             valuesAsStr = sourceData.value
-
-            if isExpectedData:
-                numRangeItr = len( sourceData.results[0].slothistory.iterations[0].range_iterations )
-                defaultList = ["None"]*numRangeItr
-                actuals = deepcopy( defaultList )
-                results = deepcopy( defaultList )
-                for result in sourceData.results:
-                    rangeItrIdx = result.event.range_iteration_index - 1
-                    actuals[rangeItrIdx] = result.value
-                    if 1 == result.match:
-                        results[rangeItrIdx] = "PASS"
-                    else:
-                        results[rangeItrIdx] = "FAIL"
 
             comp = data_object_id.split( "." )
 
@@ -808,10 +850,6 @@ class DataAPI_Wrapper( object ):
 
                 currentData[data_object_id][typeKey] = valuesAsStr
 
-                if isExpectedData:
-                    currentData[data_object_id]["actuals"] = actuals
-                    currentData[data_object_id]["results"] = results
-                    
             else:
 
                 print( "Duplicated entry - catastrophic logic error.\n" )
@@ -830,20 +868,6 @@ class DataAPI_Wrapper( object ):
             data_object_id = sourceData.data_object_id
             valuesAsStr = sourceData.value
 
-            if isExpectedData:
-                numRangeItr = len( sourceData.results[0].slothistory.iterations[0].range_iterations )
-                defaultList = ["None"]*numRangeItr
-                actuals = deepcopy( defaultList )
-                results = deepcopy( defaultList )
-                for result in sourceData.results:
-                    rangeItrIdx = result.event.range_iteration_index - 1
-                    actuals[rangeItrIdx] = result.usercode_name
-                    if 1 == result.match:
-                        results[rangeItrIdx] = "PASS"
-                    else:
-                        results[rangeItrIdx] = "FAIL"
-
-
             comp = data_object_id.split( "." )
 
             unitId = int( comp[0] )
@@ -868,10 +892,6 @@ class DataAPI_Wrapper( object ):
 
                 currentData[data_object_id][typeKey] = valuesAsStr
 
-                if isExpectedData:
-                    currentData[data_object_id]["actuals"] = actuals
-                    currentData[data_object_id]["results"] = results
-
             else:
 
                 print( "Duplicated entry - catastrophic logic error.\n" )
@@ -881,97 +901,82 @@ class DataAPI_Wrapper( object ):
                 sys.exit()
 
 
-    def prepareSlotData( self, testcase, level=0 ):
+    def prepareActuals( self, slotId, slot_histories ):
 
-        if not testcase.is_compound_test:
-            return
+        if not slotId in self.actualData.keys():
+            self.actualData[slotId] = {}
 
-        if 0 == level:
-            self.historyId = testcase.history_id
-            self.slotData = {}
-            self.slotData["slotIdSequence"] = []
+        container = self.actualData[slotId]
 
-        for slot in testcase.slots:
+        for slot_history in slot_histories:
 
-            tc = slot.testcase
-            print( tc.name )
+            if slot_history.testhistory_id != self.historyId:
+                continue
 
-            if tc.is_compound_test:
+            ancestry = slot_history.get_slot_ancestry()
 
-                self.prepareSlotData( tc, level=level+1 )
+            ancestryList = []
 
-            else:
+            for ancestor in ancestry:
 
-                self.slotData["slotIdSequence"].append( slot.id )
-                self.slotData[slot.id] = {}
+                ancestryList.append( [ ancestor.testcase.name, ancestor.slot.index, \
+                                       ancestor.slot.testcase.name, ancestor.iteration ] )
 
-                for slot_history in slot.slot_histories:
+            for iteration in slot_history.iterations:
 
-                    if slot_history.testhistory_id != self.historyId:
-                        continue
+                numRangeItr = len( iteration.range_iterations )
 
-                    ancestry = slot_history.get_slot_ancestry()
+                defaultList = ["None"]*numRangeItr
 
-                    ancestryList = []
+                for range_iteration in iteration.range_iterations:
 
-                    for ancestor in ancestry:
+                    for event in range_iteration.events:
 
-                        ancestryList.append( [ ancestor.testcase.name, ancestor.slot.index, \
-                                               ancestor.slot.testcase.name, ancestor.iteration ] )
+                        itrIdx = event.iteration_index - 1
+                        rangeItrIdx = event.range_iteration_index - 1
 
-                    for iteration in slot_history.iterations:
+                        if not itrIdx in container.keys():
+                            container[itrIdx] = {}
 
-                        numRangeItr = len( iteration.range_iterations )
+                        ancestryList[-1][-1] = event.iteration_index
 
-                        defaultList = ["None"]*numRangeItr
-
-                        for range_iteration in iteration.range_iterations:
-
-                            for event in range_iteration.events:
-
-                                itrIdx = event.iteration_index - 1
-                                rangeItrIdx = event.range_iteration_index - 1
-
-                                if not itrIdx in self.slotData[slot.id].keys():
-                                    self.slotData[slot.id][itrIdx] = {}
-
-                                ancestryList[-1][-1] = event.iteration_index
-
-                                ancestryAsStr = ""
+                        ancestryAsStr = ""
                                 
-                                for ancestor in ancestryList:
+                        for ancestor in ancestryList:
 
-                                    ancestorAsStr = "%s Slot %s (%s) Iteration %s\n" % \
-                                        ( ancestor[0], str(ancestor[1]), \
-                                          ancestor[2], str(ancestor[3]) )
+                            ancestorAsStr = "%s Slot %s (%s) Iteration %s\n" % \
+                                            ( ancestor[0], str(ancestor[1]), \
+                                              ancestor[2], str(ancestor[3]) )
 
-                                    ancestryAsStr += ancestorAsStr
+                            ancestryAsStr += ancestorAsStr
 
-                                    self.slotData[slot.id][itrIdx]["ancestry"] = ancestryAsStr
+                        container[itrIdx]["ancestry"] = ancestryAsStr
 
-                                for actual in event.actuals:
+                        for actual in event.actuals:
 
-                                    if not actual.is_result:
-                                        continue
+                            if not actual.is_result:
+                                continue
 
-                                    data_object_id = actual.data_object_id
+                            data_object_id = actual.data_object_id
 
-                                    if not data_object_id in self.slotData[slot.id][itrIdx].keys():
-                                        self.slotData[slot.id][itrIdx][data_object_id] = {}
-                                        self.slotData[slot.id][itrIdx][data_object_id]["actuals"] = deepcopy( defaultList )
-                                        self.slotData[slot.id][itrIdx][data_object_id]["results"] = deepcopy( defaultList )
+                            comp = data_object_id.split( "." )
 
-                                    theSlotData = self.slotData[slot.id][itrIdx][data_object_id]
+                            if not data_object_id in container[itrIdx].keys():
+                                container[itrIdx][data_object_id] = {}
+                                container[itrIdx][data_object_id]["actuals"] = deepcopy( defaultList )
+                                container[itrIdx][data_object_id]["results"] = deepcopy( defaultList )
+
+                            theContainer = container[itrIdx][data_object_id]
                                         
-                                    if None != actual.value:
-                                        theSlotData["actuals"][rangeItrIdx] = actual.value
-                                    else:
-                                        theSlotData["actuals"][rangeItrIdx] = actual.usercode_name                                        
+                            if None != actual.value:
+                                theContainer["actuals"][rangeItrIdx] = actual.value
+                            else:
+                                theContainer["actuals"][rangeItrIdx] = actual.usercode_name                                        
 
-                                    if 1 == actual.match:
-                                        theSlotData["results"][rangeItrIdx] = "PASS"
-                                    else:
-                                        theSlotData["results"][rangeItrIdx] = "FAIL"
+                            if 1 == actual.match:
+                                theContainer["results"][rangeItrIdx] = "PASS"
+                            else:
+                                theContainer["results"][rangeItrIdx] = "FAIL"
 
 
     def getDataObjectCoords_arrayIndices( self, isExpectedData, dataObjectCoords ):
