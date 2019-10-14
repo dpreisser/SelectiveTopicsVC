@@ -37,7 +37,13 @@ class TestCaseData( object ):
 
         self.dataApi = dataApi
 
+        self.inputDataAsString = None
+        self.expectedDataAsString = None
         self.inpExpDataAsString = None
+
+        self.actualInputDataAsString = None
+        self.actualExpectedDataAsString = None
+        self.actualInpExpDataAsString = None
 
         self.initialize()
 
@@ -64,9 +70,9 @@ class TestCaseData( object ):
     def buildInpExpDataAsString( self, inpExpControl ):
 
         if 1 == inpExpControl:
-            self.inpExpDataAsString = self.dataApi.getDataAsString( self.testcase.input_tree )
+            self.inputDataAsString = self.dataApi.getDataAsString( self.testcase.input_tree )
         elif 2 == inpExpControl:
-            self.inpExpDataAsString = self.dataApi.getDataAsString( self.testcase.expected_tree )
+            self.expectedDataAsString = self.dataApi.getDataAsString( self.testcase.expected_tree )
         elif 3 == inpExpControl:
             self.inpExpDataAsString = self.dataApi.getDataAsString( self.testcase.input_tree )
             self.inpExpDataAsString += self.dataApi.getDataAsString( self.testcase.expected_tree )
@@ -74,16 +80,38 @@ class TestCaseData( object ):
 
     def buildInpExpDataAsString_explicit( self, inpExpControl ):
 
-        self.inpExpDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, inpExpControl, 0, 0 )
+        if 1 == inpExpControl:
+            self.inputDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, inpExpControl, 0, 0 )
+        elif 2 == inpExpControl:
+            self.expectedDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, inpExpControl, 0, 0 )
+        elif 3 == inpExpControl:
+            self.inpExpDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, inpExpControl, 0, 0 )
 
 
     def getInpExpDataAsString( self, inpExpControl ):
 
-        if None == self.inpExpDataAsString:
+        buildNeeded = False
+
+        if 1 == inpExpControl:
+            if None == self.inputDataAsString:
+                buildNeeded = True
+        elif 2 == inpExpControl:
+            if None == self.expectedDataAsString:
+                buildNeeded = True
+        elif 3 == inpExpControl:
+            if None == self.inpExpDataAsString:
+                buildNeeded = True
+
+        if buildNeeded:
             # self.buildInpExpDataAsString( inpExpControl )
             self.buildInpExpDataAsString_explicit( inpExpControl )
 
-        return self.inpExpDataAsString
+        if 1 == inpExpControl:
+            return self.inputDataAsString
+        elif 2 == inpExpControl:
+            return self.expectedDataAsString
+        elif 3 == inpExpControl:
+            return self.inpExpDataAsString
 
 
 class DataAPI_Wrapper( object ):
@@ -180,9 +208,9 @@ class DataAPI_Wrapper( object ):
         if 1 == actualInpExpControl:
             dataTypeAsStr = "Actual Input data"
         elif 2 == actualInpExpControl:
-            dataTypeAsStr = "Actual Expected data"
+            dataTypeAsStr = "Actual Result data"
         elif 3 == actualInpExpControl:
-            dataTypeAsStr = "Actual Input & Expected data"
+            dataTypeAsStr = "Actual Input & Result data"
 
         envName = testcase.get_environment().name
         unitName = testcase.unit_display_name
@@ -730,17 +758,27 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
 
-    def prepareTestcaseData( self, testcase, isExpectedData, level=0 ):
+    def prepareTestcaseData( self, testcase, inpExpControl, actualInpExpControl, level=0 ):
 
         if 0 == level:
 
             self.slotIdSequence = []
 
-            if isExpectedData:
-                self.expectedData = {}
-                self.actualData = {}
-            else:
+            if 1 == inpExpControl:
                 self.inputData = {}
+            elif 2 == inpExpControl:
+                self.expectedData = {}
+            elif 3 == inpExpControl:
+                self.inputData = {}
+                self.expectedData = {}
+
+            if 1 == actualInpExpControl:
+                self.actualInputData = {}
+            elif 2 == actualInpExpControl:
+                self.actualResultData = {}
+            elif 3 == actualInpExpControl:
+                self.actualInputData = {}
+                self.actualResultData = {}
 
             self.historyId = testcase.history_id
 
@@ -748,10 +786,8 @@ class DataAPI_Wrapper( object ):
 
                 self.slotIdSequence.append( testcase.id )
 
-                self.prepareInpExpData( testcase, isExpectedData )
-                
-                if isExpectedData:
-                    self.prepareActuals( self, testcase.id, testcase.history.slot_histories )
+                self.prepareInpExpData_Wrapper( testcase, inpExpControl )
+                self.prepareActualData_Wrapper( testcase.id, testcase.history.slot_histories, actualInpExpControl )
 
             return
 
@@ -767,10 +803,8 @@ class DataAPI_Wrapper( object ):
 
                 self.slotIdSequence.append( slot.id )
 
-                self.prepareInpExpData( testcase, isExpectedData )
-                
-                if isExpectedData:
-                    self.prepareActuals( self, slot.id, slot.slot_histories )
+                self.prepareInpExpData_Wrapper( testcase, inpExpControl )
+                self.prepareActualData_Wrapper( slot.id, slot.slot_histories, actualInpExpControl )
 
 
     def prepareInpExpData_Wrapper( self, testcase, inpExpControl ):
@@ -900,23 +934,34 @@ class DataAPI_Wrapper( object ):
                 sys.exit()
 
 
-    def prepareActual_Wrapper( slotId, slot_histories, actualInpExpControl ):
+    def prepareActualData_Wrapper( self, slotId, slot_histories, actualInpExpControl ):
 
         if 1 == actualInpExpControl:
-            self.prepareInpExpData( slotId, slot_histories, False )
+            self.prepareActualData( slotId, slot_histories, False )
         elif 2 == actualInpExpControl:
-            self.prepareInpExpData( slotId, slot_histories, True )
+            self.prepareActualData( slotId, slot_histories, True )
         elif 3 == actualInpExpControl:
-            self.prepareInpExpData( slotId, slot_histories, False )
-            self.prepareInpExpData( slotId, slot_histories, True )
+            self.prepareActualData( slotId, slot_histories, False )
+            self.prepareActualData( slotId, slot_histories, True )
 
 
-    def prepareActuals( self, slotId, slot_histories, isExpectedData ):
+    def prepareActualData( self, slotId, slot_histories, isExpectedData ):
 
-        if not slotId in self.actualData.keys():
-            self.actualData[slotId] = {}
+        if isExpectedData:
 
-        container = self.actualData[slotId]
+            if not slotId in self.actualResultData.keys():
+                self.actualResultData[slotId] = {}
+                container = self.actualResultData[slotId]
+            else:
+                return
+
+        else:
+
+            if not slotId in self.actualInputData.keys():
+                self.actualInputData[slotId] = {}
+                container = self.actualInputData[slotId]
+            else:
+                return
 
         for slot_history in slot_histories:
 
@@ -1181,6 +1226,7 @@ if "__main__" == __name__:
 
         print( tcData )
 
+        print( tcData.getInpExpDataAsString( 1 ) )
         print( tcData.getInpExpDataAsString( 2 ) )
 
     elif 2 == numParameters:
@@ -1192,8 +1238,8 @@ if "__main__" == __name__:
 
         for testcase in testcases:
 
-            inputDataAsString = dataApi.getDataAsString_explicit( testcase, False, 0 )
-            expectedDataAsString = dataApi.getDataAsString_explicit( testcase, True, 0 )
+            inputDataAsString = dataApi.getDataAsString_explicit( testcase, 1, 0 )
+            expectedDataAsString = dataApi.getDataAsString_explicit( testcase, 2, 0 )
 
             print( inputDataAsString )
             print( expectedDataAsString )
@@ -1205,6 +1251,7 @@ if "__main__" == __name__:
         
         print( tcData )
 
+        print( tcData.getInpExpDataAsString( 1 ) )
         print( tcData.getInpExpDataAsString( 2 ) )
 
     else:
