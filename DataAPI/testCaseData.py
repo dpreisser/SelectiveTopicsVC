@@ -67,50 +67,50 @@ class TestCaseData( object ):
         return msg
 
 
-    def buildInpExpDataAsString( self, inpExpControl ):
+    def buildInpExpDataAsString( self, dataTypeControl ):
 
-        if 1 == inpExpControl:
+        if 1 == dataTypeControl:
             self.inputDataAsString = self.dataApi.getDataAsString( self.testcase.input_tree )
-        elif 2 == inpExpControl:
+        elif 2 == dataTypeControl:
             self.expectedDataAsString = self.dataApi.getDataAsString( self.testcase.expected_tree )
-        elif 3 == inpExpControl:
+        elif 3 == dataTypeControl:
             self.inpExpDataAsString = self.dataApi.getDataAsString( self.testcase.input_tree )
             self.inpExpDataAsString += self.dataApi.getDataAsString( self.testcase.expected_tree )
 
 
-    def buildInpExpDataAsString_explicit( self, inpExpControl ):
+    def buildInpExpDataAsString_explicit( self, dataTypeControl ):
 
-        if 1 == inpExpControl:
-            self.inputDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, inpExpControl, 0, 0 )
-        elif 2 == inpExpControl:
-            self.expectedDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, inpExpControl, 0, 0 )
-        elif 3 == inpExpControl:
-            self.inpExpDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, inpExpControl, 0, 0 )
+        if 1 == dataTypeControl:
+            self.inputDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, dataTypeControl, True, 0 )
+        elif 2 == dataTypeControl:
+            self.expectedDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, dataTypeControl, True, 0 )
+        elif 3 == dataTypeControl:
+            self.inpExpDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, dataTypeControl, True, 0 )
 
 
-    def getInpExpDataAsString( self, inpExpControl ):
+    def getInpExpDataAsString( self, dataTypeControl ):
 
         buildNeeded = False
 
-        if 1 == inpExpControl:
+        if 1 == dataTypeControl:
             if None == self.inputDataAsString:
                 buildNeeded = True
-        elif 2 == inpExpControl:
+        elif 2 == dataTypeControl:
             if None == self.expectedDataAsString:
                 buildNeeded = True
-        elif 3 == inpExpControl:
+        elif 3 == dataTypeControl:
             if None == self.inpExpDataAsString:
                 buildNeeded = True
 
         if buildNeeded:
-            # self.buildInpExpDataAsString( inpExpControl )
-            self.buildInpExpDataAsString_explicit( inpExpControl )
+            # self.buildInpExpDataAsString( dataTypeControl )
+            self.buildInpExpDataAsString_explicit( dataTypeControl )
 
-        if 1 == inpExpControl:
+        if 1 == dataTypeControl:
             return self.inputDataAsString
-        elif 2 == inpExpControl:
+        elif 2 == dataTypeControl:
             return self.expectedDataAsString
-        elif 3 == inpExpControl:
+        elif 3 == dataTypeControl:
             return self.inpExpDataAsString
 
 
@@ -194,23 +194,27 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
 
-    def getDataAsString_explicit( self, testcase, inpExpControl, actualInpExpControl, currentIndent, level=0 ):
+    def getDataAsString_explicit( self, testcase, dataTypeControl, isInpExpData, currentIndent, level=0 ):
 
         dataAsString = ""
 
-        if 1 == inpExpControl:
-            dataTypeAsStr = "Input data"
-        elif 2 == inpExpControl:
-            dataTypeAsStr = "Expected data"
-        elif 3 == inpExpControl:
-            dataTypeAsStr = "Input & Expected data"
+        if isInpExpData:
 
-        if 1 == actualInpExpControl:
-            dataTypeAsStr = "Actual Input data"
-        elif 2 == actualInpExpControl:
-            dataTypeAsStr = "Actual Result data"
-        elif 3 == actualInpExpControl:
-            dataTypeAsStr = "Actual Input & Result data"
+            if 1 == dataTypeControl:
+                dataTypeAsStr = "Input data"
+            elif 2 == dataTypeControl:
+                dataTypeAsStr = "Expected data"
+            elif 3 == dataTypeControl:
+                dataTypeAsStr = "Input & Expected data"
+
+        else:
+
+            if 1 == dataTypeControl:
+                dataTypeAsStr = "Actual Input data"
+            elif 2 == dataTypeControl:
+                dataTypeAsStr = "Actual Result data"
+            elif 3 == dataTypeControl:
+                dataTypeAsStr = "Actual Input & Result data"
 
         envName = testcase.get_environment().name
         unitName = testcase.unit_display_name
@@ -250,7 +254,7 @@ class DataAPI_Wrapper( object ):
 
             unitNameAsStr = "UUT: %s\n" % unitName
 
-            self.prepareTestcaseData( testcase, inpExpControl, actualInpExpControl )
+            self.prepareData( testcase, dataTypeControl, isInpExpData )
 
         else:
 
@@ -274,7 +278,8 @@ class DataAPI_Wrapper( object ):
                 dataAsString += slotIndentAsStr + slotAsStr
 
                 if tc.is_compound_test:
-                    slotDataAsString = self.getDataAsString_explicit( tc, isExpectedData, slotIndent+1, \
+                    slotDataAsString = self.getDataAsString_explicit( tc, dataTypeControl, isInpExpData, \
+                                                                      slotIndent+1, \
                                                                       level=level+1 )
                     dataAsString += slotDataAsString
 
@@ -300,10 +305,10 @@ class DataAPI_Wrapper( object ):
                 slotNameAsStr = "%s: %s:\n" %( ancestryAsStr, dataTypeAsStr )
                 dataAsString += tcIndentAsStr + slotNameAsStr
 
-                trace( "Input & Expected Data:", self.inpExpData[slotId], newLine=True )
+                trace( "Input & Expected Data:", self.inpExpData[tc.id], newLine=True )
 
                 dataAsString += self.getDataAsString_globals( envName,
-                                                              tc.id, slotId, inpExpControl, actualInpExpControl, \
+                                                              tc.id, slotId, dataTypeControl, isInpExpData, \
                                                               unitIndent )
 
                 # dataAsString += self.getDataAsString_functions( tc, isExpectedData, unitIndent )
@@ -313,15 +318,14 @@ class DataAPI_Wrapper( object ):
 
         elif testcase.is_unit_test:
 
-            trace( "Input Data:", self.inputData, newLine=True )
-            trace( "Expected Data:", self.expectedData, newLine=True )
+            trace( "Input & Expected Data:", self.inpExpData[testcase.id], newLine=True )
 
             dataAsString += self.getDataAsString_globals( envName,
-                                                          testcase.id, 0, inpExpControl, actualInpExpControl, \
+                                                          testcase.id, 0, 0, dataTypeControl, isInpExpData, \
                                                           unitIndent )
 
-            # dataAsString += self.getDataAsString_functions( testcase, inpExpControl, unitIndent )
-            # dataAsString += self.getTestcaseUserCode( testcase, inpExpControl, unitIndent )
+            # dataAsString += self.getDataAsString_functions( testcase, dataTypeControl, unitIndent )
+            # dataAsString += self.getTestcaseUserCode( testcase, dataTypeControl, unitIndent )
 
             return dataAsString
 
@@ -444,7 +448,7 @@ class DataAPI_Wrapper( object ):
 
 
     def getDataAsString_globals( self, envName, \
-                                 testcaseId, slotId, inpExpControl, actualInpExpControl, \
+                                 testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
                                  currentIndent ):
 
         dataAsString = ""
@@ -453,14 +457,14 @@ class DataAPI_Wrapper( object ):
 
         for unit in units:
             dataAsString += self.getDataAsString_globalsInUnit( envName, unit, \
-                                                                testcaseId, slotId, inpExpControl, actualInpExpControl, \
+                                                                testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
                                                                 currentIndent )
 
         return dataAsString
 
     
     def getDataAsString_globalsInUnit( self, envName, unit, \
-                                       testcaseId, slotId, inpExpControl, actualInpExpControl, \
+                                       testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
                                        currentIndent ):
 
         dataAsString = ""
@@ -479,7 +483,7 @@ class DataAPI_Wrapper( object ):
         parameterIndent = currentIndent + 2
         parameterIndentAsStr = self.getIndentAsString( parameterIndent )
 
-        if inpExpControl > 0:
+        if dataTypeControl > 0:
             container = self.inpExpData[testcaseId]
         elif actualInpExpControl > 0:
             container = self.actualInpResData[slotId]
@@ -513,7 +517,7 @@ class DataAPI_Wrapper( object ):
             globalVar = unit.get_global_by_index( globalVarIndex )
 
             dataAsString += self.walkType_Wrapper( globalVar, dataObjectCoords, \
-                                                   testcaseId, slotId, inpExpControl, actualInpExpControl, \
+                                                   testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
                                                    parameterIndent )
 
         return dataAsString
@@ -562,21 +566,28 @@ class DataAPI_Wrapper( object ):
 
 
     def walkType_Wrapper( self, parameter, dataObjectCoords, \
-                          testcaseId, slotId, inpExpControl, actualInpExpControl, \
+                          testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
                           currentIndent ):
 
         dataAsString = self.walkType( parameter.name, parameter.type, dataObjectCoords, \
-                                      testcaseId, slotId, inpExpControl, actualInpExpControl, \
+                                      testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
                                       currentIndent )
 
         return dataAsString
 
 
     def walkType( self, parameterName, parameterType, dataObjectCoords, \
-                  testcaseId, slotId, inpExpControl, actualInpExpControl, \
+                  testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
                   currentIndent ):
 
-        dataAsString = ""
+        dataStringList = []
+
+        if 1 == dataTypeControl:
+            dataTypeIdc = [0]
+        elif 2 == dataTypeControl:
+            dataTypeIdc = [1]
+        elif 3 == dataTypeControl:
+            dataTypeIdc = [0,1]
 
         currentIndentAsStr = self.getIndentAsString( currentIndent )
 
@@ -585,12 +596,10 @@ class DataAPI_Wrapper( object ):
 
         data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
 
-        if 1 == inpExpControl:
-            valuesAsStr = self.getInpExpData( testcaseId, dataObjectCoords, [0], "data" )
-        elif 2 == inpExpControl:
-            valuesAsStr = self.getInpExpData( testcaseId, dataObjectCoords, [1], "data" )
-        elif 3 == inpExpControl:
-            valuesAsStr = self.getInpExpData( testcaseId, dataObjectCoords, [0,1], "data" )
+        if isInpExpData:
+            valuesAsStr = self.getInpExpData( testcaseId, dataObjectCoords, dataTypeIdc, "data" )
+        else:
+            valuesAsStr = self.getSlotData( slotId, itrIdx, dataObjectCoords, dataTypeIdc, "data" )
 
         kind = parameterType.kind
         element = parameterType.element
@@ -599,18 +608,20 @@ class DataAPI_Wrapper( object ):
         trace( "Type kind:", kind )
         trace( "data_object_id:", data_object_id )
 
-        is_parameter_user_code = False
+        is_parameter_user_code = [ False, False ]
 
-        if None == valuesAsStr:
-            valuesAsStr = self.getData( isExpectedData, dataObjectCoords, "parameter_user_code" )
-            if None != valuesAsStr:
-                is_parameter_user_code = True
+        for dtIdx in dataTypeIdc:
+            
+            if None == valuesAsStr[dtIdx]:
+                valuesAsStr[dtIdx] = self.getInpExpData( testcaseId, dataObjectCoords, [dtIdx], "parameter_user_code" )
+                if None != valuesAsStr[dtIdx]:
+                    is_parameter_user_code[dtIdx] = True             
 
-        if is_parameter_user_code:
-            parameterNameAsStr = "%s: <<User Code>>\n" % parameterName
-            formattedUserCode = self.formatUserCode( valuesAsStr, currentIndent+1 )
-            dataAsString += currentIndentAsStr + parameterNameAsStr
-            dataAsString += formattedUserCode
+            if is_parameter_user_code[dtIdx]:
+                parameterNameAsStr = "%s: <<User Code>>\n" % parameterName
+                formattedUserCode = self.formatUserCode( valuesAsStr, currentIndent+1 )
+                dataAsString += currentIndentAsStr + parameterNameAsStr
+                dataAsString += formattedUserCode
 
         isArray = False
         isBasicType = True
@@ -767,30 +778,25 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
 
-    def prepareTestcaseData( self, testcase, inpExpControl, actualInpExpControl, level=0 ):
+    def prepareData( self, testcase, dataTypeControl, isInpExpData, level=0 ):
 
         if 0 == level:
 
-            self.slotIdSequence = []
-
-            self.inpExpData = {}
-
-            if 1 == actualInpExpControl:
-                self.actualInputData = {}
-            elif 2 == actualInpExpControl:
-                self.actualResultData = {}
-            elif 3 == actualInpExpControl:
-                self.actualInputData = {}
-                self.actualResultData = {}
+            if isInpExpData:
+                self.inpExpData = {}
+            else:
+                self.slotIdSequence = []
+                self.actualIData
 
             self.historyId = testcase.history_id
 
             if not testcase.is_compound_test:
 
-                self.slotIdSequence.append( testcase.id )
-
-                self.prepareInpExpData_Wrapper( testcase, inpExpControl )
-                self.prepareActualData_Wrapper( 0, testcase.history.slot_histories, actualInpExpControl )
+                if isInpExpData:
+                    self.prepareInpExpData_Wrapper( testcase, dataTypeControl )
+                else:
+                    self.slotIdSequence.append( testcase.id )
+                    self.prepareActualData( 0, testcase.history.slot_histories )
 
             return
 
@@ -800,23 +806,24 @@ class DataAPI_Wrapper( object ):
 
             if tc.is_compound_test:
 
-                self.prepareTestcaseData( tc, inpExpControl, actualInpExpControl, level=level+1 )
+                self.prepareData( tc, dataTypeControl, isInpExpData, level=level+1 )
 
             else:
 
-                self.slotIdSequence.append( slot.id )
+                if isInpExpData:
+                    self.prepareInpExpData_Wrapper( testcase, dataTypeControl )
+                else:
+                    self.slotIdSequence.append( slot.id )
+                    self.prepareActualData( slot.id, slot.slot_histories )
 
-                self.prepareInpExpData_Wrapper( testcase, inpExpControl )
-                self.prepareActualData_Wrapper( slot.id, slot.slot_histories, actualInpExpControl )
 
+    def prepareInpExpData_Wrapper( self, testcase, dataTypeControl ):
 
-    def prepareInpExpData_Wrapper( self, testcase, inpExpControl ):
-
-        if 1 == inpExpControl:
+        if 1 == dataTypeControl:
             self.prepareInpExpData( testcase, False )
-        elif 2 == inpExpControl:
+        elif 2 == dataTypeControl:
             self.prepareInpExpData( testcase, True )
-        elif 3 == inpExpControl:
+        elif 3 == dataTypeControl:
             self.prepareInpExpData( testcase, False )
             self.prepareInpExpData( testcase, True )
 
@@ -931,34 +938,12 @@ class DataAPI_Wrapper( object ):
                 sys.exit()
 
 
-    def prepareActualData_Wrapper( self, slotId, slot_histories, actualInpExpControl ):
+    def prepareActualData( self, slotId, slot_histories ):
 
-        if 1 == actualInpExpControl:
-            self.prepareActualData( slotId, slot_histories, False )
-        elif 2 == actualInpExpControl:
-            self.prepareActualData( slotId, slot_histories, True )
-        elif 3 == actualInpExpControl:
-            self.prepareActualData( slotId, slot_histories, False )
-            self.prepareActualData( slotId, slot_histories, True )
+        if not slotId in self.actualData.keys():
+            self.actualData[slotId] = {}
 
-
-    def prepareActualData( self, slotId, slot_histories, isExpectedData ):
-
-        if isExpectedData:
-
-            if not slotId in self.actualResultData.keys():
-                self.actualResultData[slotId] = {}
-                container = self.actualResultData[slotId]
-            else:
-                return
-
-        else:
-
-            if not slotId in self.actualInputData.keys():
-                self.actualInputData[slotId] = {}
-                container = self.actualInputData[slotId]
-            else:
-                return
+        cotainer = self.actualData[slotId]
 
         for slot_history in slot_histories:
 
@@ -981,6 +966,8 @@ class DataAPI_Wrapper( object ):
                 defaultList = ["None"]*numRangeItr
 
                 for range_iteration in iteration.range_iterations:
+
+                    numEvents = len( range_iteration.events )
 
                     for event in range_iteration.events:
 
@@ -1006,29 +993,42 @@ class DataAPI_Wrapper( object ):
 
                         for actual in event.actuals:
 
-                            if not actual.is_result:
-                                continue
+                            if event.index == numEvents:
+                                
+                                if actual.is_result:
+                                    dataTypeIndex = 1
+                                else:
+                                    continue
+
+                            else:
+
+                                if actual.is_result:
+                                    dataTypeIndex = 1
+                                else:
+                                    dataTypeIndex = 0
 
                             data_object_id = actual.data_object_id
 
                             comp = data_object_id.split( "." )
 
                             if not data_object_id in container[itrIdx].keys():
-                                container[itrIdx][data_object_id] = {}
-                                container[itrIdx][data_object_id]["actuals"] = deepcopy( defaultList )
-                                container[itrIdx][data_object_id]["results"] = deepcopy( defaultList )
+                                container[itrIdx][data_object_id] = [ {}, {} ]
+                                container[itrIdx][data_object_id][dataTypeIndex]["actuals"] = deepcopy( defaultList )
+                                if actual.is_result:
+                                    container[itrIdx][data_object_id][dataTypeIndex]["results"] = deepcopy( defaultList )
 
-                            theContainer = container[itrIdx][data_object_id]
+                            theContainer = container[itrIdx][data_object_id][dataTypeIndex]
                                         
                             if None != actual.value:
                                 theContainer["actuals"][rangeItrIdx] = actual.value
                             else:
                                 theContainer["actuals"][rangeItrIdx] = actual.usercode_name                                        
 
-                            if 1 == actual.match:
-                                theContainer["results"][rangeItrIdx] = "PASS"
-                            else:
-                                theContainer["results"][rangeItrIdx] = "FAIL"
+                            if actual.is_result:
+                                if 1 == actual.match:
+                                    theContainer["results"][rangeItrIdx] = "PASS"
+                                else:
+                                    theContainer["results"][rangeItrIdx] = "FAIL"
 
 
     def getAncestryList( self, slot_histories ):
@@ -1097,9 +1097,11 @@ class DataAPI_Wrapper( object ):
         return arrayIndices
 
             
-    def getInpExpData( self, testcaseId, dataObjectCoords, typeKey ):
+    def getInpExpData( self, testcaseId, dataObjectCoords, dataTypeIdc, typeKey ):
 
-        container = self.inExpData[testcaseId]
+        data = [None]*2
+
+        container = self.inpExpData[testcaseId]
 
         try:
 
@@ -1110,16 +1112,35 @@ class DataAPI_Wrapper( object ):
             
         except KeyError:
 
-            data = None
             return data
+
+        for dtIdx in dataTypeIdc:
+
+            if typeKey in currentDataSet[dtIdx].keys():
+                data[dtIdx] = currentDataSet[dtIdx][typeKey]
+
+        return data
+
+
+    def getSlotData( self, slotId, itrIdx, dataObjectCoords, dataTypeIdc, typeKey ):
 
         data = [None]*2
 
-        if typeKey in currentDataSet[0].keys():
-            data[0] = currentDataSet[0][typeKey]
+        container = self.slotData[slotId][itrIdx]
 
-        if typeKey in currentDataSet[1].keys():
-            data[1] = currentDataSet[1][typeKey]
+        data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
+
+        try:
+            currentDataSet = container[data_object_id]
+            
+        except KeyError:
+
+            return data
+
+        for dtIdx in dataTypeIdc:
+
+            if typeKey in currentDataSet[dtIdx].keys():
+                data[dtIdx] = currentDataSet[dtIdx][typeKey]
 
         return data
 
