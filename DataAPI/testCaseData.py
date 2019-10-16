@@ -126,7 +126,17 @@ class DataAPI_Wrapper( object ):
 
         self.indentUnit = "  "
 
-        
+
+    def getDefaultTree( self ):
+
+        defaultTree = { "children" : [], \
+                        "indent" : 0, \
+                        "label" : None
+                        "values" : [ None, None ] }
+
+        return defaultTree
+
+
     def loadApi( self, envName ):
 
         if not envName in self.envApi.keys():
@@ -196,8 +206,6 @@ class DataAPI_Wrapper( object ):
 
     def getDataAsString_explicit( self, testcase, dataTypeControl, isInpExpData, currentIndent, level=0 ):
 
-        dataAsString = ""
-
         if isInpExpData:
 
             if 1 == dataTypeControl:
@@ -219,6 +227,8 @@ class DataAPI_Wrapper( object ):
         envName = testcase.get_environment().name
         unitName = testcase.unit_display_name
 
+        children = []
+
         if 0 == level:
 
             tcIndent = currentIndent
@@ -239,20 +249,26 @@ class DataAPI_Wrapper( object ):
             slotIndent = currentIndent + 4
             slotIndentAsStr = self.getIndentAsString( slotIndent )
 
+            children.append( self.getDefaultTree() )
+            currentTree = children[-1]
+            currentTree["indent"] = tcIndent
+
             if testcase.is_compound_test:
 
-                tcNameAsStr = "%s (Compound): %s:\n" %( testcase.name, dataTypeAsStr )
-                dataAsString += tcIndentAsStr + tcNameAsStr
+                tcNameAsStr = "%s (Compound): %s" %( testcase.name, dataTypeAsStr )
+                currentTree["label"] = tcNameAsStr
 
             elif testcase.is_unit_test:
 
-                tcNameAsStr = "%s (Unit): %s:\n" %( testcase.name, dataTypeAsStr )
-                dataAsString += tcIndentAsStr + tcNameAsStr
+                tcNameAsStr = "%s (Unit): %s" %( testcase.name, dataTypeAsStr )
+                currentTree["label"] = tcNameAsStr
 
             envNameAsStr = "Environment: %s\n" % envName
-            dataAsString += envIndentAsStr + envNameAsStr
 
-            unitNameAsStr = "UUT: %s\n" % unitName
+            children.append( self.getDefaultTree() )
+            currenTree = children[-1]
+            currentTree["indent"] = envIndent
+            currentTree["label"] = envNameAsStr
 
             self.prepareData( testcase, dataTypeControl, isInpExpData )
 
@@ -274,17 +290,25 @@ class DataAPI_Wrapper( object ):
                 tc = slots[idx].testcase
 
                 slotName = ".".join( [tc.unit_display_name, tc.function_display_name, tc.name] )
-                slotAsStr = "Slot %s: %s (%s)\n" % ( str(idx), slotName, slots[idx].iteration_count )
-                dataAsString += slotIndentAsStr + slotAsStr
+                slotAsStr = "Slot %s: %s (%s)" % ( str(slots[idx].idx), slotName, slots[idx].iteration_count )
+
+                if level > 0:
+                    children.append( self.getDefaultTree() )
+                    slotTree = children[-1]
+                else:
+                    currentTree["children"].append( self.getDefaultTree() )
+                    slotTree = currentTree["children"][-1]
+
+                slotTree["indent"] = slotIndent
+                slotTree["label"] = slotAsStr
 
                 if tc.is_compound_test:
-                    slotDataAsString = self.getDataAsString_explicit( tc, dataTypeControl, isInpExpData, \
-                                                                      slotIndent+1, \
-                                                                      level=level+1 )
-                    dataAsString += slotDataAsString
+                    slotTree["children"] = self.getDataAsString_explicit( tc, dataTypeControl, isInpExpData, \
+                                                                          slotIndent+1, \
+                                                                          level=level+1 )
 
             if level > 0:
-                return dataAsString
+                return children
 
             for slotId in self.slotIdSequence:
 
@@ -302,32 +326,37 @@ class DataAPI_Wrapper( object ):
 
                     ancestryAsStr += ancestorAsStr
 
-                slotNameAsStr = "%s: %s:\n" %( ancestryAsStr, dataTypeAsStr )
-                dataAsString += tcIndentAsStr + slotNameAsStr
+                slotNameAsStr = "%s: %s:" %( ancestryAsStr, dataTypeAsStr )
+
+                children.append( self.getDefaultTree() )
+                slotTree = children[-1]
+                slotTree["indent"] = tcIndent
+                slotTree["label"] = slotNameAsStr
 
                 trace( "Input & Expected Data:", self.inpExpData[tc.id], newLine=True )
 
-                dataAsString += self.getDataAsString_globals( envName,
-                                                              tc.id, slotId, dataTypeControl, isInpExpData, \
-                                                              unitIndent )
+                slotTree["children"] = self.getDataAsString_globals( envName,
+                                                                     tc.id, slotId, dataTypeControl, isInpExpData, \
+                                                                     unitIndent )
 
                 # dataAsString += self.getDataAsString_functions( tc, isExpectedData, unitIndent )
                 # dataAsString += self.getTestcaseUserCode( tc, isExpectedData, unitIndent )
 
-            return dataAsString
+            return children
 
         elif testcase.is_unit_test:
 
             trace( "Input & Expected Data:", self.inpExpData[testcase.id], newLine=True )
 
-            dataAsString += self.getDataAsString_globals( envName,
-                                                          testcase.id, 0, 0, dataTypeControl, isInpExpData, \
-                                                          unitIndent )
+            currentTree["children"] = \
+                self.getDataAsString_globals( envName,
+                                              testcase.id, 0, 0, dataTypeControl, isInpExpData, \
+                                              unitIndent )
 
             # dataAsString += self.getDataAsString_functions( testcase, dataTypeControl, unitIndent )
             # dataAsString += self.getTestcaseUserCode( testcase, dataTypeControl, unitIndent )
 
-            return dataAsString
+            return children
 
 
     def getDataAsString_functions( self, testcase, isExpectedData, currentIndent ):
