@@ -402,9 +402,9 @@ class DataAPI_Wrapper( object ):
 
             trace( "Input & Expected Data:", self.inpExpData[testcase.id], newLine=True )
 
-            # currentTree["children"] = self.getDataAsString_globals( envName,
-            #                                                         testcase.id, 0, 0, dataTypeControl, isInpExpData, \
-            #                                                         unitIndent )
+            currentTree["children"] = self.getDataAsTree_globals( envName,
+                                                                  testcase.id, 0, 0, dataTypeControl, isInpExpData, \
+                                                                  unitIndent )
 
             # dataAsString += self.getDataAsString_functions( testcase, dataTypeControl, unitIndent )
             # dataAsString += self.getTestcaseUserCode( testcase, dataTypeControl, unitIndent )
@@ -529,30 +529,42 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
 
-    def getDataAsString_globals( self, envName, \
-                                 testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
-                                 currentIndent ):
+    def getDataAsTree_globals( self, envName, \
+                               testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
+                               currentIndent ):
 
-        dataAsString = ""
+        children = []
 
         units = self.envApi[envName].Unit.all( )
 
         for unit in units:
-            dataAsString += self.getDataAsString_globalsInUnit( envName, unit, \
-                                                                testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
-                                                                currentIndent )
 
-        return dataAsString
+            if "USER_GLOBALS_VCAST" == unit.name:
+                unitNameAsStr = "Unit %s\n" % unit.name
+            else:
+                unitNameAsStr = "Unit: %s\n" % unit.name
+
+            children.append( self.getDefaultTree() )
+            currentTree = children[-1]
+            currentTree["indent"] = currentIndent
+            currentTree["label"] = unitNameAsStr
+
+            currentTree["children"] = \
+                        self.getDataAsTree_globalsInUnit( envName, unit, \
+                                                          testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
+                                                          currentIndent+1 )
+
+        return children
 
     
-    def getDataAsString_globalsInUnit( self, envName, unit, \
-                                       testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
-                                       currentIndent ):
+    def getDataAsTree_globalsInUnit( self, envName, unit, \
+                                     testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
+                                     currentIndent ):
 
-        dataAsString = ""
+        children = []
 
         if "uut_prototype_stubs" == unit.name:
-            return dataAsString
+            return children
 
         currentIndentAsStr = self.getIndentAsString( currentIndent )
 
@@ -565,29 +577,26 @@ class DataAPI_Wrapper( object ):
         parameterIndent = currentIndent + 2
         parameterIndentAsStr = self.getIndentAsString( parameterIndent )
 
-        if dataTypeControl > 0:
+        if isInpExpData:
             container = self.inpExpData[testcaseId]
-        elif actualInpExpControl > 0:
-            container = self.actualInpResData[slotId]
+        else:
+            container = self.actualData[slotId][itrIdx]
 
         unitId = unit.id
         functionIndex = 0
 
-        if "USER_GLOBALS_VCAST" == unit.name:
-            unitNameAsStr = "%s\n" % unit.name
-        else:
-            unitNameAsStr = "UUT: %s\n" % unit.name
-
-        dataAsString += unitIndentAsStr + unitNameAsStr
-
-        functionNameAsStr = "<<GLOBAL>>\n"
-        dataAsString += functionIndentAsStr + functionNameAsStr
-
         if not unitId in container.keys():
-            return dataAsString
+            return children
 
         if not functionIndex in container[unitId].keys():
-            return dataAsString
+            return children
+
+        functionNameAsStr = "<<GLOBAL>>\n"
+
+        children.append( self.getDefaultTree() )
+        currentTree = children[-1]
+        currentTree["indent"] = functionIndent
+        currentTree["label"] = functionNameAsStr
 
         currentData = container[unitId][functionIndex]
         
@@ -598,11 +607,14 @@ class DataAPI_Wrapper( object ):
             # globalVar = self.getGlobalVarByIndex( envName, unitId, globalVarIndex )
             globalVar = unit.get_global_by_index( globalVarIndex )
 
-            dataAsString += self.walkType_Wrapper( globalVar, dataObjectCoords, \
-                                                   testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
-                                                   parameterIndent )
+            partChildren = self.walkType_Wrapper( globalVar, dataObjectCoords, \
+                                                  testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
+                                                  parameterIndent )
 
-        return dataAsString
+            for child in partChildren:
+                currentTree["children"].append( child ) 
+
+        return children
 
 
     def getTestcaseUserCode( self, testcase, isExpectedData, currentIndent ):
@@ -651,11 +663,11 @@ class DataAPI_Wrapper( object ):
                           testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
                           currentIndent ):
 
-        dataAsString = self.walkType( parameter.name, parameter.type, dataObjectCoords, \
-                                      testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
-                                      currentIndent )
+        children = self.walkType( parameter.name, parameter.type, dataObjectCoords, \
+                                  testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
+                                  currentIndent )
 
-        return dataAsString
+        return children
 
 
     def walkType( self, parameterName, parameterType, dataObjectCoords, \
