@@ -55,6 +55,10 @@ class TestCaseData( object ):
         self.testcase = self.dataApi.getTestcase( self.envName, self.unitName, \
                                                   self.functionName, self.tcName )
 
+        if None == self.testcase:
+            print( "No testcase found for following input:" )
+            print( self )
+            sys.exit()
 
     def __str__( self ):
 
@@ -162,7 +166,7 @@ class DataAPI_Wrapper( object ):
             if testcase.function_display_name == functionName:
                 return testcase
 
-        testcases = api.TestCase.get( tcName )
+        testcases = api.TestCase.all()
 
         for testcase in testcases:
             if testcase.unit_display_name == unitName:
@@ -328,7 +332,7 @@ class DataAPI_Wrapper( object ):
                 tc = slots[idx].testcase
 
                 slotName = ".".join( [tc.unit_display_name, tc.function_display_name, tc.name] )
-                slotAsStr = "Slot %s: %s (%s)" % ( str(slots[idx].idx), slotName, slots[idx].iteration_count )
+                slotAsStr = "Slot %s: %s (%s)" % ( str(slots[idx].index), slotName, slots[idx].iteration_count )
 
                 if level > 0:
                     children.append( self.getDefaultTree() )
@@ -341,11 +345,23 @@ class DataAPI_Wrapper( object ):
                 slotTree["label"] = slotAsStr
 
                 if tc.is_compound_test:
-                    slotTree["children"] = self.getDataAsString_explicit( tc, dataTypeControl, isInpExpData, \
-                                                                          slotIndent+1, \
-                                                                          level=level+1 )
+                    slotTree["children"] = self.getDataAsTree_explicit( tc, dataTypeControl, isInpExpData, \
+                                                                        slotIndent+1, \
+                                                                        level=level+1 )
 
             if level > 0:
+                return children
+
+            if isInpExpData:
+
+                for testcaseId in self.inpExpData.keys():
+
+                    trace( "Input & Expected Data:", self.inpExpData[testcase.id], newLine=True )
+
+                    # currentTree["children"] = self.getDataAsTree_globals( envName,
+                    #                                                       testcaseId, 0, 0, dataTypeControl, isInpExpData, \
+                    #                                                       unitIndent )
+
                 return children
 
             for slotId in self.slotIdSequence:
