@@ -131,7 +131,7 @@ class DataAPI_Wrapper( object ):
 
         defaultTree = { "children" : [], \
                         "indent" : 0, \
-                        "label" : None
+                        "label" : None, \
                         "values" : [ None, None ] }
 
         return defaultTree
@@ -197,14 +197,52 @@ class DataAPI_Wrapper( object ):
             dataAsString += currentIndentAsStr + newStr
 
         children = tree["children"]
-
+        
         for child in children:
             dataAsString += self.getDataAsString( child, "" )
 
         return dataAsString
 
 
-    def getDataAsString_explicit( self, testcase, dataTypeControl, isInpExpData, currentIndent, level=0 ):
+    def getDataAsString_2( self, tree ):
+
+        dataAsString = ""
+
+        currentIndent = int( tree["indent"] )
+        currentIndentAsStr = self.getIndentAsString( currentIndent ) 
+
+        label = tree["label"]
+        values = tree["values"]
+
+        if None != label:
+
+            if None != values[0]:
+                newStr = label + ":"  + value + "\n"
+            else:
+                newStr = label + "\n"
+
+            dataAsString += currentIndentAsStr + newStr
+
+        children = tree["children"]
+
+        for child in children:
+            dataAsString += self.getDataAsString_2( child )
+
+        return dataAsString
+
+
+    def getDataAsString_explicit( self, testcase, dataTypeControl, isInpExpData, currentIndent ):
+
+        tree = self.getDefaultTree()
+        tree["indent"] = currentIndent
+        tree["children"] = self.getDataAsTree_explicit( testcase, dataTypeControl, isInpExpData, currentIndent, level=0 )
+
+        dataAsString = self.getDataAsString_2( tree )
+
+        return dataAsString
+
+
+    def getDataAsTree_explicit( self, testcase, dataTypeControl, isInpExpData, currentIndent, level=0 ):
 
         if isInpExpData:
 
@@ -226,59 +264,59 @@ class DataAPI_Wrapper( object ):
 
         envName = testcase.get_environment().name
         unitName = testcase.unit_display_name
+        functionName = testcase.function_display_name
 
         children = []
 
         if 0 == level:
 
-            tcIndent = currentIndent
-            tcIndentAsStr = self.getIndentAsString( tcIndent )
-
             envIndent = currentIndent + 1
-            envIndentAsStr = self.getIndentAsString( envIndent )
-
-            unitIndent = currentIndent + 2
-            unitIndentAsStr = self.getIndentAsString( unitIndent )
-            
-            functionIndent = currentIndent + 3
-            functionIndentAsStr = self.getIndentAsString( functionIndent )
+            unitIndent = currentIndent + 1
+            functionIndent = currentIndent + 1
+            tcIndent = currentIndent + 1
 
             parameterIndent = currentIndent + 4
-            parameterIndentAsStr = self.getIndentAsString( parameterIndent )
-
             slotIndent = currentIndent + 4
-            slotIndentAsStr = self.getIndentAsString( slotIndent )
+
+            if testcase.is_compound_test:
+
+                tcNameAsStr = "TestCase: %s (Compound)" % testcase.name
+
+            elif testcase.is_unit_test:
+
+                tcNameAsStr = "TestCase: %s (Unit)" % testcase.name
+
+            children.append( self.getDefaultTree() )
+            currentTree = children[-1]
+            currentTree["indent"] = currentIndent
+            currentTree["label"] = "%s for:\n" % dataTypeAsStr
+
+            children.append( self.getDefaultTree() )
+            currentTree = children[-1]
+            currentTree["indent"] = envIndent
+            currentTree["label"] = "Environment: %s" % envName
+
+            children.append( self.getDefaultTree() )
+            currentTree = children[-1]
+            currentTree["indent"] = unitIndent
+            currentTree["label"] = "Unit: %s" % unitName
+
+            children.append( self.getDefaultTree() )
+            currentTree = children[-1]
+            currentTree["indent"] = functionIndent
+            currentTree["label"] = "Function: %s" % functionName
 
             children.append( self.getDefaultTree() )
             currentTree = children[-1]
             currentTree["indent"] = tcIndent
-
-            if testcase.is_compound_test:
-
-                tcNameAsStr = "%s (Compound): %s" %( testcase.name, dataTypeAsStr )
-                currentTree["label"] = tcNameAsStr
-
-            elif testcase.is_unit_test:
-
-                tcNameAsStr = "%s (Unit): %s" %( testcase.name, dataTypeAsStr )
-                currentTree["label"] = tcNameAsStr
-
-            envNameAsStr = "Environment: %s\n" % envName
-
-            children.append( self.getDefaultTree() )
-            currenTree = children[-1]
-            currentTree["indent"] = envIndent
-            currentTree["label"] = envNameAsStr
+            currentTree["label"] = tcNameAsStr
 
             self.prepareData( testcase, dataTypeControl, isInpExpData )
 
         else:
 
             parameterIndent = currentIndent
-            parameterIndentAsStr = self.getIndentAsString( parameterIndent )
-
             slotIndent = currentIndent
-            slotIndentAsStr = self.getIndentAsString( slotIndent )
 
         if testcase.is_compound_test:
 
@@ -335,9 +373,9 @@ class DataAPI_Wrapper( object ):
 
                 trace( "Input & Expected Data:", self.inpExpData[tc.id], newLine=True )
 
-                slotTree["children"] = self.getDataAsString_globals( envName,
-                                                                     tc.id, slotId, dataTypeControl, isInpExpData, \
-                                                                     unitIndent )
+                # slotTree["children"] = self.getDataAsString_globals( envName,
+                #                                                      tc.id, slotId, dataTypeControl, isInpExpData, \
+                #                                                      unitIndent )
 
                 # dataAsString += self.getDataAsString_functions( tc, isExpectedData, unitIndent )
                 # dataAsString += self.getTestcaseUserCode( tc, isExpectedData, unitIndent )
@@ -348,10 +386,9 @@ class DataAPI_Wrapper( object ):
 
             trace( "Input & Expected Data:", self.inpExpData[testcase.id], newLine=True )
 
-            currentTree["children"] = \
-                self.getDataAsString_globals( envName,
-                                              testcase.id, 0, 0, dataTypeControl, isInpExpData, \
-                                              unitIndent )
+            # currentTree["children"] = self.getDataAsString_globals( envName,
+            #                                                         testcase.id, 0, 0, dataTypeControl, isInpExpData, \
+            #                                                         unitIndent )
 
             # dataAsString += self.getDataAsString_functions( testcase, dataTypeControl, unitIndent )
             # dataAsString += self.getTestcaseUserCode( testcase, dataTypeControl, unitIndent )
