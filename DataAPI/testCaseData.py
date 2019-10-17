@@ -84,12 +84,7 @@ class TestCaseData( object ):
 
     def buildInpExpDataAsString_explicit( self, dataTypeControl ):
 
-        if 1 == dataTypeControl:
-            self.inputDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, dataTypeControl, True, 0 )
-        elif 2 == dataTypeControl:
-            self.expectedDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, dataTypeControl, True, 0 )
-        elif 3 == dataTypeControl:
-            self.inpExpDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, dataTypeControl, True, 0 )
+        self.inputDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, dataTypeControl, True, 0 )
 
 
     def getInpExpDataAsString( self, dataTypeControl ):
@@ -136,9 +131,21 @@ class DataAPI_Wrapper( object ):
         defaultTree = { "children" : [], \
                         "indent" : 0, \
                         "label" : None, \
-                        "values" : [ None, None ] }
+                        "value" : None }
 
         return defaultTree
+
+
+    def getDataTypeIdc( self, dataTypeControl ):
+
+        if 1 == dataTypeControl:
+            dataTypeIdc = [ 0 ]
+        elif 2 == dataTypeControl:
+            dataTypeIdc = [ 1 ]
+        elif 3 == dataTypeControl:
+            dataTypeIdc = [ 0, 1 ]
+
+        return dataTypeIdc
 
 
     def loadApi( self, envName ):
@@ -216,11 +223,11 @@ class DataAPI_Wrapper( object ):
         currentIndentAsStr = self.getIndentAsString( currentIndent ) 
 
         label = tree["label"]
-        values = tree["values"]
+        value = tree["value"]
 
         if None != label:
 
-            if None != values[0]:
+            if None != value:
                 newStr = label + ":"  + value + "\n"
             else:
                 newStr = label + "\n"
@@ -236,17 +243,6 @@ class DataAPI_Wrapper( object ):
 
 
     def getDataAsString_explicit( self, testcase, dataTypeControl, isInpExpData, currentIndent ):
-
-        tree = self.getDefaultTree()
-        tree["indent"] = currentIndent
-        tree["children"] = self.getDataAsTree_explicit( testcase, dataTypeControl, isInpExpData, currentIndent, level=0 )
-
-        dataAsString = self.getDataAsString_2( tree )
-
-        return dataAsString
-
-
-    def getDataAsTree_explicit( self, testcase, dataTypeControl, isInpExpData, currentIndent, level=0 ):
 
         if isInpExpData:
 
@@ -266,6 +262,19 @@ class DataAPI_Wrapper( object ):
             elif 3 == dataTypeControl:
                 dataTypeAsStr = "Actual Input & Result data"
 
+        tree = self.getDefaultTree()
+        tree["indent"] = currentIndent
+        tree["label"] = "%s for:\n" % dataTypeAsStr
+
+        tree["children"] = self.getDataAsTree_explicit( testcase, dataTypeControl, isInpExpData, currentIndent+1, level=0 )
+
+        dataAsString = self.getDataAsString_2( tree )
+
+        return dataAsString
+
+
+    def getDataAsTree_explicit( self, testcase, dataTypeControl, isInpExpData, currentIndent, level=0 ):
+
         envName = testcase.get_environment().name
         unitName = testcase.unit_display_name
         functionName = testcase.function_display_name
@@ -274,13 +283,13 @@ class DataAPI_Wrapper( object ):
 
         if 0 == level:
 
-            envIndent = currentIndent + 1
-            unitIndent = currentIndent + 1
-            functionIndent = currentIndent + 1
-            tcIndent = currentIndent + 1
+            envIndent = currentIndent
+            unitIndent = currentIndent
+            functionIndent = currentIndent
+            tcIndent = currentIndent 
 
-            parameterIndent = currentIndent + 4
-            slotIndent = currentIndent + 4
+            parameterIndent = currentIndent + 1
+            slotIndent = currentIndent + 1
 
             if testcase.is_compound_test:
 
@@ -292,8 +301,6 @@ class DataAPI_Wrapper( object ):
 
             children.append( self.getDefaultTree() )
             currentTree = children[-1]
-            currentTree["indent"] = currentIndent
-            currentTree["label"] = "%s for:\n" % dataTypeAsStr
 
             children.append( self.getDefaultTree() )
             currentTree = children[-1]
@@ -352,17 +359,7 @@ class DataAPI_Wrapper( object ):
             if level > 0:
                 return children
 
-            if isInpExpData:
-
-                for testcaseId in self.inpExpData.keys():
-
-                    trace( "Input & Expected Data:", self.inpExpData[testcase.id], newLine=True )
-
-                    # currentTree["children"] = self.getDataAsTree_globals( envName,
-                    #                                                       testcaseId, 0, 0, dataTypeControl, isInpExpData, \
-                    #                                                       unitIndent )
-
-                return children
+            slotTree["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, uniIndent )
 
             for slotId in self.slotIdSequence:
 
@@ -400,14 +397,45 @@ class DataAPI_Wrapper( object ):
 
         elif testcase.is_unit_test:
 
-            trace( "Input & Expected Data:", self.inpExpData[testcase.id], newLine=True )
+            currentTree["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, unitIndent )
 
-            currentTree["children"] = self.getDataAsTree_globals( envName,
-                                                                  testcase.id, 0, 0, dataTypeControl, isInpExpData, \
-                                                                  unitIndent )
+            return children
 
-            # dataAsString += self.getDataAsString_functions( testcase, dataTypeControl, unitIndent )
-            # dataAsString += self.getTestcaseUserCode( testcase, dataTypeControl, unitIndent )
+
+    def getDataAsTree_all( self, testcase, dataTypeControl, isInpExpData, currentIndent ):
+
+        children = []
+
+        envName = testcase.get_environment().name
+
+        dataTypeIdc = self.getDataTypeIdc( dataTypeControl )
+
+        for dtIdx in dataTypeIdc:
+
+            children.append( self.getDefaultTree() )
+            currentTree = children[-1]
+            currentTree["indent"] = currentIndent
+            currentTree["label"] = "branch"
+            currentTree["value"] = dtIdx
+
+            if isInpExpData:
+
+                for testcaseId in self.inpExpData[dtIdx].keys():
+
+                    children.append( self.getDefaultTree() )
+                    tcTree = children[-1]
+                    currentTree["indent"] = currentIndent
+                    currentTree["label"] = "TestCase"
+                    currentTree["value"] = testcase.name
+
+                    trace( "Input & Expected Data:", self.inpExpData[dtIdx][testcaseId], newLine=True )
+
+                    currentTree["children"] = self.getDataAsTree_globals( envName,
+                                                                          testcaseId, 0, 0, dtIdx, isInpExpData, \
+                                                                          currentIndent+1 )
+
+                    # dataAsString += self.getDataAsString_functions( testcase, dataTypeControl, unitIndent )
+                    # dataAsString += self.getTestcaseUserCode( testcase, dataTypeControl, unitIndent )
 
             return children
 
@@ -530,35 +558,32 @@ class DataAPI_Wrapper( object ):
 
 
     def getDataAsTree_globals( self, envName, \
-                               testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
+                               testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
                                currentIndent ):
 
         children = []
+
+        if isInpExpData:
+            container = self.inpExpData[dtIdx][testcaseId]
+        else:
+            container = self.actualData[dtIdx][slotId][itrIdx]
 
         units = self.envApi[envName].Unit.all( )
 
         for unit in units:
 
-            if "USER_GLOBALS_VCAST" == unit.name:
-                unitNameAsStr = "Unit %s\n" % unit.name
-            else:
-                unitNameAsStr = "Unit: %s\n" % unit.name
+            partChildren = self.getDataAsTree_globalsInUnit( envName, unit, \
+                                                             testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                                             currentIndent )
 
-            children.append( self.getDefaultTree() )
-            currentTree = children[-1]
-            currentTree["indent"] = currentIndent
-            currentTree["label"] = unitNameAsStr
-
-            currentTree["children"] = \
-                        self.getDataAsTree_globalsInUnit( envName, unit, \
-                                                          testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
-                                                          currentIndent+1 )
+            for child in partChildren:
+                children.append( child )
 
         return children
 
     
     def getDataAsTree_globalsInUnit( self, envName, unit, \
-                                     testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
+                                     testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
                                      currentIndent ):
 
         children = []
@@ -566,24 +591,19 @@ class DataAPI_Wrapper( object ):
         if "uut_prototype_stubs" == unit.name:
             return children
 
-        currentIndentAsStr = self.getIndentAsString( currentIndent )
-
-        unitIndent = currentIndent
-        unitIndentAsStr = self.getIndentAsString( unitIndent )
-            
+        unitIndent = currentIndent            
         functionIndent = currentIndent + 1
-        functionIndentAsStr = self.getIndentAsString( functionIndent )
-
         parameterIndent = currentIndent + 2
-        parameterIndentAsStr = self.getIndentAsString( parameterIndent )
-
-        if isInpExpData:
-            container = self.inpExpData[testcaseId]
-        else:
-            container = self.actualData[slotId][itrIdx]
 
         unitId = unit.id
         functionIndex = 0
+
+        functionNameAsStr = "<<GLOBAL>>\n"
+
+        if isInpExpData:
+            container = self.inpExpData[dtIdx][testcaseId]
+        else:
+            container = self.actualData[dtIdx][slotId][itrIdx]
 
         if not unitId in container.keys():
             return children
@@ -591,10 +611,18 @@ class DataAPI_Wrapper( object ):
         if not functionIndex in container[unitId].keys():
             return children
 
-        functionNameAsStr = "<<GLOBAL>>\n"
+        if "USER_GLOBALS_VCAST" == unit.name:
+            unitNameAsStr = "Unit %s\n" % unit.name
+        else:
+            unitNameAsStr = "Unit: %s\n" % unit.name
 
         children.append( self.getDefaultTree() )
         currentTree = children[-1]
+        currentTree["indent"] = unitIndent
+        currentTree["label"] = unitNameAsStr
+
+        currentTree["children"].append( self.getDefaultTree() )
+        currentTree = currentTree["children"][-1]
         currentTree["indent"] = functionIndent
         currentTree["label"] = functionNameAsStr
 
@@ -608,7 +636,7 @@ class DataAPI_Wrapper( object ):
             globalVar = unit.get_global_by_index( globalVarIndex )
 
             partChildren = self.walkType_Wrapper( globalVar, dataObjectCoords, \
-                                                  testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
+                                                  testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
                                                   parameterIndent )
 
             for child in partChildren:
@@ -660,28 +688,23 @@ class DataAPI_Wrapper( object ):
 
 
     def walkType_Wrapper( self, parameter, dataObjectCoords, \
-                          testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
+                          testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
                           currentIndent ):
 
-        children = self.walkType( parameter.name, parameter.type, dataObjectCoords, \
-                                  testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
-                                  currentIndent )
+        children = []
+
+        currentTree["children"] = self.walkType( parameter.name, parameter.type, dataObjectCoords, \
+                                                 testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                                 currentIndent )
 
         return children
 
 
     def walkType( self, parameterName, parameterType, dataObjectCoords, \
-                  testcaseId, slotId, itrIdx, dataTypeControl, isInpExpData, \
+                  testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
                   currentIndent ):
 
-        dataStringList = []
-
-        if 1 == dataTypeControl:
-            dataTypeIdc = [0]
-        elif 2 == dataTypeControl:
-            dataTypeIdc = [1]
-        elif 3 == dataTypeControl:
-            dataTypeIdc = [0,1]
+        children = []
 
         currentIndentAsStr = self.getIndentAsString( currentIndent )
 
@@ -691,9 +714,11 @@ class DataAPI_Wrapper( object ):
         data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
 
         if isInpExpData:
-            valuesAsStr = self.getInpExpData( testcaseId, dataObjectCoords, dataTypeIdc, "data" )
+            valuesAsStr = self.getInpExpData( dtIdx, testcaseId, dataObjectCoords, "data" )
         else:
-            valuesAsStr = self.getSlotData( slotId, itrIdx, dataObjectCoords, dataTypeIdc, "data" )
+            valuesAsStr = self.getSlotData( dtIdx, slotId, itrIdx, dataObjectCoords, "data" )
+
+        print( valuesAsStr )
 
         kind = parameterType.kind
         element = parameterType.element
@@ -702,20 +727,23 @@ class DataAPI_Wrapper( object ):
         trace( "Type kind:", kind )
         trace( "data_object_id:", data_object_id )
 
-        is_parameter_user_code = [ False, False ]
+        children.append( self.getDefaultTree() )
+        currentTree = children[-1]
+        currentTree["indent"] = currentIndent
+        currentTree["label"] = parameterName
 
-        for dtIdx in dataTypeIdc:
-            
-            if None == valuesAsStr[dtIdx]:
-                valuesAsStr[dtIdx] = self.getInpExpData( testcaseId, dataObjectCoords, [dtIdx], "parameter_user_code" )
-                if None != valuesAsStr[dtIdx]:
-                    is_parameter_user_code[dtIdx] = True             
+        if None == valuesAsStr:
 
-            if is_parameter_user_code[dtIdx]:
-                parameterNameAsStr = "%s: <<User Code>>\n" % parameterName
-                formattedUserCode = self.formatUserCode( valuesAsStr, currentIndent+1 )
-                dataAsString += currentIndentAsStr + parameterNameAsStr
-                dataAsString += formattedUserCode
+            valuesAsStr = self.getInpExpData( dtIdx, testcaseId, dataObjectCoords, "parameter_user_code" )
+
+            if None != valuesAsStr:
+                
+                currentTree["value"] = "<<User Code>>"
+
+                children.append( self.getDefaultTree() )
+                currentTree = children[-1]
+                currentTree["indent"] = currentIndent
+                currentTree["value"][dtIdx] = valuesAsStr
 
         isArray = False
         isBasicType = True
@@ -726,22 +754,21 @@ class DataAPI_Wrapper( object ):
 
             isArray = True
 
-            if isExpectedData:
-
-                parameterNameAsStr = "%s: <<ACCESS>>\n" % parameterName
+            if 1 == dtIdx:
+                
+                currentTree["value"] = "<<ACCESS>>"
 
             else:
 
-                allocateAsStr = self.getData( isExpectedData, dataObjectCoords, "allocate" )
+                allocateAsStr = self.getInpExpData( testcaseId, dataObjectCoords, [0], "allocate" )
                 
                 if None == allocateAsStr:
                     # Unfortunately not possible because there is no allocate within stubs.
                     # return dataAsString
-                    parameterNameAsStr = "%s: <<ALLOCATE>>\n" % parameterName
+                    currentTree["value"] = "<<ALLOCATE>>"
                 else:
-                    parameterNameAsStr = "%s: <<ALLOCATE %s>>\n" % ( parameterName, allocateAsStr )
+                    currentTree["value"] = "<<ALLOCATE %s>>" % allocateAsStr
 
-                dataAsString += currentIndentAsStr + parameterNameAsStr
                 parameterNameAdded = True
 
         elif "STR_ING" == kind:
@@ -877,7 +904,7 @@ class DataAPI_Wrapper( object ):
         if 0 == level:
 
             if isInpExpData:
-                self.inpExpData = {}
+                self.inpExpData = [ {}, {} ]
             else:
                 self.slotIdSequence = []
                 self.actualIData
@@ -913,31 +940,26 @@ class DataAPI_Wrapper( object ):
 
     def prepareInpExpData_Wrapper( self, testcase, dataTypeControl ):
 
-        if 1 == dataTypeControl:
-            self.prepareInpExpData( testcase, False )
-        elif 2 == dataTypeControl:
-            self.prepareInpExpData( testcase, True )
-        elif 3 == dataTypeControl:
-            self.prepareInpExpData( testcase, False )
-            self.prepareInpExpData( testcase, True )
+        dataTypeIdc = self.getDataTypeIdc( dataTypeControl )
+
+        for dtIdx in dataTypeIdc:
+            self.prepareInpExpData( dtIdx, testcase )
 
 
-    def prepareInpExpData( self, testcase, isExpectedData  ):
+    def prepareInpExpData( self, dtIdx, testcase ):
 
         if testcase.is_compound_test:
             return
 
-        if not testcase.id in self.inpExpData.keys():
-            self.inpExpData[testcase.id] = {}
+        if not testcase.id in self.inpExpData[dtIdx].keys():
+            self.inpExpData[dtIdx][testcase.id] = {}
             
-        container = self.inpExpData[testcase.id]
+        container = self.inpExpData[dtIdx][testcase.id]
 
-        if isExpectedData:
-            dataTypeIndex = 1
+        if 0 == dtIdx:
             source1 = testcase.expected
             source2 = testcase.expected_user_code            
         else:
-            dataTypeIndex = 0
             source1 = testcase.input
             source2 = testcase.input_user_code
 
@@ -975,17 +997,17 @@ class DataAPI_Wrapper( object ):
             currentData = container[unitId][functionIndex][parameterIndex]
 
             if not data_object_id in currentData.keys():
-                currentData[data_object_id] = [ {}, {} ]
+                currentData[data_object_id] = {}
 
-            if typeKey not in currentData[data_object_id][dataTypeIndex].keys():
+            if typeKey not in currentData[data_object_id].keys():
 
-                currentData[data_object_id][dataTypeIndex][typeKey] = valuesAsStr
+                currentData[data_object_id][typeKey] = valuesAsStr
 
             else:
 
                 print( "Duplicated entry - catastrophic logic error.\n" )
                 print( data_oject_id, typeKey )
-                print( "Old value(s): %s" % currentData[data_object_id][dataTypeIndex][typeKey] )
+                print( "Old value(s): %s" % currentData[data_object_id][typeKey] )
                 print( "New value(s): %s" % valuesAsStr )
                 sys.exit()
 
@@ -1017,17 +1039,17 @@ class DataAPI_Wrapper( object ):
             currentData = container[unitId][functionIndex][parameterIndex]
 
             if not data_object_id in currentData.keys():
-                currentData[data_object_id] = [ {}, {} ]
+                currentData[data_object_id] = {}
 
-            if typeKey not in currentData[data_object_id][dataTypeIndex].keys():
+            if typeKey not in currentData[data_object_id].keys():
 
-                currentData[data_object_id][dataTypeIndex][typeKey] = valuesAsStr
+                currentData[data_object_id][typeKey] = valuesAsStr
 
             else:
 
                 print( "Duplicated entry - catastrophic logic error.\n" )
                 print( data_oject_id, typeKey )
-                print( "Old value(s): %s" % currentData[data_object_id][dataTypeIndex][typeKey] )
+                print( "Old value(s): %s" % currentData[data_object_id][typeKey] )
                 print( "New value(s): %s" % valuesAsStr )
                 sys.exit()
 
@@ -1191,27 +1213,23 @@ class DataAPI_Wrapper( object ):
         return arrayIndices
 
             
-    def getInpExpData( self, testcaseId, dataObjectCoords, dataTypeIdc, typeKey ):
+    def getInpExpData( self, dtIdx, testcaseId, dataObjectCoords, typeKey ):
 
-        data = [None]*2
+        data = None
 
-        container = self.inpExpData[testcaseId]
+        container = self.inpExpData[dtIdx][testcaseId]
 
         try:
 
             currentDataSet = container[dataObjectCoords[0]][dataObjectCoords[1]][dataObjectCoords[2]]
 
             data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
-            currentDataSet = currentDataSet[data_object_id]
+
+            data = currentDataSet[data_object_id][typeKey]
             
         except KeyError:
 
             return data
-
-        for dtIdx in dataTypeIdc:
-
-            if typeKey in currentDataSet[dtIdx].keys():
-                data[dtIdx] = currentDataSet[dtIdx][typeKey]
 
         return data
 
