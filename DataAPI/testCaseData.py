@@ -9,7 +9,7 @@ from copy import deepcopy
 from vector.apps.DataAPI.api import Api
 
 
-DEBUG = False
+DEBUG = True
 
 
 def trace( str1, str2, newLine=False):
@@ -84,7 +84,12 @@ class TestCaseData( object ):
 
     def buildInpExpDataAsString_explicit( self, dataTypeControl ):
 
-        self.inputDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, dataTypeControl, True, 0 )
+        if 1 == dataTypeControl:
+            self.inputDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, dataTypeControl, True, 0 )
+        elif 2 == dataTypeControl:
+            self.expectedDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, dataTypeControl, True, 0 )
+        elif 3 == dataTypeControl:
+            self.inpExpDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, dataTypeControl, True, 0 )
 
 
     def getInpExpDataAsString( self, dataTypeControl ):
@@ -228,7 +233,7 @@ class DataAPI_Wrapper( object ):
         if None != label:
 
             if None != value:
-                newStr = label + ":"  + value + "\n"
+                newStr = label + ": "  + value + "\n"
             else:
                 newStr = label + "\n"
 
@@ -268,6 +273,8 @@ class DataAPI_Wrapper( object ):
 
         tree["children"] = self.getDataAsTree_explicit( testcase, dataTypeControl, isInpExpData, currentIndent+1, level=0 )
 
+        pprint.pprint( tree )
+
         dataAsString = self.getDataAsString_2( tree )
 
         return dataAsString
@@ -293,11 +300,11 @@ class DataAPI_Wrapper( object ):
 
             if testcase.is_compound_test:
 
-                tcNameAsStr = "TestCase: %s (Compound)" % testcase.name
+                tcNameAsStr = "%s (Compound)\n" % testcase.name
 
             elif testcase.is_unit_test:
 
-                tcNameAsStr = "TestCase: %s (Unit)" % testcase.name
+                tcNameAsStr = "%s (Unit)\n" % testcase.name
 
             children.append( self.getDefaultTree() )
             currentTree = children[-1]
@@ -305,22 +312,26 @@ class DataAPI_Wrapper( object ):
             children.append( self.getDefaultTree() )
             currentTree = children[-1]
             currentTree["indent"] = envIndent
-            currentTree["label"] = "Environment: %s" % envName
+            currentTree["label"] = "Environment"
+            currentTree["value"] = envName
 
             children.append( self.getDefaultTree() )
             currentTree = children[-1]
             currentTree["indent"] = unitIndent
-            currentTree["label"] = "Unit: %s" % unitName
+            currentTree["label"] = "Unit"
+            currentTree["value"] = unitName
 
             children.append( self.getDefaultTree() )
             currentTree = children[-1]
             currentTree["indent"] = functionIndent
-            currentTree["label"] = "Function: %s" % functionName
+            currentTree["label"] = "Function"
+            currentTree["value"] = functionName
 
             children.append( self.getDefaultTree() )
             currentTree = children[-1]
             currentTree["indent"] = tcIndent
-            currentTree["label"] = tcNameAsStr
+            currentTree["label"] = "Testcase"
+            currentTree["value"] = tcNameAsStr
 
             self.prepareData( testcase, dataTypeControl, isInpExpData )
 
@@ -359,7 +370,8 @@ class DataAPI_Wrapper( object ):
             if level > 0:
                 return children
 
-            slotTree["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, uniIndent )
+            # slotTree["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, uniIndent )
+            return children
 
             for slotId in self.slotIdSequence:
 
@@ -428,6 +440,8 @@ class DataAPI_Wrapper( object ):
                     currentTree["label"] = "TestCase"
                     currentTree["value"] = testcase.name
 
+                    trace( "dtIdx:", dtIdx, newLine=True )
+                    trace( "testcaseId:", testcaseId, newLine=True )
                     trace( "Input & Expected Data:", self.inpExpData[dtIdx][testcaseId], newLine=True )
 
                     currentTree["children"] = self.getDataAsTree_globals( envName,
@@ -691,11 +705,9 @@ class DataAPI_Wrapper( object ):
                           testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
                           currentIndent ):
 
-        children = []
-
-        currentTree["children"] = self.walkType( parameter.name, parameter.type, dataObjectCoords, \
-                                                 testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
-                                                 currentIndent )
+        children = self.walkType( parameter.name, parameter.type, dataObjectCoords, \
+                                  testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                  currentIndent )
 
         return children
 
@@ -706,19 +718,14 @@ class DataAPI_Wrapper( object ):
 
         children = []
 
-        currentIndentAsStr = self.getIndentAsString( currentIndent )
-
         indexIndent = currentIndent + 1
-        indexIndentAsStr = self.getIndentAsString( indexIndent )
 
         data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
 
         if isInpExpData:
             valuesAsStr = self.getInpExpData( dtIdx, testcaseId, dataObjectCoords, "data" )
         else:
-            valuesAsStr = self.getSlotData( dtIdx, slotId, itrIdx, dataObjectCoords, "data" )
-
-        print( valuesAsStr )
+            valuesAsStr = self.getSlotData( slotId, itrIdx, dtIdx, dataObjectCoords, "data" )
 
         kind = parameterType.kind
         element = parameterType.element
@@ -727,10 +734,9 @@ class DataAPI_Wrapper( object ):
         trace( "Type kind:", kind )
         trace( "data_object_id:", data_object_id )
 
-        children.append( self.getDefaultTree() )
-        currentTree = children[-1]
-        currentTree["indent"] = currentIndent
-        currentTree["label"] = parameterName
+        currentChild = self.getDefaultTree()
+        currentChild["indent"] = currentIndent
+        currentChild["label"] = parameterName
 
         if None == valuesAsStr:
 
@@ -738,17 +744,18 @@ class DataAPI_Wrapper( object ):
 
             if None != valuesAsStr:
                 
-                currentTree["value"] = "<<User Code>>"
+                currentChild["value"] = "<<User Code>>"
+                children.append( currentChild )
 
-                children.append( self.getDefaultTree() )
-                currentTree = children[-1]
-                currentTree["indent"] = currentIndent
-                currentTree["value"][dtIdx] = valuesAsStr
+                currentChild = self.getDefaultTree()
+                currentChild["indent"] = currentIndent
+                currentChild["value"] = valuesAsStr
+                children.append( currentChild )
+
+                return children
 
         isArray = False
         isBasicType = True
-
-        parameterNameAdded = False
 
         if "ACCE_SS" == kind:
 
@@ -756,20 +763,18 @@ class DataAPI_Wrapper( object ):
 
             if 1 == dtIdx:
                 
-                currentTree["value"] = "<<ACCESS>>"
+                currentChild["value"] = "<<ACCESS>>"
 
             else:
 
-                allocateAsStr = self.getInpExpData( testcaseId, dataObjectCoords, [0], "allocate" )
-                
+                allocateAsStr = self.getInpExpData( dtIdx, testcaseId, dataObjectCoords, "allocate" )
+
                 if None == allocateAsStr:
                     # Unfortunately not possible because there is no allocate within stubs.
-                    # return dataAsString
-                    currentTree["value"] = "<<ALLOCATE>>"
+                    # return children
+                    currentChild["value"] = "<<ALLOCATE>>"
                 else:
-                    currentTree["value"] = "<<ALLOCATE %s>>" % allocateAsStr
-
-                parameterNameAdded = True
+                    currentChild["value"] = "<<ALLOCATE %s>>" % allocateAsStr
 
         elif "STR_ING" == kind:
 
@@ -779,20 +784,17 @@ class DataAPI_Wrapper( object ):
                 if None != valuesAsStr:
                     isArray = False
 
-            if isExpectedData:
+            if 1 == dtIdx:
 
-                parameterNameAsStr = "%s: <<ACCESS>>\n" % parameterName
+                currentChild["value"] = "<<ACCESS>>"
 
             else:
 
-                allocateAsStr = self.getData( isExpectedData, dataObjectCoords, "allocate" )
+                allocateAsStr = self.getData( dtIdx, tetcaseId, dataObjectCoords, "allocate" )
                 if None == allocateAsStr:
-                    return dataAsString
+                    return children
 
-                parameterNameAsStr = "%s: <<ALLOCATE %s>>\n" % ( parameterName, allocateAsStr )
-                if isArray:
-                    dataAsString += currentIndentAsStr + parameterNameAsStr
-                    parameterNameAdded = True
+                currentChild["value"] = "<<ALLOCATE %s>>" % allocateAsStr
 
         elif "AR_RAY" == kind:
 
@@ -801,22 +803,18 @@ class DataAPI_Wrapper( object ):
             size = parameterType.range.size # Still something like "4%%"
             size = size.split( "%" )[0]
 
-            parameterNameAsStr = "%s: <<Size %s>>\n" % ( parameterName, size )
+            currentChild["value"] = "<<Size %s>>" % size
 
         elif "REC_ORD" == kind:
 
             isBasicType = False
 
-            parameterNameAsStr = "%s\n" % parameterName
-
             child_fields = parameterType.child_fields
 
         if isArray:
 
-            arrayIndices = self.getDataObjectCoords_arrayIndices( isExpectedData, dataObjectCoords )
+            arrayIndices = self.getDataObjectCoords_arrayIndices( dtIdx, dataObjectCoords )
             trace( "Array: arrayIndices:", str(arrayIndices) )
-
-            arrayDataAsStr = ""
 
             for arrayIndex in arrayIndices:
 
@@ -828,13 +826,17 @@ class DataAPI_Wrapper( object ):
 
                 indexName = "%s[%s]" % ( parameterName, str(arrayIndex) )
 
-                arrayDataAsStr += self.walkType( indexName, element, isExpectedData, \
-                                                 index_dataObjectCoords, indexIndent )
+                grandChildren = self.walkType( indexName, element, index_dataObjectCoords, \
+                                               testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                               indexIndent )
 
-            if "" != arrayDataAsStr:
-                if not parameterNameAdded:
-                    dataAsString += currentIndentAsStr + parameterNameAsStr
-                dataAsString += arrayDataAsStr
+                for grandChild in grandChildren:
+                    currentChild["children"].append( grandChild )
+
+            # Check that there is really data otherwise
+            # do not include the currentChild to children.
+            if len( currentChild["children"] ) > 0: 
+                children.append( currentChild )
 
         else:
 
@@ -845,41 +847,12 @@ class DataAPI_Wrapper( object ):
 
                 if None != valuesAsStr:
 
-                    parameterDataAsStr = ""
-                    dataIndentAsStr = currentIndentAsStr
-
                     associatedValues = self.getAssociatedValues( parameterType, valuesAsStr )
 
-                    if isExpectedData:
-
-                        actuals = self.getData( isExpectedData, dataObjectCoords, "actuals" )
-                        results = self.getData( isExpectedData, dataObjectCoords, "results" )
-
-                        if is_parameter_user_code:
-
-                            dataIndentAsStr = ""
-
-                            for idx in range( len(actuals) ):
-                                parameterDataAsStr += indexIndentAsStr + \
-                                                      "--> %s (%s)\n" % ( actuals[idx], results[idx] )
-
-                        else:
-
-                            parameterDataAsStr = "%s: %s --> %s (%s)\n" % ( parameterName, \
-                                                                            ",".join( associatedValues ), \
-                                                                            ",".join( actuals ), \
-                                                                            ",".join( results ) )
-
-                    else:
-
-                        parameterDataAsStr = "%s: %s\n" % ( parameterName, \
-                                                            ",".join( associatedValues ) )
-
-                    dataAsString += dataIndentAsStr + parameterDataAsStr
+                    currentChild["value"] = ",".join( associatedValues )
+                    children.append( currentChild )
 
             else:
-
-                childDataAsStr = ""
 
                 for child in child_fields:
 
@@ -888,15 +861,16 @@ class DataAPI_Wrapper( object ):
 
                     trace( "None Basic Type: child_dataObjectCoords:", str(child_dataObjectCoords) )
 
-                    childDataAsStr += self.walkType_Wrapper( child, isExpectedData, \
-                                                             child_dataObjectCoords, currentIndent+1 )
+                    grandChildren = self.walkType_Wrapper( child, child_dataObjectCoords,\
+                                                           testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                                           currentIndent+1 )
 
-                if "" != childDataAsStr:
-                    if not parameterNameAdded:
-                        dataAsString += currentIndentAsStr + parameterNameAsStr
-                    dataAsString += childDataAsStr
+                    for grandChild in grandChildren:
+                        currentChild["children"].append( grandChild )
 
-        return dataAsString
+                children.append( currentChild )
+
+        return children
 
 
     def prepareData( self, testcase, dataTypeControl, isInpExpData, level=0 ):
@@ -956,7 +930,7 @@ class DataAPI_Wrapper( object ):
             
         container = self.inpExpData[dtIdx][testcase.id]
 
-        if 0 == dtIdx:
+        if 1 == dtIdx:
             source1 = testcase.expected
             source2 = testcase.expected_user_code            
         else:
@@ -1174,14 +1148,11 @@ class DataAPI_Wrapper( object ):
         return ancestryList
 
 
-    def getDataObjectCoords_arrayIndices( self, isExpectedData, dataObjectCoords ):
+    def getDataObjectCoords_arrayIndices( self, dtIdx, dataObjectCoords ):
 
         arrayIndices = []
 
-        if isExpectedData:
-            container = self.expectedData
-        else:
-            container = self.inputData
+        container = self.inpExpData[dtIdx]
 
         if not dataObjectCoords[0] in container.keys():
             return arrayIndices
@@ -1386,7 +1357,7 @@ if "__main__" == __name__:
         
         print( tcData )
 
-        print( tcData.getInpExpDataAsString( 1 ) )
+        # print( tcData.getInpExpDataAsString( 1 ) )
         print( tcData.getInpExpDataAsString( 2 ) )
 
     else:
