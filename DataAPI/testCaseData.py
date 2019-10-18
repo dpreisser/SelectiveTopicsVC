@@ -233,7 +233,7 @@ class DataAPI_Wrapper( object ):
         if None != label:
 
             if None != value:
-                newStr = label + ": "  + value + "\n"
+                newStr = label + ": "  + str(value) + "\n"
             else:
                 newStr = label + "\n"
 
@@ -422,36 +422,45 @@ class DataAPI_Wrapper( object ):
 
         dataTypeIdc = self.getDataTypeIdc( dataTypeControl )
 
+        arrayChildren = [ [], [], [] ]
+
         for dtIdx in dataTypeIdc:
 
-            children.append( self.getDefaultTree() )
-            currentTree = children[-1]
-            currentTree["indent"] = currentIndent
-            currentTree["label"] = "branch"
-            currentTree["value"] = dtIdx
+            currentChild = self.getDefaultTree()
+            currentChild["indent"] = currentIndent
+            currentChild["label"] = "branch"
+            currentChild["value"] = dtIdx
 
             if isInpExpData:
 
                 for testcaseId in self.inpExpData[dtIdx].keys():
 
-                    children.append( self.getDefaultTree() )
-                    tcTree = children[-1]
-                    currentTree["indent"] = currentIndent
-                    currentTree["label"] = "TestCase"
-                    currentTree["value"] = testcase.name
+                    grandChild = self.getDefaultTree()
+                    grandChild["indent"] = currentIndent
+                    grandChild["label"] = "TestCase"
+                    grandChild["value"] = testcase.name
 
                     trace( "dtIdx:", dtIdx, newLine=True )
                     trace( "testcaseId:", testcaseId, newLine=True )
                     trace( "Input & Expected Data:", self.inpExpData[dtIdx][testcaseId], newLine=True )
 
-                    currentTree["children"] = self.getDataAsTree_globals( envName,
-                                                                          testcaseId, 0, 0, dtIdx, isInpExpData, \
-                                                                          currentIndent+1 )
+                    arrayChildren[0] = self.getDataAsTree_globals( envName,
+                                                                   testcaseId, 0, 0, dtIdx, isInpExpData, \
+                                                                   currentIndent+1 )
 
-                    # dataAsString += self.getDataAsString_functions( testcase, dataTypeControl, unitIndent )
-                    # dataAsString += self.getTestcaseUserCode( testcase, dataTypeControl, unitIndent )
+                    # arrayChildren[1] = self.getDataAsString_functions( testcase, dataTypeControl, unitIndent )
+                    
+                    # arrayChildren[2] = self.getTestcaseUserCode( testcase, dataTypeControl, unitIndent )
 
-            return children
+                    for idx in range( len(arrayChildren) ):
+                        for tmpChild in arrayChildren[idx]:
+                           grandChild["children"].append( tmpChild )
+
+                    currentChild["children"].append( grandChild )
+
+            children.append( currentChild )
+
+        return children
 
 
     def getDataAsString_functions( self, testcase, isExpectedData, currentIndent ):
@@ -612,7 +621,7 @@ class DataAPI_Wrapper( object ):
         unitId = unit.id
         functionIndex = 0
 
-        functionNameAsStr = "<<GLOBAL>>\n"
+        functionNameAsStr = "<<GLOBAL>>"
 
         if isInpExpData:
             container = self.inpExpData[dtIdx][testcaseId]
@@ -625,15 +634,11 @@ class DataAPI_Wrapper( object ):
         if not functionIndex in container[unitId].keys():
             return children
 
-        if "USER_GLOBALS_VCAST" == unit.name:
-            unitNameAsStr = "Unit %s\n" % unit.name
-        else:
-            unitNameAsStr = "Unit: %s\n" % unit.name
-
         children.append( self.getDefaultTree() )
         currentTree = children[-1]
         currentTree["indent"] = unitIndent
-        currentTree["label"] = unitNameAsStr
+        currentTree["label"] = "Unit"
+        currentTree["value"] = unit.name
 
         currentTree["children"].append( self.getDefaultTree() )
         currentTree = currentTree["children"][-1]
@@ -813,7 +818,7 @@ class DataAPI_Wrapper( object ):
 
         if isArray:
 
-            arrayIndices = self.getDataObjectCoords_arrayIndices( dtIdx, dataObjectCoords )
+            arrayIndices = self.getDataObjectCoords_arrayIndices( dtIdx, testcaseId, dataObjectCoords )
             trace( "Array: arrayIndices:", str(arrayIndices) )
 
             for arrayIndex in arrayIndices:
@@ -1148,11 +1153,11 @@ class DataAPI_Wrapper( object ):
         return ancestryList
 
 
-    def getDataObjectCoords_arrayIndices( self, dtIdx, dataObjectCoords ):
+    def getDataObjectCoords_arrayIndices( self, dtIdx, testcaseId, dataObjectCoords ):
 
         arrayIndices = []
 
-        container = self.inpExpData[dtIdx]
+        container = self.inpExpData[dtIdx][testcaseId]
 
         if not dataObjectCoords[0] in container.keys():
             return arrayIndices
