@@ -306,32 +306,29 @@ class DataAPI_Wrapper( object ):
 
                 tcNameAsStr = "%s (Unit)\n" % testcase.name
 
-            children.append( self.getDefaultTree() )
-            currentTree = children[-1]
+            currentChild = self.getDefaultTree()
+            currentChild["indent"] = envIndent
+            currentChild["label"] = "Environment"
+            currentChild["value"] = envName
+            children.append( currentChild )
 
-            children.append( self.getDefaultTree() )
-            currentTree = children[-1]
-            currentTree["indent"] = envIndent
-            currentTree["label"] = "Environment"
-            currentTree["value"] = envName
+            currentChild = self.getDefaultTree()
+            currentChild["indent"] = unitIndent
+            currentChild["label"] = "Unit"
+            currentChild["value"] = unitName
+            children.append( currentChild )
 
-            children.append( self.getDefaultTree() )
-            currentTree = children[-1]
-            currentTree["indent"] = unitIndent
-            currentTree["label"] = "Unit"
-            currentTree["value"] = unitName
+            currentChild = self.getDefaultTree()
+            currentChild["indent"] = functionIndent
+            currentChild["label"] = "Function"
+            currentChild["value"] = functionName
+            children.append( currentChild )
 
-            children.append( self.getDefaultTree() )
-            currentTree = children[-1]
-            currentTree["indent"] = functionIndent
-            currentTree["label"] = "Function"
-            currentTree["value"] = functionName
-
-            children.append( self.getDefaultTree() )
-            currentTree = children[-1]
-            currentTree["indent"] = tcIndent
-            currentTree["label"] = "Testcase"
-            currentTree["value"] = tcNameAsStr
+            currentChild = self.getDefaultTree()
+            currentChild["indent"] = tcIndent
+            currentChild["label"] = "Testcase"
+            currentChild["value"] = tcNameAsStr
+            children.append( currentChild )
 
             self.prepareData( testcase, dataTypeControl, isInpExpData )
 
@@ -352,12 +349,7 @@ class DataAPI_Wrapper( object ):
                 slotName = ".".join( [tc.unit_display_name, tc.function_display_name, tc.name] )
                 slotAsStr = "Slot %s: %s (%s)" % ( str(slots[idx].index), slotName, slots[idx].iteration_count )
 
-                if level > 0:
-                    children.append( self.getDefaultTree() )
-                    slotTree = children[-1]
-                else:
-                    currentTree["children"].append( self.getDefaultTree() )
-                    slotTree = currentTree["children"][-1]
+                slotTree = self.getDefaultTree()
 
                 slotTree["indent"] = slotIndent
                 slotTree["label"] = slotAsStr
@@ -367,49 +359,21 @@ class DataAPI_Wrapper( object ):
                                                                         slotIndent+1, \
                                                                         level=level+1 )
 
+                if level > 0:
+                    children.append( slotTree )
+                else:
+                    currentChild["children"].append( slotTree )
+
             if level > 0:
                 return children
+            else:
+                currentChild["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, uniIndent )
+                return children
 
-            # slotTree["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, uniIndent )
-            return children
-
-            for slotId in self.slotIdSequence:
-
-                slot = self.envApi[envName].Slot.get( slotId )
-                tc = slot.testcase
-
-                ancestryList = self.getAncestryList( slot.slot_histories )
-
-                ancestorAsStr = ""
-
-                for ancestor in ancestryList:
-
-                    ancestorAsStr = "%s Slot %s (%s)\n" % \
-                                    ( ancestor[0], str(ancestor[1]), ancestor[2] )
-
-                    ancestryAsStr += ancestorAsStr
-
-                slotNameAsStr = "%s: %s:" %( ancestryAsStr, dataTypeAsStr )
-
-                children.append( self.getDefaultTree() )
-                slotTree = children[-1]
-                slotTree["indent"] = tcIndent
-                slotTree["label"] = slotNameAsStr
-
-                trace( "Input & Expected Data:", self.inpExpData[tc.id], newLine=True )
-
-                # slotTree["children"] = self.getDataAsString_globals( envName,
-                #                                                      tc.id, slotId, dataTypeControl, isInpExpData, \
-                #                                                      unitIndent )
-
-                # dataAsString += self.getDataAsString_functions( tc, isExpectedData, unitIndent )
-                # dataAsString += self.getTestcaseUserCode( tc, isExpectedData, unitIndent )
-
-            return children
 
         elif testcase.is_unit_test:
 
-            currentTree["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, unitIndent )
+            currentChild["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, unitIndent )
 
             return children
 
@@ -424,21 +388,31 @@ class DataAPI_Wrapper( object ):
 
         arrayChildren = [ [], [], [] ]
 
-        for dtIdx in dataTypeIdc:
+        if isInpExpData:
 
-            currentChild = self.getDefaultTree()
-            currentChild["indent"] = currentIndent
-            currentChild["label"] = "branch"
-            currentChild["value"] = dtIdx
+            tmpStore = {}
 
-            if isInpExpData:
+            for dtIdx in dataTypeIdc:
 
                 for testcaseId in self.inpExpData[dtIdx].keys():
 
                     grandChild = self.getDefaultTree()
                     grandChild["indent"] = currentIndent
-                    grandChild["label"] = "TestCase"
-                    grandChild["value"] = testcase.name
+                    grandChild["label"] = "branch"
+                    grandChild["value"] = dtIdx
+
+                    if not testcaseId in tmpStore.keys():
+
+                        currentChild = self.getDefaultTree()
+                        currentChild["indent"] = currentIndent
+                        currentChild["label"] = "TestCase"
+                        currentChild["value"] = testcase.name
+
+                        tmpStore[testcaseId] = currentChild
+
+                    else:
+
+                        currentChild = tmpStore[testcaseId]
 
                     trace( "dtIdx:", dtIdx, newLine=True )
                     trace( "testcaseId:", testcaseId, newLine=True )
@@ -449,7 +423,6 @@ class DataAPI_Wrapper( object ):
                                                                    currentIndent+1 )
 
                     # arrayChildren[1] = self.getDataAsString_functions( testcase, dataTypeControl, unitIndent )
-                    
                     # arrayChildren[2] = self.getTestcaseUserCode( testcase, dataTypeControl, unitIndent )
 
                     for idx in range( len(arrayChildren) ):
@@ -458,7 +431,59 @@ class DataAPI_Wrapper( object ):
 
                     currentChild["children"].append( grandChild )
 
-            children.append( currentChild )
+            for testcaseId, currentChild in tmpStore.items():
+                children.append( currentChild )
+
+        else:
+
+            for slotId in self.slotIdSequence:
+
+                slot = self.envApi[envName].Slot.get( slotId )
+                tc = slot.testcase
+
+                numRangeIterations = len( self.slotData[slotId] )
+                for itrIdx in range( numRangeIterations ):
+
+                    ancestryList = self.actualData[slotId][itrIdx]["ancestryList"]
+
+                    ancestryAsStr = ""
+
+                    for ancestor in ancestryList:
+
+                        ancestorAsStr = "%s Slot %s (%s) Iteration %s\n" % \
+                                        ( ancestor[0], str(ancestor[1]), \
+                                          ancestor[2], str(ancestor[3]) )
+
+                        ancestryAsStr += ancestorAsStr
+
+                    currentChild = self.getDefaultTree()
+                    currentChild["indent"] = tcIndent
+                    currentChild["label"] = "Slot"
+                    currentChild["value"] = ancestryAsStr
+
+                    trace( "Actual Input & Result Data:", self.slotData[slotId][itrIdx], newLine=True )
+
+                    for dtIdx in dataTypeIdc:
+
+                        grandChild = self.getDefaultTree()
+                        grandChild["indent"] = currentIndent
+                        grandChild["label"] = "branch"
+                        grandChild["value"] = dtIdx
+
+                        arrayChildren[0] = self.getDataAsString_globals( envName,
+                                                                         tc.id, slotId, dtIdx, dataTypeControl, isInpExpData, \
+                                                                         currentIndent+1 )
+
+                        # arrayChildren[1] = self.getDataAsString_functions( tc, isExpectedData, unitIndent )
+                        # arrayChildren[2] = self.getTestcaseUserCode( tc, isExpectedData, unitIndent )
+
+                        for idx in range( len(arrayChildren) ):
+                            for tmpChild in arrayChildren[idx]:
+                                grandChild["children"].append( tmpChild )
+
+                        currentChild["children"].append( grandChild )
+                        
+                    children.append( currentChild )
 
         return children
 
@@ -700,7 +725,7 @@ class DataAPI_Wrapper( object ):
         for sourceData in source:
 
             if sourceData.is_testcase_user_code:
-                formattedUserCode= self.formatUserCode( sourceData.value, tcIndent+1 )
+                formattedUserCode= self.formatMultiLine( sourceData.value, tcIndent+1 )
                 dataAsString += formattedUserCode
 
         return dataAsString
@@ -1036,7 +1061,7 @@ class DataAPI_Wrapper( object ):
     def prepareActualData( self, slotId, slot_histories ):
 
         if not slotId in self.actualData.keys():
-            self.actualData[slotId] = {}
+            self.actualData[slotId] = []
 
         cotainer = self.actualData[slotId]
 
@@ -1058,6 +1083,7 @@ class DataAPI_Wrapper( object ):
 
                 numRangeItr = len( iteration.range_iterations )
 
+                container = [{}]*numRangeItr
                 defaultList = ["None"]*numRangeItr
 
                 for range_iteration in iteration.range_iterations:
@@ -1069,22 +1095,9 @@ class DataAPI_Wrapper( object ):
                         itrIdx = event.iteration_index - 1
                         rangeItrIdx = event.range_iteration_index - 1
 
-                        if not itrIdx in container.keys():
-                            container[itrIdx] = {}
-
                         ancestryList[-1][-1] = event.iteration_index
 
-                        ancestryAsStr = ""
-                                
-                        for ancestor in ancestryList:
-
-                            ancestorAsStr = "%s Slot %s (%s) Iteration %s\n" % \
-                                            ( ancestor[0], str(ancestor[1]), \
-                                              ancestor[2], str(ancestor[3]) )
-
-                            ancestryAsStr += ancestorAsStr
-
-                        container[itrIdx]["ancestry"] = ancestryAsStr
+                        container[itrIdx]["ancestryList"] = ancestryList
 
                         for actual in event.actuals:
 
@@ -1307,18 +1320,18 @@ class DataAPI_Wrapper( object ):
         return str(value)
 
 
-    def formatUserCode( self, userCode, currentIndent ):
+    def formatMultiLine( self, multiLineStr, currentIndent ):
 
-        formattedUserCode = ""
+        formattedStr = ""
 
         currentIndentAsStr = self.getIndentAsString( currentIndent )
 
-        lines = userCode.split( "\n" )
+        lines = multiLineStr.split( "\n" )
 
         for line in lines:
-            formattedUserCode += currentIndentAsStr + line + "\n"
+            formattedStr += currentIndentAsStr + line + "\n"
 
-        return formattedUserCode
+        return formattedStr
 
 
 if "__main__" == __name__:
