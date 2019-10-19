@@ -422,12 +422,15 @@ class DataAPI_Wrapper( object ):
                                                                    testcaseId, 0, 0, dtIdx, isInpExpData, \
                                                                    currentIndent+1 )
 
-                    # arrayChildren[1] = self.getDataAsString_functions( testcase, dataTypeControl, unitIndent )
+                    arrayChildren[1] = self.getDataAsTree_functions( envName, testcase, \
+                                                                     testcaseId, 0, 0, dtIdx, isInpExpData, \
+                                                                     currentIndent+1 )
+
                     # arrayChildren[2] = self.getTestcaseUserCode( testcase, dataTypeControl, unitIndent )
 
                     for idx in range( len(arrayChildren) ):
-                        for tmpChild in arrayChildren[idx]:
-                           grandChild["children"].append( tmpChild )
+                        for child in arrayChildren[idx]:
+                           grandChild["children"].append( child )
 
                     currentChild["children"].append( grandChild )
 
@@ -470,16 +473,19 @@ class DataAPI_Wrapper( object ):
                         grandChild["label"] = "branch"
                         grandChild["value"] = dtIdx
 
-                        arrayChildren[0] = self.getDataAsString_globals( envName,
+                        arrayChildren[0] = self.getDataAsTree_globals( envName,
+                                                                       tc.id, slotId, dtIdx, dataTypeControl, isInpExpData, \
+                                                                       currentIndent+1 )
+
+                        arrayChildren[1] = self.getDataAsTree_functions( envName, tc, \
                                                                          tc.id, slotId, dtIdx, dataTypeControl, isInpExpData, \
                                                                          currentIndent+1 )
 
-                        # arrayChildren[1] = self.getDataAsString_functions( tc, isExpectedData, unitIndent )
                         # arrayChildren[2] = self.getTestcaseUserCode( tc, isExpectedData, unitIndent )
 
                         for idx in range( len(arrayChildren) ):
-                            for tmpChild in arrayChildren[idx]:
-                                grandChild["children"].append( tmpChild )
+                            for child in arrayChildren[idx]:
+                                grandChild["children"].append( child )
 
                         currentChild["children"].append( grandChild )
                         
@@ -488,25 +494,31 @@ class DataAPI_Wrapper( object ):
         return children
 
 
-    def getDataAsString_functions( self, testcase, isExpectedData, currentIndent ):
+    def getDataAsTree_functions( self, envName, testcase, \
+                                 testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                 currentIndent ):
 
-        dataAsString = ""
+        children = []
 
-        if isExpectedData:
-            container = self.expectedData
+        arrayChildren = [ [], [], [] ]
+
+        if isInpExpData:
+            container = self.inpExpData[dtIdx][testcaseId]
         else:
-            container = self.inputData
+            container = self.actualData[slotId][itrIdx]
 
         # UUT
 
-        envName = testcase.get_environment().name
+        api = self.envApi[envName]
 
         unitName = testcase.unit_display_name
         unit = self.envApi[envName].Unit.get( unitName )
 
         function = testcase.function
 
-        dataAsString_UUT = self.getDataAsString_parameters( unit, function, isExpectedData, currentIndent )
+        arrayChildren[0] = self.getDataAsTree_parameters( unit, function, \
+                                                          testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                                          currentIndent )
 
         # SBF
 
@@ -515,20 +527,34 @@ class DataAPI_Wrapper( object ):
         tc_unitId = unit.id
         tc_functionIndex = function.index
 
-        for functionIndex in container[tc_unitId].keys():
+        for unitId in container.keys():
 
-            # Skip globals
-            if functionIndex == 0:
+            unit = api.Unit.get( unitId )
+
+            # Skip the unit if not enabled for SBF
+            if not unit.stub_by_function:
                 continue
 
-            # Skip the function associated with the testcase.
-            if functionIndex == tc_functionIndex:
-                continue            
+            for functionIndex in container[tc_unitId].keys():
 
-            # function = self.getFunctionByIndex( unit, functionIndex )
-            function = unit.get_function( functionIndex )
+                # Skip globals
+                if functionIndex == 0:
+                    continue
 
-            dataAsString_SBF += self.getDataAsString_parameters( unit, function, isExpectedData, currentIndent )
+                # Skip the function associated with the testcase.
+                if unitId == tc_unitId:
+                    if functionIndex == tc_functionIndex:
+                        continue
+
+                # function = self.getFunctionByIndex( unit, functionIndex )
+                function = unit.get_function( functionIndex )
+
+                partChildren = self.getDataAsTree_parameters( unit, function, \
+                                                              testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                                              currentIndent )
+
+                for child in partChildren:
+                    arrayChildren[1].append( child )
 
         # All other stubs (different units)
 
@@ -536,11 +562,11 @@ class DataAPI_Wrapper( object ):
 
         for unitId in container.keys():
 
-            # Skip the unit associated with the testcase.
-            if unitId == tc_unitId:
-                continue
+            unit = api.Unit.get( unitId )
 
-            unit = self.envApi[envName].Unit.get( unitId )
+            # Skip the unit if not stubbed.
+            if not unit.is_stubbed:
+                continue
 
             for functionIndex in container[unitId].keys():
 
@@ -551,43 +577,52 @@ class DataAPI_Wrapper( object ):
                 # function = self.getFunctionByIndex( unit, functionIndex )
                 function = unit.get_function( functionIndex )
 
-                dataAsString_Stub += self.getDataAsString_parameters( unit, function, isExpectedData, currentIndent )
+                partChildren = self.getDataAsTree_parameters( unit, function, \
+                                                              testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                                              currentIndent )
 
-        dataAsString += dataAsString_SBF
-        dataAsString += dataAsString_UUT
-        dataAsString += dataAsString_Stub
+                for child in partChildren:
+                    arrayChildren[2].append( child )
 
-        return dataAsString
+        for idx in range( len(arrayChildren) ):
+            for child in arrayChildren[idx]:
+                children.append( child )
+
+        return children
 
 
-    def getDataAsString_parameters( self, unit, function, isExpectedData, currentIndent ):
+    def getDataAsTree_parameters( self, unit, function, \
+                                  testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                  currentIndent ):
 
-        dataAsString = ""
+        children = []
 
         unitIndent = currentIndent
-        unitIndentAsStr = self.getIndentAsString( unitIndent )
-            
         functionIndent = currentIndent + 1
-        functionIndentAsStr = self.getIndentAsString( functionIndent )
-
         parameterIndent = currentIndent + 2
-        parameterIndentAsStr = self.getIndentAsString( parameterIndent )
 
-        unitNameAsStr = "UUT: %s\n" % unit.name
-        dataAsString += unitIndentAsStr + unitNameAsStr
+        currentChild = self.getDefaultTree()
+        currentChild["indent"] = unitIndent
+        currentChild["label"] = "Unit"
+        currentChild["value"] = unit.name
 
+        grandChild = self.getDefaultTree()
+        grandChild["indent"] = functionIndent
+        grandChild["label"] = "Subprogram"
+
+        functionNameAsStr = "%s" % function.name
         functionDataAsStr = None
-        
-        if unit.stub_by_function:
-            dataObjectCoords = [ unit.id, function.index, function.sbf_index ]
-            functionDataAsStr = self.getData( isExpectedData, dataObjectCoords, "data" )
 
-        if None == functionDataAsStr:
-            functionNameAsStr = "Subprogram: %s\n" % function.name
-            dataAsString += functionIndentAsStr + functionNameAsStr
-        else:
-            functionNameAsStr = "Subprogram: %s: %s\n" % ( function.name, functionDataAsStr )
-            dataAsString += functionIndentAsStr + functionNameAsStr
+        if isInpExpData:
+        
+            if unit.stub_by_function:
+                dataObjectCoords = [ unit.id, function.index, function.sbf_index ]
+                functionDataAsStr = self.getInpExpData( dtIdx, testcaseId, dataObjectCoords, "data" )
+
+            if None != functionDataAsStr:
+                functionNameAsStr = "%s: %s" % ( function.name, functionDataAsStr )
+
+        grandChild["value"] = functionNameAsStr
 
         parameterIndex = 1
         parameter = function.get_param_by_index( parameterIndex )
@@ -596,13 +631,20 @@ class DataAPI_Wrapper( object ):
 
             dataObjectCoords = [ unit.id, function.index, parameterIndex ]
 
-            dataAsString += self.walkType_Wrapper( parameter, isExpectedData, \
-                                                   dataObjectCoords, parameterIndent )
+            partChildren = self.walkType_Wrapper( parameter, dataObjectCoords, \
+                                                  testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                                  parameterIndent )
+
+            for child in partChildren:
+                grandChild["children"].append( child )
 
             parameterIndex += 1
             parameter = function.get_param_by_index( parameterIndex )
 
-        return dataAsString
+        currentChild["children"].append( grandChild )
+        children.append( currentChild )
+
+        return children
 
 
     def getDataAsTree_globals( self, envName, \
@@ -820,7 +862,7 @@ class DataAPI_Wrapper( object ):
 
             else:
 
-                allocateAsStr = self.getData( dtIdx, tetcaseId, dataObjectCoords, "allocate" )
+                allocateAsStr = self.getInpExpData( dtIdx, testcaseId, dataObjectCoords, "allocate" )
                 if None == allocateAsStr:
                     return children
 
@@ -1351,7 +1393,7 @@ if "__main__" == __name__:
         print( tcData )
 
         print( tcData.getInpExpDataAsString( 1 ) )
-        print( tcData.getInpExpDataAsString( 2 ) )
+        # print( tcData.getInpExpDataAsString( 2 ) )
 
     elif 2 == numParameters:
 
@@ -1375,7 +1417,7 @@ if "__main__" == __name__:
         
         print( tcData )
 
-        # print( tcData.getInpExpDataAsString( 1 ) )
+        print( tcData.getInpExpDataAsString( 1 ) )
         print( tcData.getInpExpDataAsString( 2 ) )
 
     else:
