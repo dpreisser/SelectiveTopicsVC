@@ -507,9 +507,9 @@ class DataAPI_Wrapper( object ):
         else:
             container = self.actualData[slotId][itrIdx]
 
-        # UUT
-
         api = self.envApi[envName]
+
+        # UUT
 
         unitName = testcase.unit_display_name
         unit = self.envApi[envName].Unit.get( unitName )
@@ -521,8 +521,6 @@ class DataAPI_Wrapper( object ):
                                                           currentIndent )
 
         # SBF
-
-        dataAsString_SBF = ""
 
         tc_unitId = unit.id
         tc_functionIndex = function.index
@@ -557,8 +555,6 @@ class DataAPI_Wrapper( object ):
                     arrayChildren[1].append( child )
 
         # All other stubs (different units)
-
-        dataAsString_Stub = ""
 
         for unitId in container.keys():
 
@@ -658,9 +654,11 @@ class DataAPI_Wrapper( object ):
         else:
             container = self.actualData[dtIdx][slotId][itrIdx]
 
-        units = self.envApi[envName].Unit.all( )
+        api = self.envApi[envName]
 
-        for unit in units:
+        for unitId in container.keys():
+
+            unit = api.Unit.get( unitId )
 
             partChildren = self.getDataAsTree_globalsInUnit( envName, unit, \
                                                              testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
@@ -940,7 +938,10 @@ class DataAPI_Wrapper( object ):
                     for grandChild in grandChildren:
                         currentChild["children"].append( grandChild )
 
-                children.append( currentChild )
+                # Check that there is really data otherwise
+                # do not include the currentChild to children.
+                if len( currentChild["children"] ) > 0: 
+                    children.append( currentChild )
 
         return children
 
