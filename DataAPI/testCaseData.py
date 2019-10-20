@@ -9,7 +9,7 @@ from copy import deepcopy
 from vector.apps.DataAPI.api import Api
 
 
-DEBUG = True
+DEBUG = False
 
 
 def trace( str1, str2, newLine=False):
@@ -225,7 +225,9 @@ class DataAPI_Wrapper( object ):
         dataAsString = ""
 
         currentIndent = int( tree["indent"] )
-        currentIndentAsStr = self.getIndentAsString( currentIndent ) 
+        currentIndentAsStr = self.getIndentAsString( currentIndent )
+
+        addNewLineFor = [ "Slots", "TestCase" ]
 
         label = tree["label"]
         value = tree["value"]
@@ -236,6 +238,9 @@ class DataAPI_Wrapper( object ):
                 newStr = label + ": "  + str(value) + "\n"
             else:
                 newStr = label + "\n"
+
+            if label in addNewLineFor:
+                dataAsString += "\n"
 
             dataAsString += currentIndentAsStr + newStr
 
@@ -273,8 +278,6 @@ class DataAPI_Wrapper( object ):
 
         tree["children"] = self.getDataAsTree_explicit( testcase, dataTypeControl, isInpExpData, currentIndent+1, level=0 )
 
-        pprint.pprint( tree )
-
         dataAsString = self.getDataAsString_2( tree )
 
         return dataAsString
@@ -282,11 +285,11 @@ class DataAPI_Wrapper( object ):
 
     def getDataAsTree_explicit( self, testcase, dataTypeControl, isInpExpData, currentIndent, level=0 ):
 
+        children = []
+
         envName = testcase.get_environment().name
         unitName = testcase.unit_display_name
         functionName = testcase.function_display_name
-
-        children = []
 
         if 0 == level:
 
@@ -300,11 +303,11 @@ class DataAPI_Wrapper( object ):
 
             if testcase.is_compound_test:
 
-                tcNameAsStr = "%s (Compound)\n" % testcase.name
+                tcNameAsStr = "%s (Compound)" % testcase.name
 
             elif testcase.is_unit_test:
 
-                tcNameAsStr = "%s (Unit)\n" % testcase.name
+                tcNameAsStr = "%s (Unit)" % testcase.name
 
             currentChild = self.getDefaultTree()
             currentChild["indent"] = envIndent
@@ -326,11 +329,12 @@ class DataAPI_Wrapper( object ):
 
             currentChild = self.getDefaultTree()
             currentChild["indent"] = tcIndent
-            currentChild["label"] = "Testcase"
+            currentChild["label"] = "TestCase"
             currentChild["value"] = tcNameAsStr
             children.append( currentChild )
 
             self.prepareData( testcase, dataTypeControl, isInpExpData )
+            self.testcaseIdSeq = []
 
         else:
 
@@ -338,6 +342,12 @@ class DataAPI_Wrapper( object ):
             slotIndent = currentIndent
 
         if testcase.is_compound_test:
+
+            if 0 == level:
+                currentChild = self.getDefaultTree()
+                currentChild["indent"] = tcIndent
+                currentChild["label"] = "Slots"
+                children.append( currentChild )
 
             slots = testcase.slots
             numSlots = len( slots )
@@ -358,6 +368,8 @@ class DataAPI_Wrapper( object ):
                     slotTree["children"] = self.getDataAsTree_explicit( tc, dataTypeControl, isInpExpData, \
                                                                         slotIndent+1, \
                                                                         level=level+1 )
+                else:
+                    self.testcaseIdSeq.append( tc.id )
 
                 if level > 0:
                     children.append( slotTree )
@@ -367,22 +379,28 @@ class DataAPI_Wrapper( object ):
             if level > 0:
                 return children
             else:
-                currentChild["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, uniIndent )
-                return children
 
+                grandChildren = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, unitIndent )
+
+                for grandChild in grandChildren:
+                    currentChild["children"].append( grandChild )
+                    
+                return children
 
         elif testcase.is_unit_test:
 
+            self.testcaseIdSeq.append( testcase.id )
             currentChild["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, unitIndent )
 
             return children
 
 
-    def getDataAsTree_all( self, testcase, dataTypeControl, isInpExpData, currentIndent ):
+    def getDataAsTree_all( self, testcase_p, dataTypeControl, isInpExpData, currentIndent ):
 
         children = []
 
-        envName = testcase.get_environment().name
+        envName = testcase_p.get_environment().name
+        api = self.envApi[envName]
 
         dataTypeIdc = self.getDataTypeIdc( dataTypeControl )
 
@@ -394,7 +412,9 @@ class DataAPI_Wrapper( object ):
 
             for dtIdx in dataTypeIdc:
 
-                for testcaseId in self.inpExpData[dtIdx].keys():
+                for testcaseId in self.testcaseIdSeq:
+
+                    testcase = api.TestCase.get( testcaseId )
 
                     grandChild = self.getDefaultTree()
                     grandChild["indent"] = currentIndent
@@ -434,7 +454,8 @@ class DataAPI_Wrapper( object ):
 
                     currentChild["children"].append( grandChild )
 
-            for testcaseId, currentChild in tmpStore.items():
+            for testcaseId in self.testcaseIdSeq:
+                currentChild = tmpStore[testcaseId]
                 children.append( currentChild )
 
         else:
@@ -500,8 +521,6 @@ class DataAPI_Wrapper( object ):
 
         children = []
 
-        arrayChildren = [ [], [], [] ]
-
         if isInpExpData:
             container = self.inpExpData[dtIdx][testcaseId]
         else:
@@ -511,16 +530,26 @@ class DataAPI_Wrapper( object ):
 
         # UUT
 
+        currentChild = self.getDefaultTree()
+        currentChild["indent"] = currentIndent
+        currentChild["label"] = "<<UUT>>"
+
         unitName = testcase.unit_display_name
         unit = self.envApi[envName].Unit.get( unitName )
 
         function = testcase.function
 
-        arrayChildren[0] = self.getDataAsTree_parameters( unit, function, \
-                                                          testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
-                                                          currentIndent )
+        currentChild["children"] = self.getDataAsTree_parameters( unit, function, \
+                                                                  testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                                                  currentIndent )
+
+        children.append( currentChild )
 
         # SBF
+
+        currentChild = self.getDefaultTree()
+        currentChild["indent"] = currentIndent
+        currentChild["label"] = "<<SBF>>"
 
         tc_unitId = unit.id
         tc_functionIndex = function.index
@@ -547,14 +576,20 @@ class DataAPI_Wrapper( object ):
                 # function = self.getFunctionByIndex( unit, functionIndex )
                 function = unit.get_function( functionIndex )
 
-                partChildren = self.getDataAsTree_parameters( unit, function, \
-                                                              testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
-                                                              currentIndent )
+                grandChildren = self.getDataAsTree_parameters( unit, function, \
+                                                               testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                                               currentIndent )
 
-                for child in partChildren:
-                    arrayChildren[1].append( child )
+                for grandChild in grandChildren:
+                    currentChild["children"].append( grandChild )
+
+        children.append( currentChild )
 
         # All other stubs (different units)
+
+        currentChild = self.getDefaultTree()
+        currentChild["indent"] = currentIndent
+        currentChild["label"] = "<<STUB>>"
 
         for unitId in container.keys():
 
@@ -573,16 +608,14 @@ class DataAPI_Wrapper( object ):
                 # function = self.getFunctionByIndex( unit, functionIndex )
                 function = unit.get_function( functionIndex )
 
-                partChildren = self.getDataAsTree_parameters( unit, function, \
-                                                              testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
-                                                              currentIndent )
+                grandChildren = self.getDataAsTree_parameters( unit, function, \
+                                                               testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                                               currentIndent )
 
-                for child in partChildren:
-                    arrayChildren[2].append( child )
+                for grandChild in grandChildren:
+                    currentChild["children"].append( grandChild )
 
-        for idx in range( len(arrayChildren) ):
-            for child in arrayChildren[idx]:
-                children.append( child )
+        children.append( currentChild )
 
         return children
 
@@ -637,8 +670,9 @@ class DataAPI_Wrapper( object ):
             parameterIndex += 1
             parameter = function.get_param_by_index( parameterIndex )
 
-        currentChild["children"].append( grandChild )
-        children.append( currentChild )
+        if len( grandChild["children"] ) > 0:
+            currentChild["children"].append( grandChild )
+            children.append( currentChild )
 
         return children
 
@@ -649,6 +683,10 @@ class DataAPI_Wrapper( object ):
 
         children = []
 
+        currentChild = self.getDefaultTree()
+        currentChild["indent"] = currentIndent
+        currentChild["label"] = "<<GLOBAL>>"
+
         if isInpExpData:
             container = self.inpExpData[dtIdx][testcaseId]
         else:
@@ -656,16 +694,23 @@ class DataAPI_Wrapper( object ):
 
         api = self.envApi[envName]
 
+        functionIndex = 0
+
         for unitId in container.keys():
+
+            if not functionIndex in container[unitId].keys():
+                continue
 
             unit = api.Unit.get( unitId )
 
-            partChildren = self.getDataAsTree_globalsInUnit( envName, unit, \
-                                                             testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
-                                                             currentIndent )
+            grandChildren = self.getDataAsTree_globalsInUnit( envName, unit, \
+                                                              testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                                              currentIndent )
 
-            for child in partChildren:
-                children.append( child )
+            for grandChild in grandChildren:
+                currentChild["children"].append( grandChild )
+
+        children.append( currentChild )
 
         return children
 
@@ -675,9 +720,6 @@ class DataAPI_Wrapper( object ):
                                      currentIndent ):
 
         children = []
-
-        if "uut_prototype_stubs" == unit.name:
-            return children
 
         unitIndent = currentIndent            
         functionIndent = currentIndent + 1
@@ -692,12 +734,6 @@ class DataAPI_Wrapper( object ):
             container = self.inpExpData[dtIdx][testcaseId]
         else:
             container = self.actualData[dtIdx][slotId][itrIdx]
-
-        if not unitId in container.keys():
-            return children
-
-        if not functionIndex in container[unitId].keys():
-            return children
 
         children.append( self.getDefaultTree() )
         currentTree = children[-1]
@@ -966,7 +1002,7 @@ class DataAPI_Wrapper( object ):
                     self.slotIdSequence.append( testcase.id )
                     self.prepareActualData( 0, testcase.history.slot_histories )
 
-            return
+                return
 
         for slot in testcase.slots:
 
@@ -979,7 +1015,7 @@ class DataAPI_Wrapper( object ):
             else:
 
                 if isInpExpData:
-                    self.prepareInpExpData_Wrapper( testcase, dataTypeControl )
+                    self.prepareInpExpData_Wrapper( tc, dataTypeControl )
                 else:
                     self.slotIdSequence.append( slot.id )
                     self.prepareActualData( slot.id, slot.slot_histories )
@@ -1391,10 +1427,8 @@ if "__main__" == __name__:
         # tcData = TestCaseData( "IO_WRAPPER_BUBEN", "<<COMPOUND>>", "<<COMPOUND>>", "Write&Read", dataApi )
         # tcData = TestCaseData( "ADVANCED", "advanced_stubbing", "temp_monitor", "Celsius_Stub", dataApi )
 
-        print( tcData )
-
         print( tcData.getInpExpDataAsString( 1 ) )
-        # print( tcData.getInpExpDataAsString( 2 ) )
+        print( tcData.getInpExpDataAsString( 2 ) )
 
     elif 2 == numParameters:
 
@@ -1405,8 +1439,8 @@ if "__main__" == __name__:
 
         for testcase in testcases:
 
-            inputDataAsString = dataApi.getDataAsString_explicit( testcase, 1, 0 )
-            expectedDataAsString = dataApi.getDataAsString_explicit( testcase, 2, 0 )
+            inputDataAsString = dataApi.getDataAsString_explicit( testcase, 1, True, 0 )
+            expectedDataAsString = dataApi.getDataAsString_explicit( testcase, 2, True, 0 )
 
             print( inputDataAsString )
             print( expectedDataAsString )
@@ -1416,8 +1450,6 @@ if "__main__" == __name__:
         dataApi = DataAPI_Wrapper( sys.argv[1] )
         tcData = TestCaseData( sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], dataApi )
         
-        print( tcData )
-
         print( tcData.getInpExpDataAsString( 1 ) )
         print( tcData.getInpExpDataAsString( 2 ) )
 
