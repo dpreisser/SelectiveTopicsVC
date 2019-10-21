@@ -1,15 +1,22 @@
 
+from dataApiReport import getDataTypeIdc
 
-def getDataTypeIdc( dataTypeControl ):
 
-    if 1 == dataTypeControl:
-        dataTypeIdc = [ 0 ]
-    elif 2 == dataTypeControl:
-        dataTypeIdc = [ 1 ]
-    elif 3 == dataTypeControl:
-        dataTypeIdc = [ 0, 1 ]
+DEBUG = False
 
-    return dataTypeIdc
+
+def trace( str1, str2, newLine=False ):
+
+    global DEBUG
+
+    if not DEBUG:
+        return
+
+    if newLine:
+        print( str1 )
+        print( str2 )
+    else:
+        print( str1 + " " + str2 )
 
 
 def getIndentAsString( indentUnit, numIndentUnits ):
@@ -90,12 +97,12 @@ def getDataAsString_2( tree, dataTypeControl, level=0 ):
 
     if None != label:
 
-        if not label in omit:
+        if None != value:
+            newStr = label + ": "  + str(value) + "\n"
+        else:
+            newStr = label + "\n"
 
-            if None != value:
-                newStr = label + ": " + str(value) + "\n"
-            else:
-                newStr = label + "\n"
+        if not label in omit:
 
             if label in addNewLineBefore:
                 dataAsString += "\n"
@@ -111,11 +118,9 @@ def getDataAsString_2( tree, dataTypeControl, level=0 ):
                 if value != dataTypeIdc[0]:
                     return dataAsString
 
-    else:
-
-        if None != value:
-            formattedStr = formatMultiLine( value, currentIndent )
-            dataAsString += formattedStr
+    elif None != value:
+        newStr = str(value) + "\n"
+        dataAsString += currentIndentAsStr + newStr
 
     children = tree["children"]
 

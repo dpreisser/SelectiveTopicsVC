@@ -32,8 +32,8 @@ def trace( str1, str2, newLine=False ):
 def getDefaultTree():
 
     defaultTree = { "children" : [], \
-                    "indent" : 0, \
-                    "doid" : None, \
+                    "doc" : [], \
+                    "indent" : None, \
                     "label" : None, \
                     "value" : None }
 
@@ -110,12 +110,14 @@ class DataAPI_Report( object ):
                 dataTypeAsStr = "Actual Input & Result data"
 
         tree = getDefaultTree()
+        tree["indent"] = currentIndent
 
         currentChild = getDefaultTree()
         currentChild["indent"] = currentIndent
         currentChild["label"] = "Header"
 
         grandChild = getDefaultTree()
+        grandChild["indent"] = currentIndent
         grandChild["label"] = "%s for:" % dataTypeAsStr
         grandChild["children"] = self.getDataAsTree_slots( testcase, dataTypeControl, isInpExpData, currentIndent+1, level=0 )
 
@@ -128,6 +130,8 @@ class DataAPI_Report( object ):
 
         currentChild["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, currentIndent+1 )
         tree["children"].append( currentChild )
+
+        # pprint.pprint( tree )
 
         dataAsString = getDataAsString_2( tree, dataTypeControl )
 
@@ -467,11 +471,13 @@ class DataAPI_Report( object ):
         parameterIndent = currentIndent + 2
 
         unitChild = getDefaultTree()
+        unitChild["doc"] = [ unit.id ]
         unitChild["indent"] = unitIndent
         unitChild["label"] = "Unit"
         unitChild["value"] = unit.name
 
         functionChild = getDefaultTree()
+        functionChild["doc"] = [ unit.id, function.index ]
         functionChild["indent"] = functionIndent
         functionChild["label"] = "Subprogram"
 
@@ -572,11 +578,13 @@ class DataAPI_Report( object ):
             container = self.actualData[dtIdx][slotId][itrIdx]
 
         unitChild = getDefaultTree()
+        unitChild["doc"] = [ unit.id ]
         unitChild["indent"] = unitIndent
         unitChild["label"] = "Unit"
         unitChild["value"] = unit.name
 
         functionChild = getDefaultTree()
+        functionChild["doc"] = [ unit.id, functionIndex ]
         functionChild["indent"] = functionIndent
         functionChild["label"] = functionNameAsStr
 
@@ -634,12 +642,14 @@ class DataAPI_Report( object ):
         children.append( currentChild )
 
         unitChild = getDefaultTree()
+        unitChild["doc"] = [ unit.id ]
         unitChild["indent"] = unitIndent
         unitChild["label"] = "Unit"
         unitChild["value"] = unit.name
 
         functionChild = getDefaultTree()
         functionChild["indent"] = functionIndent
+        functionChild["doc"] = [ unit.id, function.index ]
         functionChild["label"] = "Subprogram"
         functionChild["value"] = function.name
 
@@ -701,6 +711,7 @@ class DataAPI_Report( object ):
         trace( "data_object_id:", data_object_id )
 
         currentChild = getDefaultTree()
+        currentChild["doc"] = dataObjectCoords
         currentChild["indent"] = currentIndent
         currentChild["label"] = parameterName
 
@@ -714,7 +725,7 @@ class DataAPI_Report( object ):
                 children.append( currentChild )
 
                 currentChild = getDefaultTree()
-                currentChild["indent"] = currentIndent
+                currentChild["indent"] = currentIndent+1
                 currentChild["value"] = valuesAsStr
                 children.append( currentChild )
 

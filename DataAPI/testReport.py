@@ -45,7 +45,6 @@ if "__main__" == __name__:
         # print( tcRep.getInpExpDataAsString( 1 ) )
         # print( tcRep.getInpExpDataAsString( 2 ) )
         print( tcRep.getInpExpDataAsString( 3 ) )
-        
 
     else:
 
