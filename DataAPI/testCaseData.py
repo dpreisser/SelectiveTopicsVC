@@ -229,9 +229,9 @@ class DataAPI_Wrapper( object ):
         currentIndentAsStr = self.getIndentAsString( currentIndent )
 
         addNewLineBefore = [ "Environment", "TestCaseData", "TestCase" ]
-        addNewLineAfter = [ "TestCase" ]
+        addNewLineAfter = [ "Environment", "TestCase" ]
 
-        omit = [ "Header", "dtidx"]
+        omit = [ "Header", "dtIdx"]
 
         label = tree["label"]
         value = tree["value"]
@@ -426,7 +426,7 @@ class DataAPI_Wrapper( object ):
 
                     grandChild = self.getDefaultTree()
                     grandChild["indent"] = currentIndent
-                    grandChild["label"] = "dtidx"
+                    grandChild["label"] = "dtIdx"
                     grandChild["value"] = dtIdx
 
                     if not testcaseId in tmpStore.keys():
@@ -501,7 +501,7 @@ class DataAPI_Wrapper( object ):
 
                         grandChild = self.getDefaultTree()
                         grandChild["indent"] = currentIndent
-                        grandChild["label"] = "dtidx"
+                        grandChild["label"] = "dtIdx"
                         grandChild["value"] = dtIdx
 
                         arrayChildren[0] = self.getDataAsTree_globals( envName,
@@ -642,14 +642,14 @@ class DataAPI_Wrapper( object ):
         functionIndent = currentIndent + 1
         parameterIndent = currentIndent + 2
 
-        currentChild = self.getDefaultTree()
-        currentChild["indent"] = unitIndent
-        currentChild["label"] = "Unit"
-        currentChild["value"] = unit.name
+        unitChild = self.getDefaultTree()
+        unitChild["indent"] = unitIndent
+        unitChild["label"] = "Unit"
+        unitChild["value"] = unit.name
 
-        grandChild = self.getDefaultTree()
-        grandChild["indent"] = functionIndent
-        grandChild["label"] = "Subprogram"
+        functionChild = self.getDefaultTree()
+        functionChild["indent"] = functionIndent
+        functionChild["label"] = "Subprogram"
 
         functionNameAsStr = "%s" % function.name
         functionDataAsStr = None
@@ -663,7 +663,7 @@ class DataAPI_Wrapper( object ):
             if None != functionDataAsStr:
                 functionNameAsStr = "%s: %s" % ( function.name, functionDataAsStr )
 
-        grandChild["value"] = functionNameAsStr
+        functionChild["value"] = functionNameAsStr
 
         parameterIndex = 1
         parameter = function.get_param_by_index( parameterIndex )
@@ -677,14 +677,14 @@ class DataAPI_Wrapper( object ):
                                                   parameterIndent )
 
             for child in partChildren:
-                grandChild["children"].append( child )
+                functionChild["children"].append( child )
 
             parameterIndex += 1
             parameter = function.get_param_by_index( parameterIndex )
 
-        if len( grandChild["children"] ) > 0:
-            currentChild["children"].append( grandChild )
-            children.append( currentChild )
+        if len( functionChild["children"] ) > 0:
+            children.append( unitChild )
+            children.append( functionChild )
 
         return children
 
@@ -747,16 +747,14 @@ class DataAPI_Wrapper( object ):
         else:
             container = self.actualData[dtIdx][slotId][itrIdx]
 
-        children.append( self.getDefaultTree() )
-        currentTree = children[-1]
-        currentTree["indent"] = unitIndent
-        currentTree["label"] = "Unit"
-        currentTree["value"] = unit.name
+        unitChild = self.getDefaultTree()
+        unitChild["indent"] = unitIndent
+        unitChild["label"] = "Unit"
+        unitChild["value"] = unit.name
 
-        currentTree["children"].append( self.getDefaultTree() )
-        currentTree = currentTree["children"][-1]
-        currentTree["indent"] = functionIndent
-        currentTree["label"] = functionNameAsStr
+        functionChild = self.getDefaultTree()
+        functionChild["indent"] = functionIndent
+        functionChild["label"] = functionNameAsStr
 
         currentData = container[unitId][functionIndex]
         
@@ -772,7 +770,11 @@ class DataAPI_Wrapper( object ):
                                                   parameterIndent )
 
             for child in partChildren:
-                currentTree["children"].append( child ) 
+                functionChild["children"].append( child )
+
+        if len( functionChild["children"] ) > 0:
+            children.append( unitChild )
+            children.append( functionChild )
 
         return children
 
@@ -800,6 +802,7 @@ class DataAPI_Wrapper( object ):
         unit = api.Unit.get( unitName )
 
         function = testcase.function
+        functionNameAsStr = "%s: %s" % ( function.name, "<<User Code>>" )
 
         currentChild = self.getDefaultTree()
         currentChild["indent"] = currentIndent
@@ -819,7 +822,7 @@ class DataAPI_Wrapper( object ):
         tcChild = self.getDefaultTree()
         tcChild["indent"] = tcIndent
         tcChild["label"] = "TestCase "
-        tcChild["value"] = testcase.name
+        tcChild["value"] = functionNameAsStr
 
         codeChild = None
 
@@ -1488,8 +1491,10 @@ if "__main__" == __name__:
         dataApi = DataAPI_Wrapper( sys.argv[1] )
         tcData = TestCaseData( sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], dataApi )
         
-        print( tcData.getInpExpDataAsString( 1 ) )
-        print( tcData.getInpExpDataAsString( 2 ) )
+        # print( tcData.getInpExpDataAsString( 1 ) )
+        # print( tcData.getInpExpDataAsString( 2 ) )
+        print( tcData.getInpExpDataAsString( 3 ) )
+        
 
     else:
 
