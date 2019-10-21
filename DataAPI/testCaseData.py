@@ -253,6 +253,10 @@ class DataAPI_Wrapper( object ):
                 if label in addNewLineAfter:
                     dataAsString += "\n"
 
+        elif None != value:
+            newStr = str(value) + "\n"
+            dataAsString += currentIndentAsStr + newStr
+
         children = tree["children"]
 
         for child in children:
@@ -289,7 +293,7 @@ class DataAPI_Wrapper( object ):
 
         grandChild = self.getDefaultTree()
         grandChild["label"] = "%s for:" % dataTypeAsStr
-        grandChild["children"] = self.getDataAsTree_explicit( testcase, dataTypeControl, isInpExpData, currentIndent+1, level=0 )
+        grandChild["children"] = self.getDataAsTree_slots( testcase, dataTypeControl, isInpExpData, currentIndent+1, level=0 )
 
         currentChild["children"].append( grandChild )
         tree["children"].append( currentChild )
@@ -306,7 +310,7 @@ class DataAPI_Wrapper( object ):
         return dataAsString
 
 
-    def getDataAsTree_explicit( self, testcase, dataTypeControl, isInpExpData, currentIndent, level=0 ):
+    def getDataAsTree_slots( self, testcase, dataTypeControl, isInpExpData, currentIndent, level=0 ):
 
         children = []
 
@@ -357,7 +361,6 @@ class DataAPI_Wrapper( object ):
             children.append( currentChild )
 
             self.prepareData( testcase, dataTypeControl, isInpExpData )
-            self.testcaseIdSeq = []
 
         else:
 
@@ -388,20 +391,14 @@ class DataAPI_Wrapper( object ):
                 slotTree["label"] = slotAsStr
 
                 if tc.is_compound_test:
-                    slotTree["children"] = self.getDataAsTree_explicit( tc, dataTypeControl, isInpExpData, \
-                                                                        slotIndent+1, \
-                                                                        level=level+1 )
-                else:
-                    self.testcaseIdSeq.append( tc.id )
+                    slotTree["children"] = self.getDataAsTree_slots( tc, dataTypeControl, isInpExpData, \
+                                                                     slotIndent+1, \
+                                                                     level=level+1 )
 
                 if level > 0:
                     children.append( slotTree )
                 else:
                     currentChild["children"].append( slotTree )
-
-        elif testcase.is_unit_test:
-
-            self.testcaseIdSeq.append( testcase.id )
 
         return children
 
@@ -423,7 +420,7 @@ class DataAPI_Wrapper( object ):
 
             for dtIdx in dataTypeIdc:
 
-                for testcaseId in self.testcaseIdSeq:
+                for testcaseId in self.tcIdSequence:
 
                     testcase = api.TestCase.get( testcaseId )
 
@@ -457,7 +454,9 @@ class DataAPI_Wrapper( object ):
                                                                      testcaseId, 0, 0, dtIdx, isInpExpData, \
                                                                      currentIndent+1 )
 
-                    # arrayChildren[2] = self.getTestcaseUserCode( testcase, dataTypeControl, unitIndent )
+                    arrayChildren[2] = self.getTestcaseUserCode( envName, testcase, \
+                                                                 testcaseId, 0, 0, dtIdx, isInpExpData, \
+                                                                 currentIndent+1 )
 
                     for idx in range( len(arrayChildren) ):
                         for child in arrayChildren[idx]:
@@ -465,7 +464,7 @@ class DataAPI_Wrapper( object ):
 
                     currentChild["children"].append( grandChild )
 
-            for testcaseId in self.testcaseIdSeq:
+            for testcaseId in self.tcIdSequence:
                 currentChild = tmpStore[testcaseId]
                 children.append( currentChild )
 
@@ -513,7 +512,9 @@ class DataAPI_Wrapper( object ):
                                                                          tc.id, slotId, dtIdx, dataTypeControl, isInpExpData, \
                                                                          currentIndent+1 )
 
-                        # arrayChildren[2] = self.getTestcaseUserCode( tc, isExpectedData, unitIndent )
+                        arrayChildren[2] = self.getTestcaseUserCode( envName, tc, \
+                                                                     testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                                                     currentIndent+1 )
 
                         for idx in range( len(arrayChildren) ):
                             for child in arrayChildren[idx]:
@@ -546,7 +547,7 @@ class DataAPI_Wrapper( object ):
         currentChild["label"] = "<<UUT>>"
 
         unitName = testcase.unit_display_name
-        unit = self.envApi[envName].Unit.get( unitName )
+        unit = api.Unit.get( unitName )
 
         function = testcase.function
 
@@ -776,46 +777,67 @@ class DataAPI_Wrapper( object ):
         return children
 
 
-    def getTestcaseUserCode( self, testcase, isExpectedData, currentIndent ):
+    def getTestcaseUserCode( self, envName, testcase, \
+                             testcaseId, slotId, itrIdx, dtIdx, isInpExpData,
+                             currentIndent ):
 
-        currentIndentAsStr = self.getIndentAsString( currentIndent )
+        children = []
 
         unitIndent = currentIndent
-        unitIndentAsStr = self.getIndentAsString( unitIndent )
-            
         functionIndent = currentIndent + 1
-        functionIndentAsStr = self.getIndentAsString( functionIndent )
-
         tcIndent = currentIndent + 2
-        tcIndentAsStr = self.getIndentAsString( tcIndent )
 
-        dataAsString = ""
+        if isInpExpData:
 
-        if isExpectedData:
-            container = self.expectedData
-            source = testcase.expected_user_code
-        else:
-            container = self.inputData
-            source = testcase.input_user_code
+            if 1 == dtIdx:
+                source = testcase.expected_user_code
+            else:
+                source = testcase.input_user_code
 
-        envName = testcase.get_environment().name
+        api = self.envApi[envName]
 
-        unitNameAsStr = "UUT: %s\n" % testcase.unit_display_name 
-        dataAsString += unitIndentAsStr + unitNameAsStr
+        unitName = testcase.unit_display_name
+        unit = api.Unit.get( unitName )
 
-        functionNameAsStr = "Subprogram: %s\n" % testcase.function_display_name
-        dataAsString += functionIndentAsStr + functionNameAsStr
+        function = testcase.function
 
-        tcNameAsStr = "Testcase: %s: %s\n" % ( testcase.name, "<<Testcase User Code>>" )
-        dataAsString += tcIndentAsStr + tcNameAsStr
+        currentChild = self.getDefaultTree()
+        currentChild["indent"] = currentIndent
+        currentChild["label"] = "<<TestCase User Code>>"
+        children.append( currentChild )
+
+        unitChild = self.getDefaultTree()
+        unitChild["indent"] = unitIndent
+        unitChild["label"] = "Unit"
+        unitChild["value"] = unit.name
+
+        functionChild = self.getDefaultTree()
+        functionChild["indent"] = functionIndent
+        functionChild["label"] = "Subprogram"
+        functionChild["value"] = function.name
+
+        tcChild = self.getDefaultTree()
+        tcChild["indent"] = tcIndent
+        tcChild["label"] = "TestCase "
+        tcChild["value"] = testcase.name
+
+        codeChild = None
 
         for sourceData in source:
 
             if sourceData.is_testcase_user_code:
-                formattedUserCode= self.formatMultiLine( sourceData.value, tcIndent+1 )
-                dataAsString += formattedUserCode
+                
+                codeChild = self.getDefaultTree()
+                codeChild["indent"] = tcIndent+1
+                codeChild["value"] = sourceData.value
+                tcChild["children"].append( codeChild )
 
-        return dataAsString
+        if None != codeChild:
+            currentChild["children"].append( unitChild )
+            currentChild["children"].append( functionChild )
+            currentChild["children"].append( tcChild )
+
+        return children
 
 
     def walkType_Wrapper( self, parameter, dataObjectCoords, \
@@ -998,6 +1020,7 @@ class DataAPI_Wrapper( object ):
         if 0 == level:
 
             if isInpExpData:
+                self.tcIdSequence = []
                 self.inpExpData = [ {}, {} ]
             else:
                 self.slotIdSequence = []
@@ -1008,6 +1031,7 @@ class DataAPI_Wrapper( object ):
             if not testcase.is_compound_test:
 
                 if isInpExpData:
+                    self.tcIdSequence.append( testcase.id )
                     self.prepareInpExpData_Wrapper( testcase, dataTypeControl )
                 else:
                     self.slotIdSequence.append( testcase.id )
@@ -1026,7 +1050,9 @@ class DataAPI_Wrapper( object ):
             else:
 
                 if isInpExpData:
-                    self.prepareInpExpData_Wrapper( tc, dataTypeControl )
+                    if not tc.id in self.tcIdSequence:
+                        self.tcIdSequence.append( tc.id )
+                        self.prepareInpExpData_Wrapper( tc, dataTypeControl )
                 else:
                     self.slotIdSequence.append( slot.id )
                     self.prepareActualData( slot.id, slot.slot_histories )
@@ -1100,7 +1126,8 @@ class DataAPI_Wrapper( object ):
             else:
 
                 print( "Duplicated entry - catastrophic logic error.\n" )
-                print( data_oject_id, typeKey )
+                print( dtIdx, testcase )
+                print( data_object_id, typeKey )
                 print( "Old value(s): %s" % currentData[data_object_id][typeKey] )
                 print( "New value(s): %s" % valuesAsStr )
                 sys.exit()
