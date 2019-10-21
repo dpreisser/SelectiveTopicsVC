@@ -135,6 +135,7 @@ class DataAPI_Wrapper( object ):
 
         defaultTree = { "children" : [], \
                         "indent" : 0, \
+                        "doid" : None, \
                         "label" : None, \
                         "value" : None }
 
@@ -227,7 +228,10 @@ class DataAPI_Wrapper( object ):
         currentIndent = int( tree["indent"] )
         currentIndentAsStr = self.getIndentAsString( currentIndent )
 
-        addNewLineFor = [ "Slots", "TestCase" ]
+        addNewLineBefore = [ "Environment", "TestCaseData", "TestCase" ]
+        addNewLineAfter = [ "TestCase" ]
+
+        omit = [ "Header", "dtidx"]
 
         label = tree["label"]
         value = tree["value"]
@@ -239,10 +243,15 @@ class DataAPI_Wrapper( object ):
             else:
                 newStr = label + "\n"
 
-            if label in addNewLineFor:
-                dataAsString += "\n"
+            if not label in omit:
 
-            dataAsString += currentIndentAsStr + newStr
+                if label in addNewLineBefore:
+                    dataAsString += "\n"
+
+                dataAsString += currentIndentAsStr + newStr
+
+                if label in addNewLineAfter:
+                    dataAsString += "\n"
 
         children = tree["children"]
 
@@ -273,10 +282,24 @@ class DataAPI_Wrapper( object ):
                 dataTypeAsStr = "Actual Input & Result data"
 
         tree = self.getDefaultTree()
-        tree["indent"] = currentIndent
-        tree["label"] = "%s for:\n" % dataTypeAsStr
 
-        tree["children"] = self.getDataAsTree_explicit( testcase, dataTypeControl, isInpExpData, currentIndent+1, level=0 )
+        currentChild = self.getDefaultTree()
+        currentChild["indent"] = currentIndent
+        currentChild["label"] = "Header"
+
+        grandChild = self.getDefaultTree()
+        grandChild["label"] = "%s for:" % dataTypeAsStr
+        grandChild["children"] = self.getDataAsTree_explicit( testcase, dataTypeControl, isInpExpData, currentIndent+1, level=0 )
+
+        currentChild["children"].append( grandChild )
+        tree["children"].append( currentChild )
+
+        currentChild = self.getDefaultTree()
+        currentChild["indent"] = currentIndent
+        currentChild["label"] = "TestCaseData"
+
+        currentChild["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, currentIndent+1 )
+        tree["children"].append( currentChild )
 
         dataAsString = self.getDataAsString_2( tree )
 
@@ -376,23 +399,11 @@ class DataAPI_Wrapper( object ):
                 else:
                     currentChild["children"].append( slotTree )
 
-            if level > 0:
-                return children
-            else:
-
-                grandChildren = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, unitIndent )
-
-                for grandChild in grandChildren:
-                    currentChild["children"].append( grandChild )
-                    
-                return children
-
         elif testcase.is_unit_test:
 
             self.testcaseIdSeq.append( testcase.id )
-            currentChild["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, unitIndent )
 
-            return children
+        return children
 
 
     def getDataAsTree_all( self, testcase_p, dataTypeControl, isInpExpData, currentIndent ):
@@ -418,7 +429,7 @@ class DataAPI_Wrapper( object ):
 
                     grandChild = self.getDefaultTree()
                     grandChild["indent"] = currentIndent
-                    grandChild["label"] = "branch"
+                    grandChild["label"] = "dtidx"
                     grandChild["value"] = dtIdx
 
                     if not testcaseId in tmpStore.keys():
@@ -491,7 +502,7 @@ class DataAPI_Wrapper( object ):
 
                         grandChild = self.getDefaultTree()
                         grandChild["indent"] = currentIndent
-                        grandChild["label"] = "branch"
+                        grandChild["label"] = "dtidx"
                         grandChild["value"] = dtIdx
 
                         arrayChildren[0] = self.getDataAsTree_globals( envName,
