@@ -46,6 +46,24 @@ def maxSize( multiLineStr ):
     return maxSize
 
 
+def sort( list ):
+
+    numElements = len( list )
+
+    for idx1 in range( numElements, 1, -1 ):
+
+        for idx2 in range( idx1-1 ):
+
+            cmp = compare( list[idx2][0], list[idx2+1][0] )
+
+            if 1 == cmp:
+                tmp = list[idx2+1]
+                list[idx2+1] = list[idx2]
+                list[idx2] = tmp
+
+    return list
+
+
 def compare( dataObjectCoords1, dataObjectCoords2 ):
 
     numDataObjectCoords1 = len( dataObjectCoords1 )
@@ -63,6 +81,18 @@ def compare( dataObjectCoords1, dataObjectCoords2 ):
         return -1
     elif numDataObjectCoords1 > numDataObjectCoords2:
         return 1
+
+    return 0
+
+
+def equivalence( dataObjectCoords1, dataObjectCoords2, numIdc ):
+
+    for idx in range( numIdc ):
+
+        if dataObjectCoords1[idx] < dataObjectCoords2[idx]:
+            return -1
+        elif dataObjectCoords1[idx] > dataObjectCoords2[idx]:
+            return 1
 
     return 0
 
@@ -112,56 +142,39 @@ class FormatString( object ):
         return self.indentUnit * numIndentUnits
 
 
-    def getBeforeSameAfter( category, dataObjectCoords ):
+    def getBeforeSameAfter( self, category, dataObjectCoords, numIdc ):
 
-        docTmp = [ None, None, None ]
-        beforeSameAfter = [ None, None, None ]
+        beforeSameAfter = [ [], [], [] ]
 
-        for data_object_id in self.doidToTree[category].keys():
+        for tuple in self.docList:
 
-            currrentObjectCoords = self.doidToTree[category][data_object_id]["doc"]
+            currentObjectCoords = tuple[0]
 
-            cmp = compare( currentObjectCoords, dataObjectCoords ) 
+            eqv = equivalence( currentObjectCoords, dataObjectCoords, numIdc )
 
-            if -1 == cmp:
-
-                if None != docTmp[0]:
-                    cmpTmp = compare( currentObjectCoords, docTmp[0] )
-                    if -1 == cmpTmp:
-                       docTmp[0] = currentObjectCoords
-                else:
-                    docTmp[0] = currentObjectCoords
-
-            elif 1 == cmp:
-
-                if None != docTmp[2]:
-                    cmpTmp = compare( currentObjectCoords, docTmp[2] )
-                    if 1 == cmpTmp:
-                        docTmp[2] = currentObjectCoords
-                else:
-                    docTmp[2] = currentObjectCoords
-
-            else:
-
-                docTmp[1] = currentObjectCoords
-
-        for idx in range( 3 ):
-            if None != docTmp[idx]:
-                data_object_id = ".".join( [str(item) for item in tmpDoc[idx]] )
-                beforeSameAfter[idx] = data_object_id
+            beforeSameAfter[eqv+1].append( tuple )
 
         return beforeSameAfter
 
 
     def getDataAsString( self, tree, dataTypeControl ):
 
+        self.dataTypeControl =  dataTypeControl
         self.dataTypeIdc = getDataTypeIdc( dataTypeControl )
 
-        dataAsString = self.formatString( tree, 0, prepare=True )
-        self.maxSize = maxSize( dataAsString )
-        dataAsString = self.formatString( tree, 0, prepare=False )
+        if 3 == dataTypeControl:
+            
+            dataAsString = self.formatString( tree, 0, prepare=True )
 
-        pprint.pprint( self.doidToTree )
+            self.maxSize = maxSize( dataAsString )
+            
+            for category in self.docList.keys():
+                self.docList[category] = sort( self.docList[category] )
+
+            print( self.maxSize )
+            pprint.pprint( self.docList )
+        
+        # dataAsString = self.formatString( tree, 0, prepare=False )
 
         return dataAsString
 
@@ -176,52 +189,106 @@ class FormatString( object ):
         label = tree["label"]
         value = tree["value"]
 
-        if 0 == level and prepare:
+        if 0 == level:
 
-            self.doidToTree = {}
+            if prepare:
 
-            for category in self.categories:
-                self.doidToTree[category] = {}
+                self.doidToTree = {}
+                self.docList = {}
+
+                for category in self.categories:
+                    self.doidToTree[category] = {}
+                    self.docList[category] = []
 
         if None != label:
 
-            if prepare and 1 == dtIdx:
+            if 1 == dtIdx:
 
-                if label in self.categories:
-                    category = label
-
-                data_object_id = ".".join( [str(item) for item in tree["doc"]] )
-
-                if None != category and "" != data_object_id:
-                    self.doidToTree[category][data_object_id] = tree
-
-            if not label in self.omit:
-
-                if None != value:
-                    newStr = label + ": " + str(value) + "\n"
-                else:
-                    newStr = label + "\n"
-
-                if label in self.addNewLineBefore:
-                    dataAsString += "\n"
-
-                dataAsString += currentIndentAsStr + newStr
-
-                if label in self.addNewLineAfter:
-                    dataAsString += "\n"
-
-            else:
-
-                if "dtIdx" == label:
+                if prepare:
                     
-                    if prepare:
+                    if label in self.categories:
+                        category = label
 
-                        dtIdx = value
+                    if None != category:
 
+                        dataObjectCoords = tree["doc"]
+
+                        if None != dataObjectCoords:
+
+                            data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
+                        
+                            self.doidToTree[category][data_object_id] = tree
+                            self.docList[category].append( (dataObjectCoords,data_object_id) )
+
+                else:
+
+                    if not label in self.omit:
+
+                        if None != value:
+                            newStr = label + ": " + str(value) + "\n"
+                        else:
+                            newStr = label + "\n"
+
+                        if label in self.addNewLineBefore:
+                            dataAsString += "\n"
+
+                        dataAsString += self.maxSize + currentIndentAsStr + newStr
+
+                        if label in self.addNewLineAfter:
+                            dataAsString += "\n"
+
+            elif 0 == dtIdx:
+
+                beforeSameAfter = None
+
+                if not prepare and 3 == self.dataTypeControl:
+                                    
+                    if label in self.categories:
+                        category = label
+
+                    self.categoryLevel = level
+
+                    if None != category:
+
+                        dataObjectCoords = tree["doc"]
+
+                        if None != dataObjectCoords:
+
+                            numIdc = level - self.categoryLevel + 1
+                            beforeSameAfter = self.getBeforeSameAfter( category, dataObjectCoords, numIdc )
+
+                            for tuple in beforeSameAfter[0]:
+                                targetTree = self.doidToTree[category][tuple[1]]
+                                dataAsString += self.formatString( targetTree, 1, prepare=prepare, category=category, level=level+1 )
+
+                if not label in self.omit:
+                    
+                    if None != value:
+                        newStr = label + ": " + str(value) + "\n"
                     else:
+                        newStr = label + "\n"
 
-                        if value != self.dataTypeIdc[0]:
-                            return dataAsString
+                    if label in self.addNewLineBefore:
+                        dataAsString += "\n"
+
+                    dataAsString += currentIndentAsStr + newStr
+
+                    if label in self.addNewLineAfter:
+                        dataAsString += "\n"
+
+
+                else:
+
+                    if "dtIdx" == label:
+                    
+                        if prepare:
+
+                            dtIdx = value
+
+                        else:
+
+                            if value != self.dataTypeIdc[0]:
+                                return dataAsString
 
         else:
 
@@ -232,11 +299,18 @@ class FormatString( object ):
         children = tree["children"]
 
         if 0 == dtIdx:
+
             for child in children:
                 dataAsString += self.formatString( child, dtIdx, prepare=prepare, category=category, level=level+1 )
-        else:
+
+        elif 1 == dtIdx:
+
             dataAsString_2 = ""
+
             for child in children:
                 dataAsString_2 += self.formatString( child, dtIdx, prepare=prepare, category=category, level=level+1 )
+            
+            if not prepare:
+                dataAsString += dataAsString_2
 
         return dataAsString
