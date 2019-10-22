@@ -9,7 +9,7 @@ from copy import deepcopy
 from vector.apps.DataAPI.api import Api
 
 from dataApiReportUtils import getDataTypeIdc, \
-    getDataAsString, getDataAsString_2
+    getDataAsString, FormatString
 
 
 DEBUG = False
@@ -133,7 +133,8 @@ class DataAPI_Report( object ):
 
         # pprint.pprint( tree )
 
-        dataAsString = getDataAsString_2( tree, dataTypeControl )
+        formatString = FormatString( "  " )
+        dataAsString = formatString.getDataAsString( tree, dataTypeControl )
 
         return dataAsString
 
@@ -527,7 +528,7 @@ class DataAPI_Report( object ):
 
         currentChild = getDefaultTree()
         currentChild["indent"] = currentIndent
-        currentChild["label"] = "<<GLOBAL>>"
+        currentChild["label"] = "<<GLOBALS>>"
 
         if isInpExpData:
             container = self.inpExpData[dtIdx][testcaseId]
