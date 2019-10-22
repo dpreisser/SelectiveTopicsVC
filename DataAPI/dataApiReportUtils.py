@@ -46,6 +46,27 @@ def maxSize( multiLineStr ):
     return maxSize
 
 
+def compare( dataObjectCoords1, dataObjectCoords2 ):
+
+    numDataObjectCoords1 = len( dataObjectCoords1 )
+    numDataObjectCoords2 = len( dataObjectCoords2 )
+
+    numDataObjectCoords = min( numDataObjectCoords1, numDataObjectCoords2 )
+
+    for idx in range( numDataObjectCoords ):
+        if dataObjectCoords1[idx] < dataObjectCoords2[idx]:
+            return -1
+        elif dataObjectCoords1[idx] > dataObjectCoords2[idx]:
+            return 1
+
+    if numDataObjectCoords1 < numDataObjectCoords2:
+        return -1
+    elif numDataObjectCoords1 > numDataObjectCoords2:
+        return 1
+
+    return 0
+
+
 def getDataAsString( tree ):
 
     dataAsString = ""
@@ -88,21 +109,64 @@ class FormatString( object ):
 
 
     def getIndentAsString( self, numIndentUnits ):
-        return self.indentUnit * numIndentUnits    
+        return self.indentUnit * numIndentUnits
+
+
+    def getBeforeSameAfter( category, dataObjectCoords ):
+
+        docTmp = [ None, None, None ]
+        beforeSameAfter = [ None, None, None ]
+
+        for data_object_id in self.doidToTree[category].keys():
+
+            currrentObjectCoords = self.doidToTree[category][data_object_id]["doc"]
+
+            cmp = compare( currentObjectCoords, dataObjectCoords ) 
+
+            if -1 == cmp:
+
+                if None != docTmp[0]:
+                    cmpTmp = compare( currentObjectCoords, docTmp[0] )
+                    if -1 == cmpTmp:
+                       docTmp[0] = currentObjectCoords
+                else:
+                    docTmp[0] = currentObjectCoords
+
+            elif 1 == cmp:
+
+                if None != docTmp[2]:
+                    cmpTmp = compare( currentObjectCoords, docTmp[2] )
+                    if 1 == cmpTmp:
+                        docTmp[2] = currentObjectCoords
+                else:
+                    docTmp[2] = currentObjectCoords
+
+            else:
+
+                docTmp[1] = currentObjectCoords
+
+        for idx in range( 3 ):
+            if None != docTmp[idx]:
+                data_object_id = ".".join( [str(item) for item in tmpDoc[idx]] )
+                beforeSameAfter[idx] = data_object_id
+
+        return beforeSameAfter
 
 
     def getDataAsString( self, tree, dataTypeControl ):
 
-        dataTypeIdc = getDataTypeIdc( dataTypeControl )
+        self.dataTypeIdc = getDataTypeIdc( dataTypeControl )
 
-        dataAsString = self.formatString( tree, 0, dataTypeIdc, prepare=True, level=0 )
+        dataAsString = self.formatString( tree, 0, prepare=True )
+        self.maxSize = maxSize( dataAsString )
+        dataAsString = self.formatString( tree, 0, prepare=False )
 
         pprint.pprint( self.doidToTree )
 
         return dataAsString
 
 
-    def formatString( self, tree, dtIdx, dataTypeIdc, prepare=False, category=None, level=0 ):
+    def formatString( self, tree, dtIdx, prepare=False, category=None, level=0 ):
 
         dataAsString = ""
 
@@ -156,7 +220,7 @@ class FormatString( object ):
 
                     else:
 
-                        if value != dataTypeIdc[0]:
+                        if value != self.dataTypeIdc[0]:
                             return dataAsString
 
         else:
@@ -169,10 +233,10 @@ class FormatString( object ):
 
         if 0 == dtIdx:
             for child in children:
-                dataAsString += self.formatString( child, dtIdx, dataTypeIdc, prepare=prepare, category=category, level=level+1 )
+                dataAsString += self.formatString( child, dtIdx, prepare=prepare, category=category, level=level+1 )
         else:
             dataAsString_2 = ""
             for child in children:
-                dataAsString_2 += self.formatString( child, dtIdx, dataTypeIdc, prepare=prepare, category=category, level=level+1 )
+                dataAsString_2 += self.formatString( child, dtIdx, prepare=prepare, category=category, level=level+1 )
 
         return dataAsString
