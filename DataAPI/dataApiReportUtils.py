@@ -146,11 +146,18 @@ class FormatString( object ):
 
         beforeSameAfter = [ [], [], [] ]
 
-        for tuple in self.docList:
+        print( "category:", category )
+        print( self.docList[category] )
+
+        for tuple in self.docList[category]:
 
             currentObjectCoords = tuple[0]
 
             eqv = equivalence( currentObjectCoords, dataObjectCoords, numIdc )
+
+            print( currentObjectCoords )
+            print( dataObjectCoords )
+            print( "eqv:", eqv )
 
             beforeSameAfter[eqv+1].append( tuple )
 
@@ -177,7 +184,7 @@ class FormatString( object ):
             pprint.pprint( self.doidToTree )
             pprint.pprint( self.docList )
         
-        # dataAsString = self.formatString( tree, 0, prepare=False )
+            dataAsString = self.formatString( tree, 0, prepare=False )
 
         return dataAsString
 
@@ -202,6 +209,11 @@ class FormatString( object ):
                 for category in self.categories:
                     self.doidToTree[category] = {}
                     self.docList[category] = []
+
+            else:
+
+                self.categoryLevel = None
+                self.maxSizeAsStr = self.getIndentAsString( self.maxSize )
 
         if None != label:
 
@@ -236,21 +248,32 @@ class FormatString( object ):
                         if label in self.addNewLineBefore:
                             dataAsString += "\n"
 
-                        dataAsString += self.maxSize + currentIndentAsStr + newStr
+                        dataAsString += self.maxSizeAsStr + currentIndentAsStr + newStr
 
                         if label in self.addNewLineAfter:
                             dataAsString += "\n"
 
             elif 0 == dtIdx:
 
+                children = tree["children"]
+
                 beforeSameAfter = None
 
                 if not prepare and 3 == self.dataTypeControl:
                                     
                     if label in self.categories:
-                        category = label
 
-                    self.categoryLevel = level
+                        category = label
+                        self.categoryLevel = level
+
+                        if 0 == len( children ):
+
+                            if category in self.docList.keys():
+                                print( "category:", category )
+                                if len( self.docList[category] ) > 0:
+                                    tuple = self.docList[category][0]
+                                    targetTree = self.doidToTree[category][tuple[1]]
+                                    dataAsString += self.formatString( targetTree, 1, prepare=prepare, category=category, level=level+1 )
 
                     if None != category:
 
@@ -258,8 +281,13 @@ class FormatString( object ):
 
                         if None != dataObjectCoords:
 
-                            numIdc = level - self.categoryLevel + 1
+                            numIdc = level - self.categoryLevel
                             beforeSameAfter = self.getBeforeSameAfter( category, dataObjectCoords, numIdc )
+
+                            print( "category:", category )
+                            print( "dataObjectCoords:", dataObjectCoords )
+                            print( "numIdc:", numIdc )
+                            pprint.pprint( beforeSameAfter )
 
                             for tuple in beforeSameAfter[0]:
                                 targetTree = self.doidToTree[category][tuple[1]]
