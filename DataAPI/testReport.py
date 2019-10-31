@@ -19,8 +19,8 @@ if "__main__" == __name__:
         # tcRep = TestCaseReport( "IO_WRAPPER_BUBEN", "<<COMPOUND>>", "<<COMPOUND>>", "Write&Read", dataApi )
         # tcRep = TestCaseReport( "ADVANCED", "advanced_stubbing", "temp_monitor", "Celsius_Stub", dataApi )
 
-        print( tcReport.getInpExpDataAsString( 1 ) )
-        print( tcReport.getInpExpDataAsString( 2 ) )
+        print( tcRep.getInpExpDataAsString( 1 ) )
+        print( tcRep.getInpExpDataAsString( 2 ) )
 
     elif 2 == numParameters:
 

@@ -32,7 +32,7 @@ def trace( str1, str2, newLine=False ):
 def getDefaultTree():
 
     defaultTree = { "children" : [], \
-                    "doc" : [], \
+                    "doc" : None, \
                     "indent" : None, \
                     "label" : None, \
                     "value" : None }
@@ -514,8 +514,8 @@ class DataAPI_Report( object ):
             parameter = function.get_param_by_index( parameterIndex )
 
         if len( functionChild["children"] ) > 0:
+            unitChild["children"].append( functionChild )
             children.append( unitChild )
-            children.append( functionChild )
 
         return children
 
@@ -606,8 +606,8 @@ class DataAPI_Report( object ):
                 functionChild["children"].append( child )
 
         if len( functionChild["children"] ) > 0:
+            unitChild["children"].append( functionChild )
             children.append( unitChild )
-            children.append( functionChild )
 
         return children
 

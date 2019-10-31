@@ -163,15 +163,18 @@ class FormatString( object ):
         self.dataTypeIdc = getDataTypeIdc( dataTypeControl )
 
         if 3 == dataTypeControl:
+
+            pprint.pprint( tree )
             
             dataAsString = self.formatString( tree, 0, prepare=True )
 
             self.maxSize = maxSize( dataAsString )
-            
+
             for category in self.docList.keys():
                 self.docList[category] = sort( self.docList[category] )
 
             print( self.maxSize )
+            pprint.pprint( self.doidToTree )
             pprint.pprint( self.docList )
         
         # dataAsString = self.formatString( tree, 0, prepare=False )
@@ -216,9 +219,10 @@ class FormatString( object ):
                         if None != dataObjectCoords:
 
                             data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
-                        
-                            self.doidToTree[category][data_object_id] = tree
-                            self.docList[category].append( (dataObjectCoords,data_object_id) )
+
+                            if not data_object_id in self.doidToTree[category].keys():
+                                self.doidToTree[category][data_object_id] = tree
+                                self.docList[category].append( (dataObjectCoords,data_object_id) )
 
                 else:
 
@@ -275,7 +279,6 @@ class FormatString( object ):
 
                     if label in self.addNewLineAfter:
                         dataAsString += "\n"
-
 
                 else:
 
