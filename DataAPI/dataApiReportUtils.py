@@ -271,9 +271,9 @@ class FormatString( object ):
                             if category in self.docList.keys():
                                 print( "category:", category )
                                 if len( self.docList[category] ) > 0:
+                                    beforeSameAfter = [ [], [], [] ]
                                     tuple = self.docList[category][0]
-                                    targetTree = self.doidToTree[category][tuple[1]]
-                                    dataAsString += self.formatString( targetTree, 1, prepare=prepare, category=category, level=level+1 )
+                                    beforeSameAfter[0].append( tuple )
 
                     if None != category:
 
@@ -289,21 +289,41 @@ class FormatString( object ):
                             print( "numIdc:", numIdc )
                             pprint.pprint( beforeSameAfter )
 
-                            for tuple in beforeSameAfter[0]:
-                                targetTree = self.doidToTree[category][tuple[1]]
-                                dataAsString += self.formatString( targetTree, 1, prepare=prepare, category=category, level=level+1 )
-
                 if not label in self.omit:
-                    
+
                     if None != value:
-                        newStr = label + ": " + str(value) + "\n"
+                        newStr = label + ": " + str(value)
                     else:
-                        newStr = label + "\n"
+                        newStr = label
 
                     if label in self.addNewLineBefore:
                         dataAsString += "\n"
 
-                    dataAsString += currentIndentAsStr + newStr
+                    if not prepare and 3 == self.dataTypeControl:
+
+                        if None != beforeSameAfter:
+
+                            if self.categoryLevel == level:
+                                newStr += "\n"
+                                dataAsString += currentIndentAsStr + newStr
+
+                            for tuple in beforeSameAfter[0]:
+                                targetTree = self.doidToTree[category][tuple[1]]
+                                dataAsString += self.formatString( targetTree, 1, prepare=prepare, category=category, level=level+1 )
+
+                            if self.categoryLevel != level:
+                                newStr += "\n"
+                                dataAsString += currentIndentAsStr + newStr
+
+                        else:
+
+                            newStr += "\n"
+                            dataAsString += currentIndentAsStr + newStr
+
+                    else:
+
+                        newStr += "\n"
+                        dataAsString += currentIndentAsStr + newStr
 
                     if label in self.addNewLineAfter:
                         dataAsString += "\n"
