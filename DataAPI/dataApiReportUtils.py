@@ -263,6 +263,8 @@ class FormatString( object ):
                 currentIndent_2 = targetTree["indent"]
                 currentIndentAsStr_2 = self.getIndentAsString( currentIndent_2 )
 
+                currentIndentSize_2 = currentIndent_2 * len( self.indentUnit )
+
                 label_2 = targetTree["label"]
                 value_2 = targetTree["value"]
 
@@ -280,7 +282,7 @@ class FormatString( object ):
 
                 elif None != value_2:
             
-                    formattedStr = formatMultiLine( value_2, deltaIndent )
+                    formattedStr = formatMultiLine( value_2, self.maxSize + currentIndentSize_2 )
                     currentString += formattedStr
 
                 print( "R2:", theTuple )
@@ -303,8 +305,6 @@ class FormatString( object ):
 
         if 3 == dataTypeControl:
 
-            pprint.pprint( tree )
-            
             dataAsString = self.formatString( tree, 0, prepare=True )
 
             self.maxSize = maxSize( dataAsString )
@@ -314,7 +314,6 @@ class FormatString( object ):
                 self.docList[category] = sort( self.docList[category] )
 
             print( self.maxSize )
-            pprint.pprint( self.doidToTree )
             pprint.pprint( self.docList )
         
             dataAsString = self.formatString( tree, 0, prepare=False )

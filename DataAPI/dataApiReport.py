@@ -635,7 +635,8 @@ class DataAPI_Report( object ):
         unit = api.Unit.get( unitName )
 
         function = testcase.function
-        functionNameAsStr = "%s: %s" % ( function.name, "<<User Code>>" )
+        
+        tcNameAsStr = "%s: %s" % ( testcase.name, "<<User Code>>" )
 
         currentChild = getDefaultTree()
         currentChild["indent"] = currentIndent
@@ -656,8 +657,9 @@ class DataAPI_Report( object ):
 
         tcChild = getDefaultTree()
         tcChild["indent"] = tcIndent
+        tcChild["doc"] = [ unit.id, function.index, testcase.index ]
         tcChild["label"] = "TestCase "
-        tcChild["value"] = functionNameAsStr
+        tcChild["value"] = tcNameAsStr
 
         codeChild = None
 
@@ -667,11 +669,11 @@ class DataAPI_Report( object ):
                 
                 codeChild = getDefaultTree()
                 codeChild["indent"] = tcIndent+1
+                codeChild["doc"] = [ unit.id, function.index, testcase.index, -1 ]
                 codeChild["value"] = sourceData.value
                 tcChild["children"].append( codeChild )
 
         if None != codeChild:
-            tcChild["children"].append( codeChild )
             functionChild["children"].append( tcChild )
             unitChild["children"].append( functionChild )
             currentChild["children"].append( unitChild )
