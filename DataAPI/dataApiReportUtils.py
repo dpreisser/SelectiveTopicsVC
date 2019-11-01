@@ -14,15 +14,15 @@ def getDataTypeIdc( dataTypeControl ):
     return dataTypeIdc
 
 
-def getIndentAsString( indentUnit, numIndentUnits ):
-    return indentUnit * numIndentUnits
+def getIndentAsString( numIndentUnits, indentUnit=" " ):
+    return numIndentUnits * indentUnit 
 
 
 def formatMultiLine( multiLineStr, currentIndent ):
 
     formattedStr = ""
 
-    currentIndentAsStr = getIndentAsString( "  ", currentIndent )
+    currentIndentAsStr = getIndentAsString( currentIndent )
 
     lines = multiLineStr.split( "\n" )
 
@@ -102,7 +102,7 @@ def getDataAsString( tree ):
     dataAsString = ""
 
     currentIndent = int( tree["indent"] )
-    currentIndentAsStr = getIndentAsString( "  ", currentIndent ) 
+    currentIndentAsStr = getIndentAsString( currentIndent, "  " ) 
 
     label = tree["label"]
     value = tree["value"]
@@ -139,7 +139,7 @@ class FormatString( object ):
 
 
     def getIndentAsString( self, numIndentUnits ):
-        return self.indentUnit * numIndentUnits
+        return numIndentUnits * self.indentUnit
 
 
     def getBeforeSameAfter( self, category, dataObjectCoords, numIdc ):
@@ -167,18 +167,16 @@ class FormatString( object ):
 
     def getCurrentString( self, tree, dtIdx, beforeSameAfter=None ):
 
-        if 0 == dtIdx:
-            currentIndent = tree["indent"]
-        else:
-            currentIndent = self.maxSize + tree["indent"]
-
+        currentIndent = tree["indent"]
         currentIndentAsStr = self.getIndentAsString( currentIndent )
+
+        currentIndentSize = currentIndent * len( self.indentUnit )
 
         label = tree["label"]
         value = tree["value"]
 
         currentString = ""
-        currentSize = currentIndent
+        currentSize = 0
         newLineBefore = ""
         newLineAfter = ""
 
@@ -191,7 +189,11 @@ class FormatString( object ):
                 else:
                     newStr = label
 
-                currentSize += len( newStr )
+                sizeNewStr = len( newStr )
+
+                if sizeNewStr > 0:
+                    currentString += currentIndentAsStr + newStr
+                    currentSize += currentIndentSize + sizeNewStr
 
                 if label in self.addNewLineBefore:
                     newLineBefore = "\n"
@@ -200,14 +202,17 @@ class FormatString( object ):
                     newLineAfter = "\n"
 
         elif None != value:
+
+            if 1 == dtIdx:
+                currentIndentSize += self.maxSize
             
-            formattedStr = formatMultiLine( value, currentIndent )
+            formattedStr = formatMultiLine( value, currentIndentSize )
             currentString += formattedStr
 
         if 1 == dtIdx:
 
-            if currentSize > currentIndent:
-                currentString += currentIndentAsStr + newStr + "\n"
+            if currentSize > 0:
+                currentString = self.maxSizeAsStr + currentString + "\n"
 
         elif 0 == dtIdx:
 
@@ -222,8 +227,11 @@ class FormatString( object ):
                 tuple = beforeSameAfter[1][0]
                 targetTree = self.doidToTree[category][tuple[1]]
 
+                deltaSize = self.maxSize - currentSize
+                deltaSizeAsStr = getIndentAsString( deltaSize )
+
                 currentIndent_2 = targetTree["indent"]
-                deltaIndent = self.maxSize + currentIndent_2 - currentSize
+                currentIndentAsStr_2 = self.getIndentAsString( currentIndent_2 )
 
                 label_2 = targetTree["label"]
                 value_2 = targetTree["value"]
@@ -237,8 +245,8 @@ class FormatString( object ):
                         else:
                             newStr_2 = label_2
 
-                        deltaIndentAsStr = self.getIndentAsString( deltaIndent )
-                        currentString += currentIndentAsStr + newStr + deltaIndentAsStr + newStr_2 + "\n"
+                        if len( newStr_2 ) > 0:
+                            currentString += deltaSizeAsStr + currentIndentAsStr_2 + newStr_2 + "\n"
 
                 elif None != value_2:
             
@@ -247,8 +255,8 @@ class FormatString( object ):
 
             else:
 
-                if currentSize > currentIndent:
-                    currentString += currentIndentAsStr + newStr + "\n"
+                if currentSize > 0:
+                    currentString += "\n"
 
         finalString = newLineBefore + currentString + newLineAfter
 
@@ -267,6 +275,7 @@ class FormatString( object ):
             dataAsString = self.formatString( tree, 0, prepare=True )
 
             self.maxSize = maxSize( dataAsString )
+            self.maxSizeAsStr = getIndentAsString( self.maxSize ) 
 
             for category in self.docList.keys():
                 self.docList[category] = sort( self.docList[category] )
@@ -379,6 +388,14 @@ class FormatString( object ):
 
                     if self.categoryLevel != level:
                         dataAsString += currentString
+
+                else:
+
+                    dataAsString += currentString
+
+            else:
+
+                dataAsString += currentString
 
             if "dtIdx" == label:
                     
