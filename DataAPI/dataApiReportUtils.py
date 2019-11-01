@@ -185,7 +185,7 @@ class FormatString( object ):
         return beforeSameAfter
 
 
-    def getCurrentString( self, tree, dtIdx, beforeSameAfter=None, category=None ):
+    def getCurrentString( self, tree, dtIdx, category, beforeSameAfter=None ):
 
         currentIndent = tree["indent"]
         currentIndentAsStr = self.getIndentAsString( currentIndent )
@@ -234,6 +234,16 @@ class FormatString( object ):
             if currentSize > 0:
                 currentString = self.maxSizeAsStr + currentString + "\n"
 
+            dataObjectCoords = tree["doc"]
+            
+            if None != dataObjectCoords:
+
+                data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
+
+                theTuple = ( dataObjectCoords, data_object_id )
+                print( "R1:", theTuple )
+                self.docList[category].remove( theTuple )
+
         elif 0 == dtIdx:
 
             extraData = False
@@ -244,10 +254,8 @@ class FormatString( object ):
 
             if extraData:
 
-                tuple = beforeSameAfter[1][0]
-                self.docList[category].remove( tuple )
-                
-                targetTree = self.doidToTree[category][tuple[1]]
+                theTuple = beforeSameAfter[1][0]
+                targetTree = self.doidToTree[category][theTuple[1]]
 
                 deltaSize = self.maxSize - currentSize
                 deltaSizeAsStr = getIndentAsString( deltaSize )
@@ -274,6 +282,9 @@ class FormatString( object ):
             
                     formattedStr = formatMultiLine( value_2, deltaIndent )
                     currentString += formattedStr
+
+                print( "R2:", theTuple )
+                self.docList[category].remove( theTuple )
 
             else:
 
@@ -359,7 +370,7 @@ class FormatString( object ):
 
             else:
 
-                dataAsString += self.getCurrentString( tree, dtIdx )
+                dataAsString += self.getCurrentString( tree, dtIdx, category )
 
         elif 0 == dtIdx:
 
@@ -396,7 +407,7 @@ class FormatString( object ):
                         print( "numIdc:", numIdc )
                         pprint.pprint( beforeSameAfter )
 
-            currentString = self.getCurrentString( tree, dtIdx, beforeSameAfter, category )
+            currentString = self.getCurrentString( tree, dtIdx, category, beforeSameAfter )
 
             if not prepare and 3 == self.dataTypeControl:
 
@@ -408,14 +419,11 @@ class FormatString( object ):
                         dataAsString += currentString
 
                     for tuple in beforeSameAfter[0]:
-                        print( tuple )
+                        print( "1:", tuple )
                         targetTree = self.doidToTree[category][tuple[1]]
                         prependString = self.formatString( targetTree, 1, prepare=prepare, category=category, level=level+1 )
-                        print( prependString )
+                        print( "2:", prependString )
                         dataAsString += prependString
-
-                    if len( beforeSameAfter[0] ) > 0:
-                        s = 1/0
 
                     if self.categoryLevel != level:
                         dataAsString += currentString

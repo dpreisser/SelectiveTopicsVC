@@ -671,9 +671,10 @@ class DataAPI_Report( object ):
                 tcChild["children"].append( codeChild )
 
         if None != codeChild:
+            tcChild["children"].append( codeChild )
+            functionChild["children"].append( tcChild )
+            unitChild["children"].append( functionChild )
             currentChild["children"].append( unitChild )
-            currentChild["children"].append( functionChild )
-            currentChild["children"].append( tcChild )
 
         return children
 
