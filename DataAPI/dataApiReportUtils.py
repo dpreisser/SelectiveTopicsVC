@@ -153,15 +153,106 @@ class FormatString( object ):
 
             currentObjectCoords = tuple[0]
 
-            eqv = equivalence( currentObjectCoords, dataObjectCoords, numIdc )
+            # eqv = equivalence( currentObjectCoords, dataObjectCoords, numIdc )
+            cmp = compare( currentObjectCoords, dataObjectCoords, numIdc )
 
             print( currentObjectCoords )
             print( dataObjectCoords )
-            print( "eqv:", eqv )
+            print( "cmp:", cmp )
 
-            beforeSameAfter[eqv+1].append( tuple )
+            beforeSameAfter[cmp+1].append( tuple )
 
         return beforeSameAfter
+
+
+    def getCurrentString( self, tree, dtIdx, beforeSameAfter=None ):
+
+        if 0 == dtIdx:
+            currentIndent = tree["indent"]
+        else:
+            currentIndent = self.maxSize + tree["indent"]
+
+        currentIndentAsStr = self.getIndentAsString( currentIndent )
+
+        label = tree["label"]
+        value = tree["value"]
+
+        currentString = ""
+        currentSize = currentIndent
+        newLineBefore = ""
+        newLineAfter = ""
+
+        if None != label:
+
+            if not label in self.omit:
+
+                if None != value:
+                    newStr = label + ": " + str(value)
+                else:
+                    newStr = label
+
+                currentSize += len( newStr )
+
+                if label in self.addNewLineBefore:
+                    newLineBefore = "\n"
+
+                if label in self.addNewLineAfter:
+                    newLineAfter = "\n"
+
+        elif None != value:
+            
+            formattedStr = formatMultiLine( value, currentIndent )
+            currentString += formattedStr
+
+        if 1 == dtIdx:
+
+            if currentSize > currentIndent:
+                currentString += currentIndentAsStr + newStr + "\n"
+
+        elif 0 == dtIdx:
+
+            extraData = False
+
+            if None != beforeSameAfter:
+                if 1 == len( beforeSameAfter[1] ):
+                    extraData = True
+
+            if extraData:
+
+                tuple = beforeSameAfter[1][0]
+                targetTree = self.doidToTree[category][tuple[1]]
+
+                currentIndent_2 = targetTree["indent"]
+                deltaIndent = self.maxSize + currentIndent_2 - currentSize
+
+                label_2 = targetTree["label"]
+                value_2 = targetTree["value"]
+
+                if None != label_2:
+
+                    if not label_2 in self.omit:
+
+                        if None != value_2:
+                            newStr_2 = label_2 + ": " + str(value_2)
+                        else:
+                            newStr_2 = label_2
+
+                        deltaIndentAsStr = self.getIndentAsString( deltaIndent )
+                        currentString += currentIndentAsStr + newStr + deltaIndentAsStr + newStr_2 + "\n"
+
+                elif None != value_2:
+            
+                    formattedStr = formatMultiLine( value_2, deltaIndent )
+                    currentString += formattedStr
+
+            else:
+
+                if currentSize > currentIndent:
+                    currentString += currentIndentAsStr + newStr + "\n"
+
+        finalString = newLineBefore + currentString + newLineAfter
+
+        return finalString
 
 
     def getDataAsString( self, tree, dataTypeControl ):
@@ -199,6 +290,8 @@ class FormatString( object ):
         label = tree["label"]
         value = tree["value"]
 
+        children = tree["children"]
+
         if 0 == level:
 
             if prepare:
@@ -213,141 +306,90 @@ class FormatString( object ):
             else:
 
                 self.categoryLevel = None
-                self.maxSizeAsStr = self.getIndentAsString( self.maxSize )
 
-        if None != label:
+        if 1 == dtIdx:
 
-            if 1 == dtIdx:
-
-                if prepare:
+            if prepare:
                     
-                    if label in self.categories:
-                        category = label
+                if label in self.categories:
+                    category = label
 
-                    if None != category:
+                if None != category:
 
-                        dataObjectCoords = tree["doc"]
+                    dataObjectCoords = tree["doc"]
 
-                        if None != dataObjectCoords:
+                    if None != dataObjectCoords:
 
-                            data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
+                        data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
+                        
+                        if not data_object_id in self.doidToTree[category].keys():
+                            self.doidToTree[category][data_object_id] = tree
+                            self.docList[category].append( (dataObjectCoords,data_object_id) )
 
-                            if not data_object_id in self.doidToTree[category].keys():
-                                self.doidToTree[category][data_object_id] = tree
-                                self.docList[category].append( (dataObjectCoords,data_object_id) )
+            else:
 
-                else:
+                dataAsString += self.getCurrentString( tree, dtIdx )
 
-                    if not label in self.omit:
+        elif 0 == dtIdx:
 
-                        if None != value:
-                            newStr = label + ": " + str(value) + "\n"
-                        else:
-                            newStr = label + "\n"
+            beforeSameAfter = None
 
-                        if label in self.addNewLineBefore:
-                            dataAsString += "\n"
-
-                        dataAsString += self.maxSizeAsStr + currentIndentAsStr + newStr
-
-                        if label in self.addNewLineAfter:
-                            dataAsString += "\n"
-
-            elif 0 == dtIdx:
-
-                children = tree["children"]
-
-                beforeSameAfter = None
-
-                if not prepare and 3 == self.dataTypeControl:
+            if not prepare and 3 == self.dataTypeControl:
                                     
-                    if label in self.categories:
+                if label in self.categories:
 
-                        category = label
-                        self.categoryLevel = level
+                    category = label
+                    self.categoryLevel = level
 
-                        if 0 == len( children ):
+                    if 0 == len( children ):
 
-                            if category in self.docList.keys():
-                                print( "category:", category )
-                                if len( self.docList[category] ) > 0:
-                                    beforeSameAfter = [ [], [], [] ]
-                                    tuple = self.docList[category][0]
-                                    beforeSameAfter[0].append( tuple )
-
-                    if None != category:
-
-                        dataObjectCoords = tree["doc"]
-
-                        if None != dataObjectCoords:
-
-                            numIdc = level - self.categoryLevel
-                            beforeSameAfter = self.getBeforeSameAfter( category, dataObjectCoords, numIdc )
-
+                        if category in self.docList.keys():
                             print( "category:", category )
-                            print( "dataObjectCoords:", dataObjectCoords )
-                            print( "numIdc:", numIdc )
-                            pprint.pprint( beforeSameAfter )
+                            if len( self.docList[category] ) > 0:
+                                beforeSameAfter = [ [], [], [] ]
+                                tuple = self.docList[category][0]
+                                beforeSameAfter[0].append( tuple )
 
-                if not label in self.omit:
+                if None != category:
 
-                    if None != value:
-                        newStr = label + ": " + str(value)
-                    else:
-                        newStr = label
+                    dataObjectCoords = tree["doc"]
 
-                    if label in self.addNewLineBefore:
-                        dataAsString += "\n"
+                    if None != dataObjectCoords:
 
-                    if not prepare and 3 == self.dataTypeControl:
+                        numIdc = level - self.categoryLevel
+                        beforeSameAfter = self.getBeforeSameAfter( category, dataObjectCoords, numIdc )
 
-                        if None != beforeSameAfter:
+                        print( "category:", category )
+                        print( "dataObjectCoords:", dataObjectCoords )
+                        print( "numIdc:", numIdc )
+                        pprint.pprint( beforeSameAfter )
 
-                            if self.categoryLevel == level:
-                                newStr += "\n"
-                                dataAsString += currentIndentAsStr + newStr
+            currentString = self.getCurrentString( tree, dtIdx, beforeSameAfter )
 
-                            for tuple in beforeSameAfter[0]:
-                                targetTree = self.doidToTree[category][tuple[1]]
-                                dataAsString += self.formatString( targetTree, 1, prepare=prepare, category=category, level=level+1 )
+            if not prepare and 3 == self.dataTypeControl:
 
-                            if self.categoryLevel != level:
-                                newStr += "\n"
-                                dataAsString += currentIndentAsStr + newStr
+                if None != beforeSameAfter:
 
-                        else:
+                    if self.categoryLevel == level:
+                        dataAsString += currentString
 
-                            newStr += "\n"
-                            dataAsString += currentIndentAsStr + newStr
+                    for tuple in beforeSameAfter[0]:
+                        targetTree = self.doidToTree[category][tuple[1]]
+                        dataAsString += self.formatString( targetTree, 1, prepare=prepare, category=category, level=level+1 )
 
-                    else:
+                    if self.categoryLevel != level:
+                        dataAsString += currentString
 
-                        newStr += "\n"
-                        dataAsString += currentIndentAsStr + newStr
+            if "dtIdx" == label:
+                    
+                if prepare:
 
-                    if label in self.addNewLineAfter:
-                        dataAsString += "\n"
+                    dtIdx = value
 
                 else:
 
-                    if "dtIdx" == label:
-                    
-                        if prepare:
-
-                            dtIdx = value
-
-                        else:
-
-                            if value != self.dataTypeIdc[0]:
-                                return dataAsString
-
-        else:
-
-            if None != value:
-                formattedStr = formatMultiLine( value, currentIndent )
-                dataAsString += formattedStr
-
-        children = tree["children"]
+                    if value != self.dataTypeIdc[0]:
+                        return dataAsString
 
         if 0 == dtIdx:
 
