@@ -142,11 +142,12 @@ class FormatString( object ):
         return numIndentUnits * self.indentUnit
 
 
-    def getBeforeSameAfter( self, category, dataObjectCoords, numIdc ):
+    def getBeforeSameAfter( self, category, dataObjectCoords ):
 
         beforeSameAfter = [ [], [], [] ]
 
-        countBefore = 0
+        count_b = 0
+        count_a = 0
 
         for tuple in self.docList[category]:
 
@@ -157,22 +158,45 @@ class FormatString( object ):
 
             if cmp < 0:
 
-                countBefore += 1
+                count_b += 1
 
-                if 1 == countBefore:
+                if 1 == count_b:
 
-                    leadingObjectCoords = currentObjectCoords
-                    leadingNumDigits = currentNumDigits
+                    leadingObjectCoords_b = currentObjectCoords
+                    leadingNumDigits_b = currentNumDigits
                     beforeSameAfter[cmp+1].append( tuple )
 
                 else:
 
-                    numDigits = min( currentNumDigits, leadingNumDigits )
-                    eqv = equivalence( currentObjectCoords, leadingObjectCoords, numDigits )
+                    numDigits = min( currentNumDigits, leadingNumDigits_b )
+                    eqv = equivalence( currentObjectCoords, leadingObjectCoords_b, numDigits )
                 
                     if eqv > 0:
-                        leadingObjectCoords = currentObjectCoords
-                        leadingNumDigits = currentNumDigits
+                        leadingObjectCoords_b = currentObjectCoords
+                        leadingNumDigits_b = currentNumDigits
+                        beforeSameAfter[cmp+1].append( tuple )
+                    elif eqv < 0:
+                        print( "Catastrophic error in getBeforeSameAfter!!!" )
+                        sys.exit()
+
+            elif cmp > 0:
+
+                count_a += 1
+
+                if 1 == count_a:
+
+                    leadingObjectCoords_a = currentObjectCoords
+                    leadingNumDigits_a = currentNumDigits
+                    beforeSameAfter[cmp+1].append( tuple )
+
+                else:
+
+                    numDigits = min( currentNumDigits, leadingNumDigits_a )
+                    eqv = equivalence( currentObjectCoords, leadingObjectCoords_a, numDigits )
+                
+                    if eqv > 0:
+                        leadingObjectCoords_a = currentObjectCoords
+                        leadingNumDigits_a = currentNumDigits
                         beforeSameAfter[cmp+1].append( tuple )
                     elif eqv < 0:
                         print( "Catastrophic error in getBeforeSameAfter!!!" )
@@ -205,9 +229,9 @@ class FormatString( object ):
             if not label in self.omit:
 
                 if None != value:
-                    newStr = label + ": " + str(value)
+                    newStr = label.strip() + ": " + str(value)
                 else:
-                    newStr = label
+                    newStr = label.strip()
 
                 sizeNewStr = len( newStr )
 
@@ -273,9 +297,9 @@ class FormatString( object ):
                     if not label_2 in self.omit:
 
                         if None != value_2:
-                            newStr_2 = label_2 + ": " + str(value_2)
+                            newStr_2 = label_2.strip() + ": " + str(value_2)
                         else:
-                            newStr_2 = label_2
+                            newStr_2 = label_2.strip()
 
                         if len( newStr_2 ) > 0:
                             currentString += deltaSizeAsStr + currentIndentAsStr_2 + newStr_2 + "\n"
@@ -347,6 +371,8 @@ class FormatString( object ):
             else:
 
                 self.categoryLevel = None
+                self.beforeSameAfter = None
+                self.previousCategory = None
 
         if 1 == dtIdx:
 
@@ -382,28 +408,41 @@ class FormatString( object ):
                     category = label
                     self.categoryLevel = level
 
+                    # Add the remaining items of the previous category.
+                    if None != self.beforeSameAfter:
+                        
+                        for tuple in self.beforeSameAfter[2]:
+                            print( "a1:", tuple )
+                            targetTree = self.doidToTree[self.previousCategory][tuple[1]]
+                            appendString = self.formatString( targetTree, 1, prepare=prepare, category=self.previousCategory, level=level+1 )
+                            print( "a2:", appendString )
+                            dataAsString += appendString
+
+                        self.beforeSameAfter = None
+
+                    # Add the leading items of this category.
                     if 0 == len( children ):
 
-                        if category in self.docList.keys():
-                            print( "category:", category )
-                            if len( self.docList[category] ) > 0:
-                                beforeSameAfter = [ [], [], [] ]
-                                tuple = self.docList[category][0]
-                                beforeSameAfter[0].append( tuple )
-                                pprint.pprint( beforeSameAfter )
+                        beforeSameAfter = [ [], [], [] ]
+                        beforeSameAfter[0] = self.docList[category]
 
+                        print( "category:", category )
+                        pprint.pprint( beforeSameAfter )
+
+
+                # Add the leading items of this category.
                 if None != category:
 
                     dataObjectCoords = tree["doc"]
 
                     if None != dataObjectCoords:
 
-                        numIdc = level - self.categoryLevel
-                        beforeSameAfter = self.getBeforeSameAfter( category, dataObjectCoords, numIdc )
+                        beforeSameAfter = self.getBeforeSameAfter( category, dataObjectCoords )
+                        self.beforeSameAfter = beforeSameAfter
+                        self.previousCategory = category
 
                         print( "category:", category )
                         print( "dataObjectCoords:", dataObjectCoords )
-                        print( "numIdc:", numIdc )
                         pprint.pprint( beforeSameAfter )
 
             currentString = self.getCurrentString( tree, dtIdx, category, beforeSameAfter )
@@ -418,10 +457,10 @@ class FormatString( object ):
                         dataAsString += currentString
 
                     for tuple in beforeSameAfter[0]:
-                        print( "1:", tuple )
+                        print( "p1:", tuple )
                         targetTree = self.doidToTree[category][tuple[1]]
                         prependString = self.formatString( targetTree, 1, prepare=prepare, category=category, level=level+1 )
-                        print( "2:", prependString )
+                        print( "p2:", prependString )
                         dataAsString += prependString
 
                     if self.categoryLevel != level:
