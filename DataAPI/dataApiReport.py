@@ -262,6 +262,7 @@ class DataAPI_Report( object ):
 
                         currentChild = getDefaultTree()
                         currentChild["indent"] = currentIndent
+                        currentChild["ID"] = testcaseId
                         currentChild["label"] = "TestCase"
                         currentChild["value"] = testcase.name
 
@@ -528,7 +529,7 @@ class DataAPI_Report( object ):
 
         currentChild = getDefaultTree()
         currentChild["indent"] = currentIndent
-        currentChild["label"] = "<<GLOBALS>>"
+        currentChild["label"] = "<<GLOBAL DATA>>"
 
         if isInpExpData:
             container = self.inpExpData[dtIdx][testcaseId]
@@ -669,7 +670,6 @@ class DataAPI_Report( object ):
                 
                 codeChild = getDefaultTree()
                 codeChild["indent"] = tcIndent+1
-                codeChild["doc"] = [ unit.id, function.index, testcase.index, -1 ]
                 codeChild["value"] = sourceData.value
                 tcChild["children"].append( codeChild )
 
@@ -728,10 +728,10 @@ class DataAPI_Report( object ):
                 currentChild["value"] = "<<User Code>>"
                 children.append( currentChild )
 
-                currentChild = getDefaultTree()
-                currentChild["indent"] = currentIndent+1
-                currentChild["value"] = valuesAsStr
-                children.append( currentChild )
+                codeChild = getDefaultTree()
+                codeChild["indent"] = currentIndent+1
+                codeChild["value"] = valuesAsStr
+                currentChild["children"].append( codeChild )
 
                 return children
 
