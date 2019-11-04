@@ -14,26 +14,34 @@ def initArgParser ():
                           required=False, help="Working Directory of VectorCAST. Optional. Default: .\\" )                   
 
     # Environment
-    parser.add_argument ( "-e", dest="environment", action="store", default="notset", \
+    parser.add_argument ( "-e", dest="environment", action="store", default=None, \
                           required=True, help="Name of environment. Required. No Default." )
 
     # Unit 
-    parser.add_argument( "-u", dest="unit", action="store", default="notset", \
+    parser.add_argument( "-u", dest="unit", action="store", default=None, \
                          required=False, help="Name of unit. Optional." )
 
     # Subprogram
-    parser.add_argument( "-s", dest="subprogram", action="store", default="notset", \
+    parser.add_argument( "-s", dest="subprogram", action="store", default=None, \
                          required=False, help="Name of subprogram. Optional." )
 
     # TestCase
-    parser.add_argument( "-t", dest="testcase", action="store", default="notset", \
+    parser.add_argument( "-t", dest="testcase", action="store", default=None, \
                          required=False, help="Name of TestCase. Optional." )
 
-    # DCT
+    # DTC
     dctChoices = [ 1, 2, 3 ]
-    parser.add_argument( '-d', dest="dataTypeControlArg", action="store", type=int, default=2, \
+    parser.add_argument( "-d", dest="dataTypeControl", action="store", type=int, default=3, \
                          required=False, choices=dctChoices, \
-                         help="Datatype Control: 1: Input, 2: Expected, 3: Input&Expected. Optional. Default: 2" )
+                         help="Datatype Control: 1: Input, 2: Expected, 3: Input&Expected. Optional. Default: 3" )
+
+    # RGW
+    parser.add_argument( "RGW", choices=[ "RGW" ], help="Fixed syntax." )
+
+    # Report
+    parser.add_argument( dest="report_type", action="store", default=None,
+                         choices=[ "test", "actual" ], \
+                         help="Type of report: test data or actual data." )
 
     return parser
 
@@ -50,50 +58,54 @@ if "__main__" == __name__:
         # exit on failure
         sys.exit() 
 
-    numParameters = len( sys.argv ) - 1
-
     workingDirVC = args.working_directory
 
-    s = 1/0
+    envName = args.environment
+    unitName = args.unit
+    functionName = args.subprogram
+    tcName = args.testcase
 
+    dataTypeControl = args.dataTypeControl
+    reportType = args.report_type
 
-    if 0 == numParameters:
+    dataApiRep = DataAPI_Report( workingDirVC )
+    api = dataApiRep.getApi( envName )
 
-        dataApiRep = DataAPI_Report( "C:\Work\Training\V6.4\MinGW_WorkDir" )
-        tcRep = TestCaseReport( "EXAMPLE", "example", "append", "append.001", dataApiRep )
-        # tcRep = TestCaseReport( "MANAGER_BUBENREUTH_W", "manager", "Add_Party_To_Waiting_List", "UserCode", dataApi )
-        # tcRep = TestCaseReport( "MANAGER_BUBENREUTH_W", "manager", "Place_Order", "FoolTheBill", dataApi )
-        # tcRep = TestCaseReport( "MANAGER_BUBENREUTH_W", "<<COMPOUND>>", "<<COMPOUND>>", "Asterix&Obelix", dataApi )
-        # tcRep = TestCaseReport( "IO_WRAPPER_BUBEN", "<<COMPOUND>>", "<<COMPOUND>>", "Write&Read", dataApi )
-        # tcRep = TestCaseReport( "ADVANCED", "advanced_stubbing", "temp_monitor", "Celsius_Stub", dataApi )
-
-        print( tcRep.getInpExpDataAsString( 1 ) )
-        print( tcRep.getInpExpDataAsString( 2 ) )
-
-    elif 2 == numParameters:
-
-        dataApiRep = DataAPI_Report( sys.argv[1] )
-        api = dataApiRep.getApi( sys.argv[2] )
+    if None == unitName:
 
         testcases = api.TestCase.all()
 
         for testcase in testcases:
 
-            inputDataAsString = dataApiRep.getDataAsString_explicit( testcase, 1, True, 0 )
-            expectedDataAsString = dataApiRep.getDataAsString_explicit( testcase, 2, True, 0 )
+            inpExpDataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, True, 0 )
+            print( inpExpDataAsString )
 
-            print( inputDataAsString )
-            print( expectedDataAsString )
+    elif None != unitName and None == functionName:
 
-    elif 5 == numParameters:
+        unit = api.Unit.get( unitName )
 
-        dataApiRep = DataAPI_Report( sys.argv[1] )
-        tcRep = TestCaseReport( sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], dataApiRep )
+        for testcase in unit.testcases:
 
-        # print( tcRep.getInpExpDataAsString( 1 ) )
-        # print( tcRep.getInpExpDataAsString( 2 ) )
-        print( tcRep.getInpExpDataAsString( 3 ) )
+            inpExpDataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, True, 0 )
+            print( inpExpDataAsString )
 
-    else:
+    elif None != unitName and None != functionName and None == tcName:
 
-        print( "Inappropriate number of parameters." )
+        unit = api.Unit.get( unitName )
+
+        for function in unit.functions:
+
+            if function.name == functionName:
+
+                for testcase in function.testcases:
+
+                    inpExpDataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, True, 0 )
+                    print( inpExpDataAsString )
+
+    elif None != unitName and None != functionName and None != tcName:
+
+        dataApiRep = DataAPI_Report( workingDirVC )
+        tcRep = TestCaseReport( envName, unitName, functionName, tcName, dataApiRep )
+
+        inpExpDataAsString = tcRep.getInpExpDataAsString( dataTypeControl  )
+        print( inpExpDataAsString )
