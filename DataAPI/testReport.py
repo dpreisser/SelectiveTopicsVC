@@ -1,13 +1,61 @@
 
 import sys
+import argparse
 
 from dataApiReport import DataAPI_Report
 from testCaseReport import TestCaseReport
 
+def initArgParser ():
+
+    parser = argparse.ArgumentParser( description="RGW Report Script" )
+
+    # Working Directory
+    parser.add_argument ( "-w", dest="working_directory", action="store", default=".\\", \
+                          required=False, help="Working Directory of VectorCAST. Optional. Default: .\\" )                   
+
+    # Environment
+    parser.add_argument ( "-e", dest="environment", action="store", default="notset", \
+                          required=True, help="Name of environment. Required. No Default." )
+
+    # Unit 
+    parser.add_argument( "-u", dest="unit", action="store", default="notset", \
+                         required=False, help="Name of unit. Optional." )
+
+    # Subprogram
+    parser.add_argument( "-s", dest="subprogram", action="store", default="notset", \
+                         required=False, help="Name of subprogram. Optional." )
+
+    # TestCase
+    parser.add_argument( "-t", dest="testcase", action="store", default="notset", \
+                         required=False, help="Name of TestCase. Optional." )
+
+    # DCT
+    dctChoices = [ 1, 2, 3 ]
+    parser.add_argument( '-d', dest="dataTypeControlArg", action="store", type=int, default=2, \
+                         required=False, choices=dctChoices, \
+                         help="Datatype Control: 1: Input, 2: Expected, 3: Input&Expected. Optional. Default: 2" )
+
+    return parser
+
+
 
 if "__main__" == __name__:
 
+    parser = initArgParser()
+
+    # Read the aguments.
+    try:
+        args = parser.parse_args()
+    except SystemExit:
+        # exit on failure
+        sys.exit() 
+
     numParameters = len( sys.argv ) - 1
+
+    workingDirVC = args.working_directory
+
+    s = 1/0
+
 
     if 0 == numParameters:
 
