@@ -670,6 +670,7 @@ class DataAPI_Report( object ):
                 
                 codeChild = getDefaultTree()
                 codeChild["indent"] = tcIndent+1
+                codeChild["doc"] = [ unit.id, function.index, testcase.index, -1 ]
                 codeChild["value"] = sourceData.value
                 tcChild["children"].append( codeChild )
 
@@ -728,8 +729,12 @@ class DataAPI_Report( object ):
                 currentChild["value"] = "<<User Code>>"
                 children.append( currentChild )
 
+                doc = deepcopy( dataObjectCoords )
+                doc.append( -1 )
+
                 codeChild = getDefaultTree()
                 codeChild["indent"] = currentIndent+1
+                codeChild["doc"] = doc
                 codeChild["value"] = valuesAsStr
                 currentChild["children"].append( codeChild )
 
