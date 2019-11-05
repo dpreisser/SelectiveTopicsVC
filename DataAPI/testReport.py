@@ -2,6 +2,8 @@
 import sys
 import argparse
 
+from traceHandler import TraceHandler
+
 from dataApiReport import DataAPI_Report
 from testCaseReport import TestCaseReport
 
@@ -68,6 +70,13 @@ if "__main__" == __name__:
     dataTypeControl = args.dataTypeControl
     reportType = args.report_type
 
+    if "test" == reportType:
+        inpExpData = True
+    elif "actual" == reportType:
+        inpExpData = False
+
+    traceHandler = TraceHandler()
+
     dataApiRep = DataAPI_Report( workingDirVC )
     api = dataApiRep.getApi( envName )
 
@@ -77,7 +86,7 @@ if "__main__" == __name__:
 
         for testcase in testcases:
 
-            inpExpDataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, True, 0 )
+            inpExpDataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, inpExpData, 0 )
             print( inpExpDataAsString )
 
     elif None != unitName and None == functionName:
@@ -86,7 +95,7 @@ if "__main__" == __name__:
 
         for testcase in unit.testcases:
 
-            inpExpDataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, True, 0 )
+            inpExpDataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, inpExpData, 0 )
             print( inpExpDataAsString )
 
     elif None != unitName and None != functionName and None == tcName:
@@ -99,13 +108,15 @@ if "__main__" == __name__:
 
                 for testcase in function.testcases:
 
-                    inpExpDataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, True, 0 )
+                    inpExpDataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, inpExpData, 0 )
                     print( inpExpDataAsString )
 
     elif None != unitName and None != functionName and None != tcName:
 
-        dataApiRep = DataAPI_Report( workingDirVC )
-        tcRep = TestCaseReport( envName, unitName, functionName, tcName, dataApiRep )
+        tcRep = TestCaseReport( envName, unitName, functionName, tcName, dataApiRep, traceHandler )
 
-        inpExpDataAsString = tcRep.getInpExpDataAsString( dataTypeControl  )
-        print( inpExpDataAsString )
+        if not traceHandler.getStatus():
+            print( traceHandler.getErrMessage() )
+        else:
+            dataAsString = tcRep.getDataAsString_explicit( dataTypeControl, inpExpData )
+            print( dataAsString )

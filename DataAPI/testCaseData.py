@@ -28,7 +28,7 @@ def trace( str1, str2, newLine=False):
 
 class TestCaseData( object ):
 
-    def __init__( self, envName, unitName, functionName, tcName, dataApi ):
+    def __init__( self, envName, unitName, functionName, tcName, dataApi, traceHandler ):
 
         self.envName = envName
         self.unitName = unitName
@@ -37,13 +37,13 @@ class TestCaseData( object ):
 
         self.dataApi = dataApi
 
-        self.inputDataAsString = None
-        self.expectedDataAsString = None
-        self.inpExpDataAsString = None
+        self.clearMessage = traceHandler.clearMessage
+        self.addMessage = traceHandler.addMessage
+        self.setMessage = traceHandler.setMessage
 
-        self.actualInputDataAsString = None
-        self.actualExpectedDataAsString = None
-        self.actualInpExpDataAsString = None
+        self.clearErrMessage = traceHandler.clearErrMessage
+        self.addErrMessage = traceHandler.addErrMessage
+        self.setErrMessage = traceHandler.setErrMessage
 
         self.initialize()
 
@@ -56,9 +56,10 @@ class TestCaseData( object ):
                                                   self.functionName, self.tcName )
 
         if None == self.testcase:
-            print( "No testcase found for following input:" )
-            print( self )
-            sys.exit()
+            msg = "No testcase found for following input:"
+            msg += self.__str__()
+            self.addErrMessage( msg )
+
 
     def __str__( self ):
 
@@ -71,51 +72,24 @@ class TestCaseData( object ):
         return msg
 
 
-    def buildInpExpDataAsString( self, dataTypeControl ):
+    def getDataAsString( self, dataTypeControl ):
 
         if 1 == dataTypeControl:
-            self.inputDataAsString = self.dataApi.getDataAsString( self.testcase.input_tree )
+            dataAsString = self.dataApi.getDataAsString( self.testcase.input_tree )
         elif 2 == dataTypeControl:
-            self.expectedDataAsString = self.dataApi.getDataAsString( self.testcase.expected_tree )
+            dataAsString = self.dataApi.getDataAsString( self.testcase.expected_tree )
         elif 3 == dataTypeControl:
-            self.inpExpDataAsString = self.dataApi.getDataAsString( self.testcase.input_tree )
-            self.inpExpDataAsString += self.dataApi.getDataAsString( self.testcase.expected_tree )
+            dataAsString = self.dataApi.getDataAsString( self.testcase.input_tree )
+            dataAsString += self.dataApi.getDataAsString( self.testcase.expected_tree )
+
+        return dataAsString
 
 
-    def buildInpExpDataAsString_explicit( self, dataTypeControl ):
+    def getDataAsString_explicit( self, dataTypeControl, inpExpData ):
 
-        if 1 == dataTypeControl:
-            self.inputDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, dataTypeControl, True, 0 )
-        elif 2 == dataTypeControl:
-            self.expectedDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, dataTypeControl, True, 0 )
-        elif 3 == dataTypeControl:
-            self.inpExpDataAsString = self.dataApi.getDataAsString_explicit( self.testcase, dataTypeControl, True, 0 )
+        dataAsString = self.dataApi.getDataAsString_explicit( self.testcase, dataTypeControl, inpExpData, 0 )
 
-
-    def getInpExpDataAsString( self, dataTypeControl ):
-
-        buildNeeded = False
-
-        if 1 == dataTypeControl:
-            if None == self.inputDataAsString:
-                buildNeeded = True
-        elif 2 == dataTypeControl:
-            if None == self.expectedDataAsString:
-                buildNeeded = True
-        elif 3 == dataTypeControl:
-            if None == self.inpExpDataAsString:
-                buildNeeded = True
-
-        if buildNeeded:
-            # self.buildInpExpDataAsString( dataTypeControl )
-            self.buildInpExpDataAsString_explicit( dataTypeControl )
-
-        if 1 == dataTypeControl:
-            return self.inputDataAsString
-        elif 2 == dataTypeControl:
-            return self.expectedDataAsString
-        elif 3 == dataTypeControl:
-            return self.inpExpDataAsString
+        return dataAsString
 
 
 class DataAPI_Wrapper( object ):
