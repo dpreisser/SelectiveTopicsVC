@@ -871,7 +871,7 @@ class DataAPI_Report( object ):
                 self.inpExpData = [ {}, {} ]
             else:
                 self.slotIdSequence = []
-                self.actualIData
+                self.actualData = {}
 
             self.historyId = testcase.history_id
 
@@ -1027,7 +1027,7 @@ class DataAPI_Report( object ):
         if not slotId in self.actualData.keys():
             self.actualData[slotId] = []
 
-        cotainer = self.actualData[slotId]
+        container = self.actualData[slotId]
 
         for slot_history in slot_histories:
 
@@ -1038,10 +1038,17 @@ class DataAPI_Report( object ):
 
             ancestryList = []
 
-            for ancestor in ancestry:
+            if len( ancestry ) > 0:
 
-                ancestryList.append( [ ancestor.testcase.name, ancestor.slot.index, \
-                                       ancestor.slot.testcase.name, ancestor.iteration ] )
+                for ancestor in ancestry:
+
+                    ancestryList.append( [ ancestor.testcase.name, ancestor.slot.index, \
+                                           ancestor.slot.testcase.name, ancestor.iteration ] )
+
+            else:
+
+                ancestryList.append( [ slot_history.testcase.name, 1, \
+                                       slot_history.testcase.name, -1 ] )
 
             for iteration in slot_history.iterations:
 
@@ -1084,10 +1091,13 @@ class DataAPI_Report( object ):
                             comp = data_object_id.split( "." )
 
                             if not data_object_id in container[itrIdx].keys():
+
                                 container[itrIdx][data_object_id] = [ {}, {} ]
-                                container[itrIdx][data_object_id][dataTypeIndex]["actuals"] = deepcopy( defaultList )
-                                if actual.is_result:
-                                    container[itrIdx][data_object_id][dataTypeIndex]["results"] = deepcopy( defaultList )
+
+                                container[itrIdx][data_object_id][0]["actuals"] = deepcopy( defaultList )
+                                container[itrIdx][data_object_id][1]["actuals"] = deepcopy( defaultList )
+
+                                container[itrIdx][data_object_id][1]["results"] = deepcopy( defaultList )
 
                             theContainer = container[itrIdx][data_object_id][dataTypeIndex]
                                         
