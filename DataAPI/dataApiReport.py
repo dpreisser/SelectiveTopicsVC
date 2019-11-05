@@ -131,7 +131,7 @@ class DataAPI_Report( object ):
         currentChild["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, currentIndent+1 )
         tree["children"].append( currentChild )
 
-        # pprint.pprint( tree )
+        pprint.pprint( tree )
 
         formatString = FormatString( "  " )
         dataAsString = formatString.getDataAsString( tree, dataTypeControl )
@@ -300,13 +300,24 @@ class DataAPI_Report( object ):
 
         else:
 
+            is_compound_test = True
+
+            if 1 == len( self.tcIdSequence ):
+                is_compound_test = False
+                tcId = self.tcIdSequence[0]
+                tc = api.TestCase.get( tcId )
+
+            print( "s", self.slotIdSequence )
+
             for slotId in self.slotIdSequence:
 
-                slot = self.envApi[envName].Slot.get( slotId )
-                tc = slot.testcase
+                if is_compound_test:
+                    slot = self.envApi[envName].Slot.get( slotId )
+                    tc = slot.testcase
 
-                numRangeIterations = len( self.slotData[slotId] )
-                for itrIdx in range( numRangeIterations ):
+                numIterations = len( self.actualData[slotId] )
+                print( "num", numIterations )
+                for itrIdx in range( numIterations ):
 
                     ancestryList = self.actualData[slotId][itrIdx]["ancestryList"]
 
@@ -320,12 +331,15 @@ class DataAPI_Report( object ):
 
                         ancestryAsStr += ancestorAsStr
 
+                    print( ancestryAsStr )
+
                     currentChild = getDefaultTree()
-                    currentChild["indent"] = tcIndent
+                    currentChild["indent"] = currentIndent
                     currentChild["label"] = "Slot"
                     currentChild["value"] = ancestryAsStr
+                    children.append( currentChild )
 
-                    trace( "Actual Input & Result Data:", self.slotData[slotId][itrIdx], newLine=True )
+                    trace( "Actual Input & Result Data:", self.actualData[slotId][itrIdx], newLine=True )
 
                     for dtIdx in dataTypeIdc:
 
@@ -351,9 +365,8 @@ class DataAPI_Report( object ):
                                 grandChild["children"].append( child )
 
                         currentChild["children"].append( grandChild )
-                        
-                    children.append( currentChild )
 
+        pprint.pprint( children )
         return children
 
 
@@ -534,7 +547,7 @@ class DataAPI_Report( object ):
         if isInpExpData:
             container = self.inpExpData[dtIdx][testcaseId]
         else:
-            container = self.actualData[dtIdx][slotId][itrIdx]
+            container = self.actualData[slotId][itrIdx]
 
         api = self.envApi[envName]
 
@@ -870,6 +883,7 @@ class DataAPI_Report( object ):
                 self.tcIdSequence = []
                 self.inpExpData = [ {}, {} ]
             else:
+                self.tcIdSequence = []
                 self.slotIdSequence = []
                 self.actualData = {}
 
@@ -881,7 +895,8 @@ class DataAPI_Report( object ):
                     self.tcIdSequence.append( testcase.id )
                     self.prepareInpExpData_Wrapper( testcase, dataTypeControl )
                 else:
-                    self.slotIdSequence.append( testcase.id )
+                    self.tcIdSequence.append( testcase.id )
+                    self.slotIdSequence.append( 0 )
                     self.prepareActualData( 0, testcase.history.slot_histories )
 
                 return
@@ -1024,10 +1039,10 @@ class DataAPI_Report( object ):
 
     def prepareActualData( self, slotId, slot_histories ):
 
+        numEvents = None
+
         if not slotId in self.actualData.keys():
             self.actualData[slotId] = []
-
-        container = self.actualData[slotId]
 
         for slot_history in slot_histories:
 
@@ -1050,56 +1065,41 @@ class DataAPI_Report( object ):
                 ancestryList.append( [ slot_history.testcase.name, 1, \
                                        slot_history.testcase.name, -1 ] )
 
+            numItr = slot_history.num_iterations
+            self.actualData[slotId] = deepcopy( [[]]*numItr )
+
             for iteration in slot_history.iterations:
 
                 numRangeItr = len( iteration.range_iterations )
-
-                container = [{}]*numRangeItr
                 defaultList = ["None"]*numRangeItr
 
                 for range_iteration in iteration.range_iterations:
 
-                    numEvents = len( range_iteration.events )
+                    if None == numEvents:
+                        numEvents = len( range_iteration.events )
+                        for itrIdx in range( numItr ):
+                            self.actualData[slotId][itrIdx] = deepcopy( [{}]*numEvents )
 
                     for event in range_iteration.events:
 
                         itrIdx = event.iteration_index - 1
                         rangeItrIdx = event.range_iteration_index - 1
+                        eventIdx = event.index % numEvents
+
+                        container = self.actualData[slotId][itrIdx][eventIdx]
 
                         ancestryList[-1][-1] = event.iteration_index
-
-                        container[itrIdx]["ancestryList"] = ancestryList
+                        container["ancestryList"] = ancestryList
 
                         for actual in event.actuals:
 
-                            if event.index == numEvents:
-                                
-                                if actual.is_result:
-                                    dataTypeIndex = 1
-                                else:
-                                    continue
-
-                            else:
-
-                                if actual.is_result:
-                                    dataTypeIndex = 1
-                                else:
-                                    dataTypeIndex = 0
-
                             data_object_id = actual.data_object_id
 
-                            comp = data_object_id.split( "." )
-
-                            if not data_object_id in container[itrIdx].keys():
-
-                                container[itrIdx][data_object_id] = [ {}, {} ]
-
-                                container[itrIdx][data_object_id][0]["actuals"] = deepcopy( defaultList )
-                                container[itrIdx][data_object_id][1]["actuals"] = deepcopy( defaultList )
-
-                                container[itrIdx][data_object_id][1]["results"] = deepcopy( defaultList )
-
-                            theContainer = container[itrIdx][data_object_id][dataTypeIndex]
+                            if not data_object_id in container.keys():
+                                container[data_object_id] = {}
+                                container[data_object_id]["actuals"] = deepcopy( defaultList )
+                                
+                            theContainer = container[data_object_id]
                                         
                             if None != actual.value:
                                 theContainer["actuals"][rangeItrIdx] = actual.value
@@ -1107,6 +1107,10 @@ class DataAPI_Report( object ):
                                 theContainer["actuals"][rangeItrIdx] = actual.usercode_name                                        
 
                             if actual.is_result:
+
+                                if not "results" in theContainer.keys():
+                                    theContainer["results"] = deepcopy( defaultList )
+                                
                                 if 1 == actual.match:
                                     theContainer["results"][rangeItrIdx] = "PASS"
                                 else:
@@ -1197,25 +1201,22 @@ class DataAPI_Report( object ):
         return data
 
 
-    def getSlotData( self, slotId, itrIdx, dataObjectCoords, dataTypeIdc, typeKey ):
+    def getSlotData( self, slotId, itrIdx, eventIdx, dataObjectCoords, typeKey ):
 
-        data = [None]*2
+        data = None
 
-        container = self.slotData[slotId][itrIdx]
+        container = self.slotData[slotId][itrIdx][eventIdx]
 
         data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
 
         try:
+            
             currentDataSet = container[data_object_id]
+            data = currentDataSet[typeKey]
             
         except KeyError:
 
             return data
-
-        for dtIdx in dataTypeIdc:
-
-            if typeKey in currentDataSet[dtIdx].keys():
-                data[dtIdx] = currentDataSet[dtIdx][typeKey]
 
         return data
 
