@@ -130,8 +130,8 @@ class FormatString( object ):
 
         self.indentUnit = indentUnit
 
-        self.addNewLineBefore = [ "Environment", "TestCase", "Slot" ]
-        self.addNewLineAfter = [ "Environment", "TestCase", "Slot" ]
+        self.addNewLineBefore = [ "Environment", "TestCase", "Slot", "Events" ]
+        self.addNewLineAfter = [ "Environment", "TestCase", "Slot", "Events" ]
         
         self.omit = [ "Header", "dtIdx"]
 
@@ -248,10 +248,20 @@ class FormatString( object ):
         elif None != value:
 
             if 1 == dtIdx:
-                currentIndentSize += self.maxSize
-            
-            formattedStr = formatMultiLine( value, currentIndentSize )
-            currentString += formattedStr
+                offsetSize = self.maxSize
+            else:
+                offsetSize = 0
+
+            if self.isInpExpData:
+                formattedStr = formatMultiLine( value, offsetSize + currentIndentSize )
+                currentString += formattedStr
+            else:
+                formattedPartList = []
+                for part in value:
+                    formattedPart = formatMultiLine( part, offsetSize + currentIndentSize )
+                    formattedPartList.append( formattedPart )
+                formattedStr = ",\n".join( [ formattedPart.strip() for formattedPart in formattedPartList ] )
+                currentString += formattedStr
 
         if 1 == dtIdx:
 
@@ -305,9 +315,17 @@ class FormatString( object ):
                             currentString += deltaSizeAsStr + currentIndentAsStr_2 + newStr_2 + "\n"
 
                 elif None != value_2:
-            
-                    formattedStr = formatMultiLine( value_2, self.maxSize + currentIndentSize_2 )
-                    currentString += formattedStr
+
+                    if self.isInpExpData:
+                        formattedStr = formatMultiLine( value_2, self.maxSize + currentIndentSize_2 )
+                        currentString += formattedStr
+                    else:
+                        formattedPartList = []
+                        for part in value_2:
+                            formattedPart = formatMultiLine( part, self.maxSize + currentIndentSize_2 )
+                            formattedPartList.append( formattedPart )
+                        formattedStr = ",\n".join( [ formattedPart.strip() for formattedPart in formattedPartList ] )
+                        currentString += formattedStr
 
                 print( "R2:", theTuple )
                 self.docList[testcaseID][category].remove( theTuple )
@@ -322,10 +340,12 @@ class FormatString( object ):
         return finalString
 
 
-    def getDataAsString( self, tree, dataTypeControl ):
+    def getDataAsString( self, tree, dataTypeControl, isInpExpData ):
 
-        self.dataTypeControl =  dataTypeControl
+        self.dataTypeControl = dataTypeControl
         self.dataTypeIdc = getDataTypeIdc( dataTypeControl )
+
+        self.isInpExpData = isInpExpData 
 
         if 3 == dataTypeControl:
 
