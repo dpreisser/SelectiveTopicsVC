@@ -307,19 +307,17 @@ class DataAPI_Report( object ):
                 tcId = self.tcIdSequence[0]
                 tc = api.TestCase.get( tcId )
 
-            print( "s", self.slotIdSequence )
-
             for slotId in self.slotIdSequence:
 
                 if is_compound_test:
                     slot = self.envApi[envName].Slot.get( slotId )
                     tc = slot.testcase
 
-                numIterations = len( self.actualData[slotId] )
-                print( "num", numIterations )
-                for itrIdx in range( numIterations ):
+                numItr = len( self.actualData[slotId] )
 
-                    ancestryList = self.actualData[slotId][itrIdx]["ancestryList"]
+                for itrIdx in range( numItr ):
+
+                    ancestryList = self.ancestryInfo[slotId][itrIdx]
 
                     ancestryAsStr = ""
 
@@ -330,8 +328,6 @@ class DataAPI_Report( object ):
                                           ancestor[2], str(ancestor[3]) )
 
                         ancestryAsStr += ancestorAsStr
-
-                    print( ancestryAsStr )
 
                     currentChild = getDefaultTree()
                     currentChild["indent"] = currentIndent
@@ -886,6 +882,7 @@ class DataAPI_Report( object ):
                 self.tcIdSequence = []
                 self.slotIdSequence = []
                 self.actualData = {}
+                self.ancestryInfo = {}
 
             self.historyId = testcase.history_id
 
@@ -1043,6 +1040,7 @@ class DataAPI_Report( object ):
 
         if not slotId in self.actualData.keys():
             self.actualData[slotId] = []
+            self.ancestryInfo[slotId] = []
 
         for slot_history in slot_histories:
 
@@ -1067,6 +1065,7 @@ class DataAPI_Report( object ):
 
             numItr = slot_history.num_iterations
             self.actualData[slotId] = deepcopy( [[]]*numItr )
+            self.ancestryInfo[slotId] = deepcopy( [[]]*numItr )
 
             for iteration in slot_history.iterations:
 
@@ -1086,10 +1085,10 @@ class DataAPI_Report( object ):
                         rangeItrIdx = event.range_iteration_index - 1
                         eventIdx = event.index % numEvents
 
-                        container = self.actualData[slotId][itrIdx][eventIdx]
-
                         ancestryList[-1][-1] = event.iteration_index
-                        container["ancestryList"] = ancestryList
+                        self.ancestryInfo[slotId][itrIdx] = ancestryList
+
+                        container = self.actualData[slotId][itrIdx][eventIdx]
 
                         for actual in event.actuals:
 
