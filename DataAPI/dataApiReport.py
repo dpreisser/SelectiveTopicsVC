@@ -717,9 +717,9 @@ class DataAPI_Report( object ):
         data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
 
         if isInpExpData:
-            valuesAsStr = self.getInpExpData( dtIdx, testcaseId, dataObjectCoords, "data" )
+            values = self.getInpExpData( dtIdx, testcaseId, dataObjectCoords, "data" )
         else:
-            valuesAsStr = self.getActualData( slotId, itrIdx, eventIdx, dataObjectCoords, "actuals" )
+            values = self.getActualData( slotId, itrIdx, eventIdx, dataObjectCoords, "actuals" )
 
         kind = parameterType.kind
         element = parameterType.element
@@ -733,25 +733,27 @@ class DataAPI_Report( object ):
         currentChild["indent"] = currentIndent
         currentChild["label"] = parameterName
 
-        if None == valuesAsStr:
+        if isInpExpData:
 
-            valuesAsStr = self.getInpExpData( dtIdx, testcaseId, dataObjectCoords, "parameter_user_code" )
+            if None == values:
 
-            if None != valuesAsStr:
+                values = self.getInpExpData( dtIdx, testcaseId, dataObjectCoords, "parameter_user_code" )
+
+                if None != values:
                 
-                currentChild["value"] = "<<User Code>>"
-                children.append( currentChild )
+                    currentChild["value"] = "<<User Code>>"
+                    children.append( currentChild )
 
-                doc = deepcopy( dataObjectCoords )
-                doc.append( -1 )
+                    doc = deepcopy( dataObjectCoords )
+                    doc.append( -1 )
 
-                codeChild = getDefaultTree()
-                codeChild["indent"] = currentIndent+1
-                codeChild["doc"] = doc
-                codeChild["value"] = valuesAsStr
-                currentChild["children"].append( codeChild )
+                    codeChild = getDefaultTree()
+                    codeChild["indent"] = currentIndent+1
+                    codeChild["doc"] = doc
+                    codeChild["value"] = values
+                    currentChild["children"].append( codeChild )
 
-                return children
+                    return children
 
         isArray = False
         isBasicType = True
@@ -760,40 +762,52 @@ class DataAPI_Report( object ):
 
             isArray = True
 
-            if 1 == dtIdx:
+            if isInpExpData:
+
+                if 1 == dtIdx:
                 
-                currentChild["value"] = "<<ACCESS>>"
+                    currentChild["value"] = "<<ACCESS>>"
+
+                else:
+
+                    allocateAsStr = self.getInpExpData( dtIdx, testcaseId, dataObjectCoords, "allocate" )
+
+                    if None == allocateAsStr:
+                        # Unfortunately not possible because there is no allocate within stubs.
+                        # return children
+                        currentChild["value"] = "<<ALLOCATE>>"
+                    else:
+                        currentChild["value"] = "<<ALLOCATE %s>>" % allocateAsStr
 
             else:
 
-                allocateAsStr = self.getInpExpData( dtIdx, testcaseId, dataObjectCoords, "allocate" )
-
-                if None == allocateAsStr:
-                    # Unfortunately not possible because there is no allocate within stubs.
-                    # return children
-                    currentChild["value"] = "<<ALLOCATE>>"
-                else:
-                    currentChild["value"] = "<<ALLOCATE %s>>" % allocateAsStr
+                currentChild["value"] = "<<ACCESS>>"
 
         elif "STR_ING" == kind:
 
             isArray = True
 
             if "CHAR_ACTER" == element.kind:
-                if None != valuesAsStr:
+                if None != values:
                     isArray = False
 
-            if 1 == dtIdx:
+            if isInpExpData:
 
-                currentChild["value"] = "<<ACCESS>>"
+                if 1 == dtIdx:
+
+                    currentChild["value"] = "<<ACCESS>>"
+
+                else:
+
+                    allocateAsStr = self.getInpExpData( dtIdx, testcaseId, dataObjectCoords, "allocate" )
+                    if None == allocateAsStr:
+                        return children
+
+                    currentChild["value"] = "<<ALLOCATE %s>>" % allocateAsStr
 
             else:
 
-                allocateAsStr = self.getInpExpData( dtIdx, testcaseId, dataObjectCoords, "allocate" )
-                if None == allocateAsStr:
-                    return children
-
-                currentChild["value"] = "<<ALLOCATE %s>>" % allocateAsStr
+                currentChild["value"] = "<<ACCESS>>"
 
         elif "AR_RAY" == kind:
 
@@ -812,7 +826,9 @@ class DataAPI_Report( object ):
 
         if isArray:
 
-            arrayIndices = self.getDataObjectCoords_arrayIndices( dtIdx, testcaseId, dataObjectCoords )
+            arrayIndices = self.getDataObjectCoords_arrayIndices( dataObjectCoords, \
+                                                                  dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData )
+
             trace( "Array: arrayIndices:", str(arrayIndices) )
 
             for arrayIndex in arrayIndices:
@@ -821,12 +837,12 @@ class DataAPI_Report( object ):
                 index_dataObjectCoords.append( arrayIndex )
 
                 trace( "Array: Basic Type: index_dataObjectCoords:", str(index_dataObjectCoords) )
-                trace( "Array: Basic Type: valuesAsStr:", str(valuesAsStr) )
+                trace( "Array: Basic Type: values:", str(values) )
 
                 indexName = "%s[%s]" % ( parameterName, str(arrayIndex) )
 
                 grandChildren = self.walkType( indexName, element, index_dataObjectCoords, \
-                                               testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                               dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
                                                indexIndent )
 
                 for grandChild in grandChildren:
@@ -842,11 +858,14 @@ class DataAPI_Report( object ):
             if isBasicType:
 
                 trace( "Basic Type: dataObjectCoords:", str(dataObjectCoords) )
-                trace( "Basic Type: valuesAsStr:", str(valuesAsStr) )
+                trace( "Basic Type: values:", str(values) )
 
-                if None != valuesAsStr:
+                if None != values:
 
-                    associatedValues = self.getAssociatedValues( parameterType, valuesAsStr )
+                    if isInpExpData:
+                        associatedValues = self.getAssociatedValues( parameterType, values )
+                    else:
+                        associatedValues = values
 
                     currentChild["value"] = ",".join( associatedValues )
                     children.append( currentChild )
@@ -861,7 +880,7 @@ class DataAPI_Report( object ):
                     trace( "None Basic Type: child_dataObjectCoords:", str(child_dataObjectCoords) )
 
                     grandChildren = self.walkType_Wrapper( child, child_dataObjectCoords,\
-                                                           testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                                           dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
                                                            currentIndent+1 )
 
                     for grandChild in grandChildren:
@@ -1195,11 +1214,15 @@ class DataAPI_Report( object ):
         return ancestryList
 
 
-    def getDataObjectCoords_arrayIndices( self, dtIdx, testcaseId, dataObjectCoords ):
+    def getDataObjectCoords_arrayIndices( self, dataObjectCoords, \
+                                          dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData ):
 
         arrayIndices = []
 
-        container = self.inpExpData[dtIdx][testcaseId]
+        if isInpExpData:
+            container = self.inpExpData[dtIdx][testcaseId]
+        else:
+            container = self.actualData[slotId][itrIdx][eventIdx]
 
         if not dataObjectCoords[0] in container.keys():
             return arrayIndices
