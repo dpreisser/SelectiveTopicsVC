@@ -58,8 +58,8 @@ class TestCaseReport( object ):
         return dataAsString
 
 
-    def getDataAsString_explicit( self, dataTypeControl, inpExpData ):
+    def getDataAsString_explicit( self, dataTypeControl, isInpExpData ):
 
-        dataAsString = self.dataApiReport.getDataAsString_explicit( self.testcase, dataTypeControl, inpExpData, 0 )
+        dataAsString = self.dataApiReport.getDataAsString_explicit( self.testcase, dataTypeControl, isInpExpData, 0 )
 
         return dataAsString
