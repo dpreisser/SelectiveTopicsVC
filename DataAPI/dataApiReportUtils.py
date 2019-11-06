@@ -130,8 +130,8 @@ class FormatString( object ):
 
         self.indentUnit = indentUnit
 
-        self.addNewLineBefore = [ "Environment", "TestCaseData", "TestCase" ]
-        self.addNewLineAfter = [ "Environment", "TestCase" ]
+        self.addNewLineBefore = [ "Environment", "TestCase", "Slot" ]
+        self.addNewLineAfter = [ "Environment", "TestCase", "Slot" ]
         
         self.omit = [ "Header", "dtIdx"]
 

@@ -102,12 +102,7 @@ class DataAPI_Report( object ):
 
         else:
 
-            if 1 == dataTypeControl:
-                dataTypeAsStr = "Actual Input data"
-            elif 2 == dataTypeControl:
-                dataTypeAsStr = "Actual Result data"
-            elif 3 == dataTypeControl:
-                dataTypeAsStr = "Actual Input & Result data"
+            dataTypeAsStr = "Result data"
 
         tree = getDefaultTree()
         tree["indent"] = currentIndent
@@ -126,7 +121,10 @@ class DataAPI_Report( object ):
 
         currentChild = getDefaultTree()
         currentChild["indent"] = currentIndent
-        currentChild["label"] = "TestCaseData"
+        if isInpExpData:
+            currentChild["label"] = "TestCaseData"
+        else:
+            currentChild["label"] = "Results"
 
         currentChild["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, currentIndent+1 )
         tree["children"].append( currentChild )
@@ -323,7 +321,7 @@ class DataAPI_Report( object ):
 
                     for ancestor in ancestryList:
 
-                        ancestorAsStr = "%s Slot %s (%s) Iteration %s\n" % \
+                        ancestorAsStr = "%s Slot %s (%s) Iteration %s" % \
                                         ( ancestor[0], str(ancestor[1]), \
                                           ancestor[2], str(ancestor[3]) )
 
@@ -337,24 +335,31 @@ class DataAPI_Report( object ):
 
                     trace( "Actual Input & Result Data:", self.actualData[slotId][itrIdx], newLine=True )
 
-                    for dtIdx in dataTypeIdc:
+                    numEvents = len( self.actualData[slotId][itrIdx] )
 
+                    for eventIdx in range( numEvents ):
+
+                        container = self.actualData[slotId][itrIdx][eventIdx]
+
+                        tcId = container["tcIds"][0]
+                        tc = api.TestCase.get( tcId )
+ 
                         grandChild = getDefaultTree()
                         grandChild["indent"] = currentIndent
-                        grandChild["label"] = "dtIdx"
-                        grandChild["value"] = dtIdx
+                        grandChild["label"] = "Events - %s" % tc.function.name 
+                        grandChild["value"] = ",".join( str(idx) for idx in container["eventIdc"] )
 
-                        arrayChildren[0] = self.getDataAsTree_globals( envName,
-                                                                       tc.id, slotId, dtIdx, dataTypeControl, isInpExpData, \
-                                                                       currentIndent+1 )
+                        # arrayChildren[0] = self.getDataAsTree_globals( envName,
+                        #                                                tc.id, slotId, dtIdx, dataTypeControl, isInpExpData, \
+                        #                                                currentIndent+1 )
 
-                        arrayChildren[1] = self.getDataAsTree_functions( envName, tc, \
-                                                                         tc.id, slotId, dtIdx, dataTypeControl, isInpExpData, \
-                                                                         currentIndent+1 )
+                        # arrayChildren[1] = self.getDataAsTree_functions( envName, tc, \
+                        #                                                  tc.id, slotId, dtIdx, dataTypeControl, isInpExpData, \
+                        #                                                  currentIndent+1 )
 
-                        arrayChildren[2] = self.getTestcaseUserCode( envName, tc, \
-                                                                     testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
-                                                                     currentIndent+1 )
+                        # arrayChildren[2] = self.getTestcaseUserCode( envName, tc, \
+                        #                                              testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                        #                                              currentIndent+1 )
 
                         for idx in range( len(arrayChildren) ):
                             for child in arrayChildren[idx]:
@@ -362,7 +367,6 @@ class DataAPI_Report( object ):
 
                         currentChild["children"].append( grandChild )
 
-        pprint.pprint( children )
         return children
 
 
@@ -1036,8 +1040,6 @@ class DataAPI_Report( object ):
 
     def prepareActualData( self, slotId, slot_histories ):
 
-        numEvents = None
-
         if not slotId in self.actualData.keys():
             self.actualData[slotId] = []
             self.ancestryInfo[slotId] = []
@@ -1072,23 +1074,30 @@ class DataAPI_Report( object ):
                 numRangeItr = len( iteration.range_iterations )
                 defaultList = ["None"]*numRangeItr
 
+                numEvents = None
+
                 for range_iteration in iteration.range_iterations:
 
                     if None == numEvents:
                         numEvents = len( range_iteration.events )
                         for itrIdx in range( numItr ):
-                            self.actualData[slotId][itrIdx] = deepcopy( [{}]*numEvents )
+                            self.actualData[slotId][itrIdx] = deepcopy( [[]]*numEvents )
+                            for eventIdx in range( numEvents ):
+                               self.actualData[slotId][itrIdx][eventIdx] = { "eventIdc" : [], \
+                                                                             "tcIds" : [] }
 
                     for event in range_iteration.events:
 
                         itrIdx = event.iteration_index - 1
                         rangeItrIdx = event.range_iteration_index - 1
-                        eventIdx = event.index % numEvents
+                        eventIdx = ( event.index - 1 ) % numEvents
 
                         ancestryList[-1][-1] = event.iteration_index
                         self.ancestryInfo[slotId][itrIdx] = ancestryList
 
                         container = self.actualData[slotId][itrIdx][eventIdx]
+                        container["eventIdc"].append( event.index )
+                        container["tcIds"].append( event.testcase.id )
 
                         for actual in event.actuals:
 
@@ -1114,6 +1123,8 @@ class DataAPI_Report( object ):
                                     theContainer["results"][rangeItrIdx] = "PASS"
                                 else:
                                     theContainer["results"][rangeItrIdx] = "FAIL"
+
+        # pprint.pprint( self.actualData )
 
 
     def getAncestryList( self, slot_histories ):
