@@ -275,15 +275,15 @@ class DataAPI_Report( object ):
                     trace( "Input & Expected Data:", self.inpExpData[dtIdx][testcaseId], newLine=True )
 
                     arrayChildren[0] = self.getDataAsTree_globals( envName,
-                                                                   testcaseId, 0, 0, dtIdx, isInpExpData, \
+                                                                   dtIdx, testcaseId, None, None, None, isInpExpData, \
                                                                    currentIndent+1 )
 
                     arrayChildren[1] = self.getDataAsTree_functions( envName, testcase, \
-                                                                     testcaseId, 0, 0, dtIdx, isInpExpData, \
+                                                                     dtIdx, testcaseId, None, None, None, isInpExpData, \
                                                                      currentIndent+1 )
 
                     arrayChildren[2] = self.getTestcaseUserCode( envName, testcase, \
-                                                                 testcaseId, 0, 0, dtIdx, isInpExpData, \
+                                                                 dtIdx, testcaseId, None, None, None, isInpExpData, \
                                                                  currentIndent+1 )
 
                     for idx in range( len(arrayChildren) ):
@@ -350,7 +350,7 @@ class DataAPI_Report( object ):
                         grandChild["value"] = ",".join( str(idx) for idx in container["eventIdc"] )
 
                         arrayChildren[0] = self.getDataAsTree_globals( envName,
-                                                                       None, tcId, slotId, itrIdx, eventIdx, isInpExpData, \
+                                                                       None, None, slotId, itrIdx, eventIdx, isInpExpData, \
                                                                        currentIndent+1 )
 
                         # arrayChildren[1] = self.getDataAsTree_functions( envName, tc, \
@@ -371,7 +371,7 @@ class DataAPI_Report( object ):
 
 
     def getDataAsTree_functions( self, envName, testcase, \
-                                 testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                 dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
                                  currentIndent ):
 
         children = []
@@ -395,7 +395,7 @@ class DataAPI_Report( object ):
         function = testcase.function
 
         currentChild["children"] = self.getDataAsTree_parameters( unit, function, \
-                                                                  testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                                                  dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
                                                                   currentIndent )
 
         children.append( currentChild )
@@ -476,7 +476,7 @@ class DataAPI_Report( object ):
 
 
     def getDataAsTree_parameters( self, unit, function, \
-                                  testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                  dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
                                   currentIndent ):
 
         children = []
@@ -518,7 +518,7 @@ class DataAPI_Report( object ):
             dataObjectCoords = [ unit.id, function.index, parameterIndex ]
 
             partChildren = self.walkType_Wrapper( parameter, dataObjectCoords, \
-                                                  testcaseId, slotId, itrIdx, dtIdx, isInpExpData, \
+                                                  dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
                                                   parameterIndent )
 
             for child in partChildren:
@@ -627,7 +627,7 @@ class DataAPI_Report( object ):
 
 
     def getTestcaseUserCode( self, envName, testcase, \
-                             testcaseId, slotId, itrIdx, dtIdx, isInpExpData,
+                             dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData,
                              currentIndent ):
 
         children = []

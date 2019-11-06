@@ -71,9 +71,9 @@ if "__main__" == __name__:
     reportType = args.report_type
 
     if "test" == reportType:
-        inpExpData = True
+        isInpExpData = True
     elif "actual" == reportType:
-        inpExpData = False
+        isInpExpData = False
 
     traceHandler = TraceHandler()
 
@@ -86,7 +86,7 @@ if "__main__" == __name__:
 
         for testcase in testcases:
 
-            inpExpDataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, inpExpData, 0 )
+            inpExpDataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, isInpExpData, 0 )
             print( inpExpDataAsString )
 
     elif None != unitName and None == functionName:
@@ -95,7 +95,7 @@ if "__main__" == __name__:
 
         for testcase in unit.testcases:
 
-            inpExpDataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, inpExpData, 0 )
+            inpExpDataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, isInpExpData, 0 )
             print( inpExpDataAsString )
 
     elif None != unitName and None != functionName and None == tcName:
@@ -108,7 +108,7 @@ if "__main__" == __name__:
 
                 for testcase in function.testcases:
 
-                    inpExpDataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, inpExpData, 0 )
+                    inpExpDataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, isInpExpData, 0 )
                     print( inpExpDataAsString )
 
     elif None != unitName and None != functionName and None != tcName:
@@ -118,5 +118,5 @@ if "__main__" == __name__:
         if not traceHandler.getStatus():
             print( traceHandler.getErrMessage() )
         else:
-            dataAsString = tcRep.getDataAsString_explicit( dataTypeControl, inpExpData )
+            dataAsString = tcRep.getDataAsString_explicit( dataTypeControl, isInpExpData )
             print( dataAsString )
