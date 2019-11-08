@@ -298,30 +298,24 @@ class DataAPI_Report( object ):
 
         else:
 
-            is_compound_test = True
+            print( self.slotHistIdSequence )
 
-            if 1 == len( self.tcIdSequence ):
-                is_compound_test = False
-                tcId = self.tcIdSequence[0]
-                tc = api.TestCase.get( tcId )
+            for slotHistId in self.slotHistIdSequence:
 
-            for slotId in self.slotIdSequence:
+                slotHist = self.envApi[envName].SlotHistory.get( slotHistId )
+                tc = slotHist.testcase
 
-                if is_compound_test:
-                    slot = self.envApi[envName].Slot.get( slotId )
-                    tc = slot.testcase
-
-                numItr = len( self.actualData[slotId] )
+                numItr = len( self.actualData[slotHistId] )
 
                 for itrIdx in range( numItr ):
 
-                    ancestryList = self.ancestryInfo[slotId][itrIdx]
+                    ancestryList = self.ancestryInfo[slotHistId][itrIdx]
 
                     ancestryAsStr = ""
 
                     for ancestor in ancestryList:
 
-                        ancestorAsStr = "%s Slot %s (%s) Iteration %s" % \
+                        ancestorAsStr = "%s Slot %s (%s) Iteration %s\n" % \
                                         ( ancestor[0], str(ancestor[1]), \
                                           ancestor[2], str(ancestor[3]) )
 
@@ -333,16 +327,16 @@ class DataAPI_Report( object ):
                     currentChild["value"] = ancestryAsStr
                     children.append( currentChild )
 
-                    trace( "Actual Input & Result Data:", self.actualData[slotId][itrIdx], newLine=True )
+                    trace( "Actual Input & Result Data:", self.actualData[slotHistId][itrIdx], newLine=True )
 
-                    numEvents = len( self.actualData[slotId][itrIdx] )
+                    numEvents = len( self.actualData[slotHistId][itrIdx] )
 
                     for eventIdx in range( numEvents ):
 
-                        container = self.actualInfo[slotId][itrIdx][eventIdx]
+                        container = self.actualInfo[slotHistId][itrIdx][eventIdx]
 
-                        tcId = container["tcIds"][0]
-                        tc = api.TestCase.get( tcId )
+                        print( slotHistId, itrIdx, eventIdx )
+                        print( tc )
  
                         grandChild = getDefaultTree()
                         grandChild["indent"] = currentIndent
@@ -352,15 +346,15 @@ class DataAPI_Report( object ):
                         grandChild["value"] = value
 
                         arrayChildren[0] = self.getDataAsTree_globals( envName,
-                                                                       None, None, slotId, itrIdx, eventIdx, isInpExpData, \
+                                                                       None, None, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                                                        currentIndent+1 )
 
                         arrayChildren[1] = self.getDataAsTree_functions( envName, tc, \
-                                                                         None, None, slotId, itrIdx, eventIdx, isInpExpData, \
+                                                                         None, None, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                                                          currentIndent+1 )
 
                         arrayChildren[2] = self.getTestcaseUserCode( envName, tc, \
-                                                                     None, None, slotId, itrIdx, eventIdx, isInpExpData, \
+                                                                     None, None, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                                                      currentIndent+1 )
 
                         for idx in range( len(arrayChildren) ):
@@ -373,7 +367,7 @@ class DataAPI_Report( object ):
 
 
     def getDataAsTree_functions( self, envName, testcase, \
-                                 dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
+                                 dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                  currentIndent ):
 
         children = []
@@ -381,7 +375,7 @@ class DataAPI_Report( object ):
         if isInpExpData:
             container = self.inpExpData[dtIdx][testcaseId]
         else:
-            container = self.actualData[slotId][itrIdx][eventIdx]
+            container = self.actualData[slotHistId][itrIdx][eventIdx]
 
         api = self.envApi[envName]
 
@@ -397,7 +391,7 @@ class DataAPI_Report( object ):
         function = testcase.function
 
         currentChild["children"] = self.getDataAsTree_parameters( unit, function, \
-                                                                  dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
+                                                                  dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                                                   currentIndent )
 
         children.append( currentChild )
@@ -434,7 +428,7 @@ class DataAPI_Report( object ):
                 function = unit.get_function( functionIndex )
 
                 grandChildren = self.getDataAsTree_parameters( unit, function, \
-                                                               dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
+                                                               dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                                                currentIndent )
 
                 for grandChild in grandChildren:
@@ -466,7 +460,7 @@ class DataAPI_Report( object ):
                 function = unit.get_function( functionIndex )
 
                 grandChildren = self.getDataAsTree_parameters( unit, function, \
-                                                               dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
+                                                               dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                                                currentIndent )
 
                 for grandChild in grandChildren:
@@ -478,7 +472,7 @@ class DataAPI_Report( object ):
 
 
     def getDataAsTree_parameters( self, unit, function, \
-                                  dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
+                                  dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                   currentIndent ):
 
         children = []
@@ -520,7 +514,7 @@ class DataAPI_Report( object ):
             dataObjectCoords = [ unit.id, function.index, parameterIndex ]
 
             partChildren = self.walkType_Wrapper( parameter, dataObjectCoords, \
-                                                  dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
+                                                  dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                                   parameterIndent )
 
             for child in partChildren:
@@ -537,7 +531,7 @@ class DataAPI_Report( object ):
 
 
     def getDataAsTree_globals( self, envName, \
-                               dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
+                               dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                currentIndent ):
 
         children = []
@@ -549,7 +543,7 @@ class DataAPI_Report( object ):
         if isInpExpData:
             container = self.inpExpData[dtIdx][testcaseId]
         else:
-            container = self.actualData[slotId][itrIdx][eventIdx]
+            container = self.actualData[slotHistId][itrIdx][eventIdx]
 
         api = self.envApi[envName]
 
@@ -563,7 +557,7 @@ class DataAPI_Report( object ):
             unit = api.Unit.get( unitId )
 
             grandChildren = self.getDataAsTree_globalsInUnit( envName, unit, \
-                                                              dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
+                                                              dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                                               currentIndent )
 
             for grandChild in grandChildren:
@@ -575,7 +569,7 @@ class DataAPI_Report( object ):
 
     
     def getDataAsTree_globalsInUnit( self, envName, unit, \
-                                     dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
+                                     dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                      currentIndent ):
 
         children = []
@@ -592,7 +586,7 @@ class DataAPI_Report( object ):
         if isInpExpData:
             container = self.inpExpData[dtIdx][testcaseId]
         else:
-            container = self.actualData[slotId][itrIdx][eventIdx]
+            container = self.actualData[slotHistId][itrIdx][eventIdx]
 
         unitChild = getDefaultTree()
         unitChild["doc"] = [ unit.id ]
@@ -615,7 +609,7 @@ class DataAPI_Report( object ):
             globalVar = unit.get_global_by_index( globalVarIndex )
 
             partChildren = self.walkType_Wrapper( globalVar, dataObjectCoords, \
-                                                  dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
+                                                  dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                                   parameterIndent )
 
             for child in partChildren:
@@ -629,7 +623,7 @@ class DataAPI_Report( object ):
 
 
     def getTestcaseUserCode( self, envName, testcase, \
-                             dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData,
+                             dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData,
                              currentIndent ):
 
         children = []
@@ -691,7 +685,7 @@ class DataAPI_Report( object ):
 
         else:
 
-            container = self.actualInfo[slotId][itrIdx][eventIdx]
+            container = self.actualInfo[slotHistId][itrIdx][eventIdx]
 
             if "actuals" in container.keys():
 
@@ -710,18 +704,18 @@ class DataAPI_Report( object ):
 
 
     def walkType_Wrapper( self, parameter, dataObjectCoords, \
-                          dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
+                          dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                           currentIndent ):
 
         children = self.walkType( parameter.name, parameter.type, dataObjectCoords, \
-                                  dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
+                                  dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                   currentIndent )
 
         return children
 
 
     def walkType( self, parameterName, parameterType, dataObjectCoords, \
-                  dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
+                  dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                   currentIndent ):
 
         children = []
@@ -733,7 +727,7 @@ class DataAPI_Report( object ):
         if isInpExpData:
             values = self.getInpExpData( dtIdx, testcaseId, dataObjectCoords, "data" )
         else:
-            values = self.getActualData( slotId, itrIdx, eventIdx, dataObjectCoords, "actuals" )
+            values = self.getActualData( slotHistId, itrIdx, eventIdx, dataObjectCoords, "actuals" )
 
         kind = parameterType.kind
         element = parameterType.element
@@ -841,7 +835,7 @@ class DataAPI_Report( object ):
         if isArray:
 
             arrayIndices = self.getDataObjectCoords_arrayIndices( dataObjectCoords, \
-                                                                  dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData )
+                                                                  dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData )
 
             trace( "Array: arrayIndices:", str(arrayIndices) )
 
@@ -856,7 +850,7 @@ class DataAPI_Report( object ):
                 indexName = "%s[%s]" % ( parameterName, str(arrayIndex) )
 
                 grandChildren = self.walkType( indexName, element, index_dataObjectCoords, \
-                                               dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
+                                               dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                                indexIndent )
 
                 for grandChild in grandChildren:
@@ -894,7 +888,7 @@ class DataAPI_Report( object ):
                     trace( "None Basic Type: child_dataObjectCoords:", str(child_dataObjectCoords) )
 
                     grandChildren = self.walkType_Wrapper( child, child_dataObjectCoords,\
-                                                           dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData, \
+                                                           dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                                            currentIndent+1 )
 
                     for grandChild in grandChildren:
@@ -913,26 +907,28 @@ class DataAPI_Report( object ):
         if 0 == level:
 
             if isInpExpData:
+
                 self.tcIdSequence = []
                 self.inpExpData = [ {}, {} ]
+
             else:
-                self.tcIdSequence = []
-                self.slotIdSequence = []
+
+                self.slotHistIdSequence = []
                 self.ancestryInfo = {}
                 self.actualInfo = {}
                 self.actualData = {}
 
                 self.historyId = testcase.history_id
+                slot_histories = testcase.history.slot_histories
+
+                self.prepareActualData( slot_histories )
+
+                return
 
             if not testcase.is_compound_test:
 
-                if isInpExpData:
-                    self.tcIdSequence.append( testcase.id )
-                    self.prepareInpExpData_Wrapper( testcase, dataTypeControl )
-                else:
-                    self.tcIdSequence.append( testcase.id )
-                    self.slotIdSequence.append( 0 )
-                    self.prepareActualData( 0, testcase.history.slot_histories )
+                self.tcIdSequence.append( testcase.id )
+                self.prepareInpExpData_Wrapper( testcase, dataTypeControl )
 
                 return
 
@@ -946,13 +942,9 @@ class DataAPI_Report( object ):
 
             else:
 
-                if isInpExpData:
-                    if not tc.id in self.tcIdSequence:
-                        self.tcIdSequence.append( tc.id )
-                        self.prepareInpExpData_Wrapper( tc, dataTypeControl )
-                else:
-                    self.slotIdSequence.append( slot.id )
-                    self.prepareActualData( slot.id, slot.slot_histories )
+                if not tc.id in self.tcIdSequence:
+                    self.tcIdSequence.append( tc.id )
+                    self.prepareInpExpData_Wrapper( tc, dataTypeControl )
 
 
     def prepareInpExpData_Wrapper( self, testcase, dataTypeControl ):
@@ -1072,17 +1064,20 @@ class DataAPI_Report( object ):
                 sys.exit()
 
 
-    def prepareActualData( self, slotId, slot_histories ):
-
-        if not slotId in self.actualData.keys():
-            self.ancestryInfo[slotId] = []
-            self.actualInfo[slotId] = []
-            self.actualData[slotId] = []
+    def prepareActualData( self, slot_histories ):
 
         for slot_history in slot_histories:
 
             if slot_history.testhistory_id != self.historyId:
                 continue
+
+            slotHistId = slot_history.id
+
+            if not slotHistId in self.slotHistIdSequence:
+                self.slotHistIdSequence.append( slotHistId )
+                self.ancestryInfo[slotHistId] = []
+                self.actualInfo[slotHistId] = []
+                self.actualData[slotHistId] = []
 
             ancestry = slot_history.get_slot_ancestry()
 
@@ -1102,50 +1097,46 @@ class DataAPI_Report( object ):
 
             numItr = slot_history.num_iterations
 
-            self.ancestryInfo[slotId] = deepcopy( [[]]*numItr )
-            self.actualInfo[slotId] = deepcopy( [[]]*numItr )
-            self.actualData[slotId] = deepcopy( [[]]*numItr )
+            self.ancestryInfo[slotHistId] = [[]]*numItr
+            self.actualInfo[slotHistId] = [[]]*numItr
+            self.actualData[slotHistId] = [[]]*numItr
 
             for iteration in slot_history.iterations:
 
+                itrIdx = iteration.index - 1
+
                 numRangeItr = len( iteration.range_iterations )
-                defaultList = ["None"]*numRangeItr
+                defaultList = ["<<null>>"]*numRangeItr
 
                 numEvents = None
 
                 for range_iteration in iteration.range_iterations:
 
+                    rangeItrIdx = range_iteration.index - 1
+
                     if None == numEvents:
 
                         numEvents = len( range_iteration.events )
 
-                        for itrIdx in range( numItr ):
+                        self.actualInfo[slotHistId][itrIdx] = [[]]*numEvents
+                        self.actualData[slotHistId][itrIdx] = [[]]*numEvents
 
-                            self.actualInfo[slotId][itrIdx] = deepcopy( [[]]*numEvents )
-                            self.actualData[slotId][itrIdx] = deepcopy( [[]]*numEvents )
-
-                            for eventIdx in range( numEvents ):
-
-                               self.actualInfo[slotId][itrIdx][eventIdx] = { "eventIdc" : [], \
-                                                                             "tcIds" : [] }
-
-                               self.actualData[slotId][itrIdx][eventIdx] = {}
+                        for eventIdx in range( numEvents ):        
+                            self.actualInfo[slotHistId][itrIdx][eventIdx] = deepcopy( { "eventIdc" : [] } )
+                            self.actualData[slotHistId][itrIdx][eventIdx] = deepcopy( {} )
 
                     for event in range_iteration.events:
 
-                        itrIdx = event.iteration_index - 1
-                        rangeItrIdx = event.range_iteration_index - 1
                         eventIdx = ( event.index - 1 ) % numEvents
 
-                        ancestryList[-1][-1] = event.iteration_index
-                        self.ancestryInfo[slotId][itrIdx] = ancestryList
+                        self.ancestryInfo[slotHistId][itrIdx]
+                        if 0 == len( self.ancestryInfo[slotHistId][itrIdx] ):
+                            ancestryList[-1][-1] = iteration.index
+                            self.ancestryInfo[slotHistId][itrIdx] = deepcopy( ancestryList )
 
-                        container = self.actualInfo[slotId][itrIdx][eventIdx]
+                        self.actualInfo[slotHistId][itrIdx][eventIdx]["eventIdc"].append( event.index )
 
-                        container["eventIdc"].append( event.index )
-                        container["tcIds"].append( event.testcase.id )
-
-                        container = self.actualData[slotId][itrIdx][eventIdx]
+                        container = self.actualData[slotHistId][itrIdx][eventIdx]
 
                         for actual in event.actuals:
 
@@ -1154,7 +1145,7 @@ class DataAPI_Report( object ):
 
                             if 1 == len( comp ):
 
-                                 currentData = self.actualInfo[slotId][itrIdx][eventIdx]
+                                 currentData = self.actualInfo[slotHistId][itrIdx][eventIdx]
                                  if not "actuals" in currentData.keys():
                                      currentData["actuals"] = deepcopy( defaultList )
 
@@ -1190,11 +1181,14 @@ class DataAPI_Report( object ):
 
                                 if not "results" in currentData.keys():
                                     currentData["results"] = deepcopy( defaultList )
+                                    currentData["match"] = deepcopy( defaultList )
                                 
                                 if 1 == actual.match:
-                                    currentData["results"][rangeItrIdx] = "PASS"
+                                    currentData["results"][rangeItrIdx] = "pass"
                                 else:
-                                    currentData["results"][rangeItrIdx] = "FAIL"
+                                    currentData["results"][rangeItrIdx] = "fail"
+
+                                currentData["match"][rangeItrIdx] = actual.match_string
 
         # pprint.pprint( self.ancestryInfo )
         # pprint.pprint( self.actualInfo )
@@ -1229,14 +1223,14 @@ class DataAPI_Report( object ):
 
 
     def getDataObjectCoords_arrayIndices( self, dataObjectCoords, \
-                                          dtIdx, testcaseId, slotId, itrIdx, eventIdx, isInpExpData ):
+                                          dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData ):
 
         arrayIndices = []
 
         if isInpExpData:
             container = self.inpExpData[dtIdx][testcaseId]
         else:
-            container = self.actualData[slotId][itrIdx][eventIdx]
+            container = self.actualData[slotHistId][itrIdx][eventIdx]
 
         if not dataObjectCoords[0] in container.keys():
             return arrayIndices
@@ -1289,11 +1283,11 @@ class DataAPI_Report( object ):
         return data
 
 
-    def getActualData( self, slotId, itrIdx, eventIdx, dataObjectCoords, typeKey ):
+    def getActualData( self, slotHistId, itrIdx, eventIdx, dataObjectCoords, typeKey ):
 
         data = None
 
-        container = self.actualData[slotId][itrIdx][eventIdx]
+        container = self.actualData[slotHistId][itrIdx][eventIdx]
 
         try:
 
