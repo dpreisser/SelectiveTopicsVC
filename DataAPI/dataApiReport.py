@@ -35,7 +35,8 @@ def getDefaultTree():
                     "doc" : None, \
                     "indent" : None, \
                     "label" : None, \
-                    "value" : None }
+                    "value" : None, \
+                    "vtype" : "string" }
 
     return defaultTree
 
@@ -298,8 +299,6 @@ class DataAPI_Report( object ):
 
         else:
 
-            print( self.slotHistIdSequence )
-
             for slotHistId in self.slotHistIdSequence:
 
                 slotHist = self.envApi[envName].SlotHistory.get( slotHistId )
@@ -311,7 +310,7 @@ class DataAPI_Report( object ):
 
                     ancestryList = self.ancestryInfo[slotHistId][itrIdx]
 
-                    ancestryAsStr = ""
+                    ancestryStrList = []
 
                     for ancestor in ancestryList:
 
@@ -319,12 +318,13 @@ class DataAPI_Report( object ):
                                         ( ancestor[0], str(ancestor[1]), \
                                           ancestor[2], str(ancestor[3]) )
 
-                        ancestryAsStr += ancestorAsStr
+                        ancestryStrList.append( ancestorAsStr )
 
                     currentChild = getDefaultTree()
                     currentChild["indent"] = currentIndent
                     currentChild["label"] = "Slot"
-                    currentChild["value"] = ancestryAsStr
+                    currentChild["value"] = ancestryStrList
+                    currentChild["vtype"] = "list"
                     children.append( currentChild )
 
                     trace( "Actual Input & Result Data:", self.actualData[slotHistId][itrIdx], newLine=True )
@@ -335,14 +335,20 @@ class DataAPI_Report( object ):
 
                         container = self.actualInfo[slotHistId][itrIdx][eventIdx]
 
-                        print( slotHistId, itrIdx, eventIdx )
-                        print( tc )
- 
+                        functionName = self.actualInfo[slotHistId][itrIdx][eventIdx]["functionName"]
+
+                        if 0 == eventIdx:
+                            value = "Calling %s: " % functionName
+                        elif numEvents - 1 == eventIdx:
+                            value = "Returned from %s: " % functionName
+                        else:
+                            value = "Stubbed %s: " % functionName
+                            
+                        value += ",".join( str(idx) for idx in container["eventIdc"] )
+
                         grandChild = getDefaultTree()
                         grandChild["indent"] = currentIndent
                         grandChild["label"] = "Events"
-                        value = "%s: " % tc.function.name
-                        value += ",".join( str(idx) for idx in container["eventIdc"] )
                         grandChild["value"] = value
 
                         arrayChildren[0] = self.getDataAsTree_globals( envName,
@@ -1122,7 +1128,8 @@ class DataAPI_Report( object ):
                         self.actualData[slotHistId][itrIdx] = [[]]*numEvents
 
                         for eventIdx in range( numEvents ):        
-                            self.actualInfo[slotHistId][itrIdx][eventIdx] = deepcopy( { "eventIdc" : [] } )
+                            self.actualInfo[slotHistId][itrIdx][eventIdx] = deepcopy( { "eventIdc" : [], \
+                                                                                        "functionName" : "<<null>>" } )
                             self.actualData[slotHistId][itrIdx][eventIdx] = deepcopy( {} )
 
                     for event in range_iteration.events:
@@ -1135,6 +1142,7 @@ class DataAPI_Report( object ):
                             self.ancestryInfo[slotHistId][itrIdx] = deepcopy( ancestryList )
 
                         self.actualInfo[slotHistId][itrIdx][eventIdx]["eventIdc"].append( event.index )
+                        self.actualInfo[slotHistId][itrIdx][eventIdx]["functionName"] = event.function_display_name
 
                         container = self.actualData[slotHistId][itrIdx][eventIdx]
 
