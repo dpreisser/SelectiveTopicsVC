@@ -36,7 +36,8 @@ def getDefaultTree():
                     "indent" : None, \
                     "label" : None, \
                     "value" : None, \
-                    "vtype" : "string" }
+                    "valuesGrp1" : None, \
+                    "valuesGrp2" : None }
 
     return defaultTree
 
@@ -323,8 +324,7 @@ class DataAPI_Report( object ):
                     currentChild = getDefaultTree()
                     currentChild["indent"] = currentIndent
                     currentChild["label"] = "Slot"
-                    currentChild["value"] = ancestryStrList
-                    currentChild["vtype"] = "list"
+                    currentChild["valuesGrp1"] = ancestryStrList
                     children.append( currentChild )
 
                     trace( "Actual Input & Result Data:", self.actualData[slotHistId][itrIdx], newLine=True )
@@ -344,12 +344,13 @@ class DataAPI_Report( object ):
                         else:
                             value = "Stubbed %s: " % functionName
                             
-                        value += ",".join( str(idx) for idx in container["eventIdc"] )
+                        eventList = [ str(idx) for idx in container["eventIdc"] ]
 
                         grandChild = getDefaultTree()
                         grandChild["indent"] = currentIndent
                         grandChild["label"] = "Events"
                         grandChild["value"] = value
+                        grandChild["valuesGrp1"] = eventList
 
                         arrayChildren[0] = self.getDataAsTree_globals( envName,
                                                                        None, None, slotHistId, itrIdx, eventIdx, isInpExpData, \
@@ -698,7 +699,8 @@ class DataAPI_Report( object ):
                 codeChild = getDefaultTree()
                 codeChild["indent"] = tcIndent+1
                 codeChild["doc"] = [ unit.id, function.index, testcase.index, -1 ]
-                codeChild["value"] = container["actuals"]
+                codeChild["valuesGrp1"] = container["actuals"]
+                codeChild["valuesGrp2"] = container["match"]
                 tcChild["children"].append( codeChild )
 
         if None != codeChild:
@@ -877,11 +879,20 @@ class DataAPI_Report( object ):
                 if None != values:
 
                     if isInpExpData:
-                        associatedValues = self.getAssociatedValues( parameterType, values )
-                    else:
-                        associatedValues = values
 
-                    currentChild["value"] = ",".join( associatedValues )
+                        associatedValues = self.getAssociatedValues( parameterType, valuesAsStr=values )
+                        currentChild["valuesGrp1"] = ",".join( associatedValues )
+
+                    else:
+
+                        associatedValues = self.getAssociatedValues( parameterType, valuesAsList=values )
+                        currentChild["valuesGrp1"] = associatedValues
+
+                        values = self.getActualData( slotHistId, itrIdx, eventIdx, dataObjectCoords, "match" )
+                        if None != values:
+                            associatedValues = self.getAssociatedValues( parameterType, valuesAsList=values )
+                            currentChild["valuesGrp2"] = associatedValues
+                    
                     children.append( currentChild )
 
             else:
@@ -1342,32 +1353,43 @@ class DataAPI_Report( object ):
         return None
 
 
-    def getAssociatedValues( self, parameterType, valuesAsStr ):
+    def getAssociatedValues( self, parameterType, valuesAsStr=None, valuesAsList=None ):
 
         associatedValues = []
 
-        values = valuesAsStr.split( "%" )
-
-        isConvertible = True
-
-        try:
-            float_value = float( values[0] )
-        except ValueError:
-            isConvertible = False
-
-        if not isConvertible:
-            associatedValues = values
-            return associatedValues
+        if None != valuesAsStr:
+            values = valuesAsStr.split( "%" )
+        else:
+            values = valuesAsList
 
         if "ENUMERATION" == parameterType.kind:
+
             for value in values:
-                assocValue = self.getEnumNameByValue( parameterType, int(value) )
+                if "<<null>>" != value:
+                    try:
+                        int_value = int( value )
+                        assocValue = self.getEnumNameByValue( parameterType, int_value )
+                    except ValueError:
+                        assocValue = value
+                else:
+                    assocValue = value
                 associatedValues.append( assocValue )
+
         elif "CHAR_ACTER" == parameterType.kind:
+
             for value in values:
-                assocValue = unichr( int(float(value)) )
+                if "<<null>>" != value:
+                    try:
+                        int_value = int( float(value) )
+                        assocValue = unichr( int_value )
+                    except ValueError:
+                        assocValue = value
+                else:
+                    assocValue = value
                 associatedValues.append( assocValue )
+
         else:
+
             associatedValues = values
 
         return associatedValues
