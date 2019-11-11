@@ -137,6 +137,11 @@ class FormatString( object ):
 
         self.categories = [ "<<GLOBAL DATA>>", "<<UUT>>", "<<SBF>>", "<<STUB>>", "<<TestCase User Code>>" ]
 
+        self.widthLine = 72
+        self.widthGrp1 = 30
+        self.widthGrp2 = 30
+        self.withMinSep = 12
+
 
     def getIndentAsString( self, numIndentUnits ):
         return numIndentUnits * self.indentUnit
@@ -209,6 +214,167 @@ class FormatString( object ):
         return beforeSameAfter
 
 
+    def addGroupValues( self, currentString, currentWidth, currentIndent, valuesGrp1, valuesGrp2 ):
+
+        newString = currentString
+
+        currentIndentWidth1 = currentIndent * len( self.indentUnit )
+        currentIndentAsStr1 = getIndentAsString( currentIndentWidth1  )
+
+        if None != valuesGrp1:
+            numValuesGrp1 = len( valuesGrp1 )
+            newStr1 = ",".join( valuesGrp1 )
+            widthNewStr1 = len( newStr1 )
+        else:
+            numValuesGrp1 = 0
+            newStr1 = ""
+            widthNewStr1 = 0
+
+        if None != valuesGrp2:
+            numValuesGrp2 = len( valuesGrp2 )
+            newStr2 = ",".join( valuesGrp2 )
+            widthNewStr2 = len( newStr2 )
+        else:
+            numValuesGrp2 = 0
+            newStr2 = ""
+            widthNewStr2 = 0
+
+        if ( currentWidth + widthNewStr1 <= self.widthGrp1 ) and \
+           ( widthNewStr2 <= self.widthGrp2 ):
+
+            if widthNewStr1 > 0:
+                newString += newStr1
+
+            if widthNewStr2 > 0:
+
+                deltaWidth = self.widthLine - currentWidth - widthNewStr1 - widthNewStr2
+                deltaWidthAsStr = getIndentAsString( deltaWidth )
+
+                newString += deltaWidthAsStr + newStr2
+
+            newString += "\n"
+
+            return newString
+
+        else:
+
+            numValues = max( numValuesGrp1, numValuesGrp2 )
+
+            newStrList1 = []
+            newStrList2 = []
+
+            idx = 0
+
+            newStr1 = ""
+            widthNewStr1 = 0
+
+            newStr2 = ""
+            widthNewStr2 = 0
+
+            if numValuesGrp1 > 0:
+                value1 = valuesGrp1[idx]
+                width1 = len( value1 ) + 1
+            else:
+                width1 = 0
+
+            if numValuesGrp2 > 0:
+                value2 = valuesGrp2[idx]
+                width2 = len( value2 ) + 1
+            else:
+                width2 = 0
+
+            if width1 > 0:
+                newStr1 += value1 + ","
+                widthNewStr1 += width1
+
+            if width2 > 0:
+                newStr2 += value2 + ","
+                widthNewStr2 += width2
+
+
+            newStrList1.append( newStr1 )
+            newStrList2.append( newStr2 )
+
+            while idx < numValues - 1:
+
+                idx += 1
+
+                if numValuesGrp1 > 0:
+                    value1 = valuesGrp1[idx]
+                    width1 = len( value1 ) + 1
+                else:
+                    width1 = 0
+
+                if numValuesGrp2 > 0:
+                    value2 = valuesGrp2[idx]
+                    width2 = len( value2 ) + 1
+                else:
+                    width2 = 0
+
+                if ( currentIndentWidth1 + widthNewStr1 + width1 <= self.widthGrp1 ) and \
+                   ( widthNewStr2 + width2 <= self.widthGrp2 ):
+
+                    if width1 > 0:
+                        newStr1 += value1 + ","
+                        widthNewStr1 += width1
+
+                    if width2 > 0:
+                        newStr2 += value2 + ","
+                        widthNewStr2 += width2
+                        
+                    newStrList1[-1] = newStr1
+                    newStrList2[-1] = newStr2
+
+                else:
+
+                    newStr1 = ""
+                    widthNewStr1 = 0
+
+                    newStr2 = ""
+                    widthNewStr2 = 0
+
+                    if width1 > 0:
+                        newStr1 += value1 + ","
+                        widthNewStr1 += width1
+
+                    if width2 > 0:
+                        newStr2 += value2 + ","
+                        widthNewStr2 += width2
+
+                    newStrList1.append( newStr1 )
+                    newStrList2.append( newStr2 )
+
+            if numValuesGrp1 > 0:
+                newStrList1[-1].strip( "," )
+
+            if numValuesGrp2 > 0:
+                newStrList2[-1].strip( "," )
+
+            numNewStr = len( newStrList1 )
+            for idx in range( numNewStr ):
+
+                newStr1 = newStrList1[idx]
+                widthNewStr1 = len( newStr1 )
+
+                newStr2 = newStrList2[idx]
+                widthNewStr2 = len( newStr2 )
+
+                if width1 > 0:
+                    newString += currentIndentAsStr1 + newStr1
+
+                if width2 > 0:
+                    
+                    deltaWidth = self.widthLine - currentIndentWidth1 - widthNewStr1 - widthNewStr2
+                    deltaWidthAsStr = getIndentAsString( deltaWidth )
+
+                    newString += newStr2
+                    newString += deltaWidthAsStr + newStr2
+
+                newString += "\n"
+
+        return newString
+
+
     def getCurrentString( self, tree, dtIdx, testcaseID, category, beforeSameAfter=None ):
 
         currentIndent = tree["indent"]
@@ -218,6 +384,8 @@ class FormatString( object ):
 
         label = tree["label"]
         value = tree["value"]
+        valuesGrp1 = tree["valuesGrp1"]
+        valuesGrp2 = tree["valuesGrp2"]
 
         currentString = ""
         currentSize = 0
@@ -238,6 +406,8 @@ class FormatString( object ):
                 if sizeNewStr > 0:
                     currentString += currentIndentAsStr + newStr
                     currentSize += currentIndentSize + sizeNewStr
+
+                currentString = self.addGroupValues( currentString, currentSize, currentIndent, valuesGrp1, valuesGrp2 )
 
                 if label in self.addNewLineBefore:
                     newLineBefore = "\n"
@@ -375,7 +545,6 @@ class FormatString( object ):
         currentIndentAsStr = self.getIndentAsString( currentIndent )
 
         label = tree["label"]
-        value = tree["value"]
 
         children = tree["children"]
 
@@ -514,6 +683,8 @@ class FormatString( object ):
                 dataAsString += currentString
 
             if "dtIdx" == label:
+
+                value = tree["value"]
                     
                 if prepare:
 
