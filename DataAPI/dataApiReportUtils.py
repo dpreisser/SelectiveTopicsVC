@@ -222,6 +222,8 @@ class FormatString( object ):
         currentIndentAsStr1 = getIndentAsString( currentIndentWidth1  )
 
         if None != valuesGrp1:
+            print( type( valuesGrp1 ) )
+            print( valuesGrp1 )
             numValuesGrp1 = len( valuesGrp1 )
             newStr1 = ",".join( valuesGrp1 )
             widthNewStr1 = len( newStr1 )
@@ -231,6 +233,8 @@ class FormatString( object ):
             widthNewStr1 = 0
 
         if None != valuesGrp2:
+            print( type( valuesGrp2 ) )
+            print( valuesGrp2 )
             numValuesGrp2 = len( valuesGrp2 )
             newStr2 = ",".join( valuesGrp2 )
             widthNewStr2 = len( newStr2 )
@@ -238,6 +242,9 @@ class FormatString( object ):
             numValuesGrp2 = 0
             newStr2 = ""
             widthNewStr2 = 0
+
+        if 0 == numValuesGrp1 and 0 == numValuesGrp2:
+            return newString
 
         if ( currentWidth + widthNewStr1 <= self.widthGrp1 ) and \
            ( widthNewStr2 <= self.widthGrp2 ):
@@ -252,11 +259,11 @@ class FormatString( object ):
 
                 newString += deltaWidthAsStr + newStr2
 
-            newString += "\n"
-
             return newString
 
         else:
+
+            newString += "\n"
 
             numValues = max( numValuesGrp1, numValuesGrp2 )
 
@@ -290,7 +297,6 @@ class FormatString( object ):
             if width2 > 0:
                 newStr2 += value2 + ","
                 widthNewStr2 += width2
-
 
             newStrList1.append( newStr1 )
             newStrList2.append( newStr2 )
@@ -344,11 +350,11 @@ class FormatString( object ):
                     newStrList1.append( newStr1 )
                     newStrList2.append( newStr2 )
 
-            if numValuesGrp1 > 0:
-                newStrList1[-1].strip( "," )
+            lastStr1 = newStrList1[-1]
+            lastStr2 = newStrList2[-1]
 
-            if numValuesGrp2 > 0:
-                newStrList2[-1].strip( "," )
+            newStrList1[-1] = lastStr1.strip( "," )
+            newStrList2[-1] = lastStr2.strip( "," )
 
             numNewStr = len( newStrList1 )
             for idx in range( numNewStr ):
@@ -367,10 +373,11 @@ class FormatString( object ):
                     deltaWidth = self.widthLine - currentIndentWidth1 - widthNewStr1 - widthNewStr2
                     deltaWidthAsStr = getIndentAsString( deltaWidth )
 
-                    newString += newStr2
                     newString += deltaWidthAsStr + newStr2
 
                 newString += "\n"
+
+            newString = newString.strip( "\n" )
 
         return newString
 
@@ -398,6 +405,8 @@ class FormatString( object ):
 
                 if None != value:
                     newStr = label.strip() + ": " + str(value)
+                elif None != valuesGrp1 or None != valuesGrp1:
+                    newStr = label.strip() + ": "
                 else:
                     newStr = label.strip()
 

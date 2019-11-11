@@ -315,7 +315,7 @@ class DataAPI_Report( object ):
 
                     for ancestor in ancestryList:
 
-                        ancestorAsStr = "%s Slot %s (%s) Iteration %s\n" % \
+                        ancestorAsStr = "%s Slot %s (%s) Iteration %s" % \
                                         ( ancestor[0], str(ancestor[1]), \
                                           ancestor[2], str(ancestor[3]) )
 
@@ -881,7 +881,7 @@ class DataAPI_Report( object ):
                     if isInpExpData:
 
                         associatedValues = self.getAssociatedValues( parameterType, valuesAsStr=values )
-                        currentChild["valuesGrp1"] = ",".join( associatedValues )
+                        currentChild["valuesGrp1"] = associatedValues
 
                     else:
 
