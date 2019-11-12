@@ -214,12 +214,24 @@ class FormatString( object ):
         return beforeSameAfter
 
 
-    def addGroupValues( self, currentString, currentWidth, currentIndent, valuesGrp1, valuesGrp2 ):
+    def addGroupValues( self, dtIdx, currentString, currentWidth, currentIndent, valuesGrp1, valuesGrp2 ):
 
-        newString = currentString
+        newStringList = []
+        newStr = ""
 
         currentIndentWidth1 = currentIndent * len( self.indentUnit )
         currentIndentAsStr1 = getIndentAsString( currentIndentWidth1  )
+
+        if 0 == dtIdx:
+            widthGrp1 = self.widthGrp1
+            widthGrp2 = self.widthGrp2
+        elif 1 == dtIdx:
+            widthGrp1 = self.widthGrp2
+            widthGrp2 = widthGrp1
+
+        numValuesGrp1 = 0
+        newStr1 = ""
+        widthNewStr1 = 0
 
         if None != valuesGrp1:
             print( type( valuesGrp1 ) )
@@ -227,43 +239,44 @@ class FormatString( object ):
             numValuesGrp1 = len( valuesGrp1 )
             newStr1 = ",".join( valuesGrp1 )
             widthNewStr1 = len( newStr1 )
-        else:
-            numValuesGrp1 = 0
-            newStr1 = ""
-            widthNewStr1 = 0
 
-        if None != valuesGrp2:
-            print( type( valuesGrp2 ) )
-            print( valuesGrp2 )
-            numValuesGrp2 = len( valuesGrp2 )
-            newStr2 = ",".join( valuesGrp2 )
-            widthNewStr2 = len( newStr2 )
-        else:
-            numValuesGrp2 = 0
-            newStr2 = ""
-            widthNewStr2 = 0
+        numValuesGrp2 = 0
+        newStr2 = ""
+        widthNewStr2 = 0
+
+        if 0 == dtIdx:
+
+            if None != valuesGrp2:
+                print( type( valuesGrp2 ) )
+                print( valuesGrp2 )
+                numValuesGrp2 = len( valuesGrp2 )
+                newStr2 = ",".join( valuesGrp2 )
+                widthNewStr2 = len( newStr2 )
 
         if 0 == numValuesGrp1 and 0 == numValuesGrp2:
-            return newString
+            newStringList.append( currentString )  
+            return newStringList
 
-        if ( currentWidth + widthNewStr1 <= self.widthGrp1 ) and \
-           ( widthNewStr2 <= self.widthGrp2 ):
+        if ( currentWidth + widthNewStr1 <= widthGrp1 ) and \
+           ( widthNewStr2 <= widthGrp2 ):
+
+            newStr = currentString
 
             if widthNewStr1 > 0:
-                newString += newStr1
+                newStr += newStr1
 
             if widthNewStr2 > 0:
 
                 deltaWidth = self.widthLine - currentWidth - widthNewStr1 - widthNewStr2
                 deltaWidthAsStr = getIndentAsString( deltaWidth )
 
-                newString += deltaWidthAsStr + newStr2
+                newStr += deltaWidthAsStr + newStr2
 
-            return newString
+            newStringList.append( newString ) 
 
         else:
 
-            newString += "\n"
+            newStringList.append( currentString )
 
             numValues = max( numValuesGrp1, numValuesGrp2 )
 
@@ -317,8 +330,8 @@ class FormatString( object ):
                 else:
                     width2 = 0
 
-                if ( currentIndentWidth1 + widthNewStr1 + width1 <= self.widthGrp1 ) and \
-                   ( widthNewStr2 + width2 <= self.widthGrp2 ):
+                if ( currentIndentWidth1 + widthNewStr1 + width1 <= widthGrp1 ) and \
+                   ( widthNewStr2 + width2 <= widthGrp2 ):
 
                     if width1 > 0:
                         newStr1 += value1 + ","
@@ -365,63 +378,62 @@ class FormatString( object ):
                 newStr2 = newStrList2[idx]
                 widthNewStr2 = len( newStr2 )
 
-                if width1 > 0:
-                    newString += currentIndentAsStr1 + newStr1
+                if widthNewStr1 > 0:
+                    newStr += currentIndentAsStr1 + newStr1
 
-                if width2 > 0:
+                if widthNewStr2 > 0:
                     
                     deltaWidth = self.widthLine - currentIndentWidth1 - widthNewStr1 - widthNewStr2
                     deltaWidthAsStr = getIndentAsString( deltaWidth )
 
-                    newString += deltaWidthAsStr + newStr2
+                    newStr += deltaWidthAsStr + newStr2
 
-                newString += "\n"
+                newStringList.append( newStr )
 
-            newString = newString.strip( "\n" )
-
-        return newString
+        return newStringList
 
 
     def getCurrentString( self, tree, dtIdx, testcaseID, category, beforeSameAfter=None ):
 
-        currentIndent = tree["indent"]
-        currentIndentAsStr = self.getIndentAsString( currentIndent )
+        currentIndent1 = tree["indent"]
+        currentIndentAsStr1 = self.getIndentAsString( currentIndent )
 
-        currentIndentSize = currentIndent * len( self.indentUnit )
+        currentIndentWidth1 = currentIndent * len( self.indentUnit )
 
-        label = tree["label"]
-        value = tree["value"]
+        label1 = tree["label"]
+        value1 = tree["value"]
         valuesGrp1 = tree["valuesGrp1"]
         valuesGrp2 = tree["valuesGrp2"]
 
-        currentString = ""
-        currentSize = 0
         newLineBefore = ""
         newLineAfter = ""
 
-        if None != label:
+        currentString1 = ""
+        currentSize1 = 0
 
-            if not label in self.omit:
+        if None != label1:
 
-                if None != value:
-                    newStr = label.strip() + ": " + str(value)
-                elif None != valuesGrp1 or None != valuesGrp1:
-                    newStr = label.strip() + ": "
+            if not label1 in self.omit:
+
+                if None != value1:
+                    newStr1 = label1.strip() + ": " + str(value1)
+                elif None != valuesGrp1 or None != valuesGrp2:
+                    newStr1 = label1.strip() + ": "
                 else:
-                    newStr = label.strip()
+                    newStr1 = label1.strip()
 
-                sizeNewStr = len( newStr )
+                sizeNewStr1 = len( newStr1 )
 
-                if sizeNewStr > 0:
-                    currentString += currentIndentAsStr + newStr
-                    currentSize += currentIndentSize + sizeNewStr
+                if sizeNewStr1 > 0:
+                    currentString1 += currentIndentAsStr1 + newStr1
+                    currentSize1 += currentIndentSize1 + sizeNewStr1
 
-                currentString = self.addGroupValues( currentString, currentSize, currentIndent, valuesGrp1, valuesGrp2 )
+                currentString1 = self.addGroupValues( currentString1, currentSize1, currentIndent1, valuesGrp1, valuesGrp2 )
 
-                if label in self.addNewLineBefore:
+                if label1 in self.addNewLineBefore:
                     newLineBefore = "\n"
 
-                if label in self.addNewLineAfter:
+                if label1 in self.addNewLineAfter:
                     newLineAfter = "\n"
 
         elif None != value:
@@ -481,17 +493,30 @@ class FormatString( object ):
                 label_2 = targetTree["label"]
                 value_2 = targetTree["value"]
 
+                currentString_2 = ""
+                currentSize_2 = 0
+
                 if None != label_2:
 
                     if not label_2 in self.omit:
 
                         if None != value_2:
                             newStr_2 = label_2.strip() + ": " + str(value_2)
+                        elif None != valuesGrp1:
+                            newStr_2 = label_2.strip() + ": "
                         else:
                             newStr_2 = label_2.strip()
 
-                        if len( newStr_2 ) > 0:
-                            currentString += deltaSizeAsStr + currentIndentAsStr_2 + newStr_2 + "\n"
+                        if sizeNewStr_2 = len( newStr_2 )
+
+                        if sizeNewStr_2 > 0:
+                            currentString_2 += currentIndentAsStr_2 + newStr_2
+                            currentSize_2 += currentIndentSize_2 + sizeNewStr_2
+
+                        currentString_2 = self.addGroupValues( currentString_2, currentSize_2, currentIndent_2, valuesGrp1, valuesGrp2 )
+
+                        currentString += deltaSizeAsStr + currentIndentAsStr_2 + newStr_2 + "\n"
+
 
                 elif None != value_2:
 
