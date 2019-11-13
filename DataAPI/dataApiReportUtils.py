@@ -272,7 +272,7 @@ class FormatString( object ):
 
                 newStr += deltaWidthAsStr + newStr2
 
-            newStringList.append( newString ) 
+            newStringList.append( newStr ) 
 
         else:
 
@@ -395,10 +395,14 @@ class FormatString( object ):
 
     def getCurrentString( self, tree, dtIdx, testcaseID, category, beforeSameAfter=None ):
 
-        currentIndent1 = tree["indent"]
-        currentIndentAsStr1 = self.getIndentAsString( currentIndent )
+        stringList1 = []
+        stringList2 = []
+        newString = ""
 
-        currentIndentWidth1 = currentIndent * len( self.indentUnit )
+        currentIndent1 = tree["indent"]
+        currentIndentAsStr1 = self.getIndentAsString( currentIndent1 )
+
+        currentIndentWidth1 = currentIndent1 * len( self.indentUnit )
 
         label1 = tree["label"]
         value1 = tree["value"]
@@ -409,7 +413,7 @@ class FormatString( object ):
         newLineAfter = ""
 
         currentString1 = ""
-        currentSize1 = 0
+        currentWidth1 = 0
 
         if None != label1:
 
@@ -422,13 +426,13 @@ class FormatString( object ):
                 else:
                     newStr1 = label1.strip()
 
-                sizeNewStr1 = len( newStr1 )
+                widthNewStr1 = len( newStr1 )
 
-                if sizeNewStr1 > 0:
+                if widthNewStr1 > 0:
                     currentString1 += currentIndentAsStr1 + newStr1
-                    currentSize1 += currentIndentSize1 + sizeNewStr1
+                    currentWidth1 += currentIndentWidth1 + widthNewStr1
 
-                currentString1 = self.addGroupValues( currentString1, currentSize1, currentIndent1, valuesGrp1, valuesGrp2 )
+                stringList1 = self.addGroupValues( dtIdx, currentString1, currentWidth1, currentIndent1, valuesGrp1, valuesGrp2 )
 
                 if label1 in self.addNewLineBefore:
                     newLineBefore = "\n"
@@ -436,28 +440,27 @@ class FormatString( object ):
                 if label1 in self.addNewLineAfter:
                     newLineAfter = "\n"
 
-        elif None != value:
+        elif None != value1:
 
             if 1 == dtIdx:
-                offsetSize = self.maxSize
+                offsetWidth = self.maxSize
             else:
-                offsetSize = 0
+                offsetWidth = 0
 
             if self.isInpExpData:
-                formattedStr = formatMultiLine( value, offsetSize + currentIndentSize )
-                currentString += formattedStr
+                formattedStr = formatMultiLine( value1, offsetWidth + currentIndentWidth1 )
+                currentString1 += formattedStr
             else:
                 formattedPartList = []
-                for part in value:
-                    formattedPart = formatMultiLine( part, offsetSize + currentIndentSize )
+                for part in value1:
+                    formattedPart = formatMultiLine( part, offsetSize + currentIndentWidth1 )
                     formattedPartList.append( formattedPart )
                 formattedStr = ",\n".join( [ formattedPart.strip() for formattedPart in formattedPartList ] )
-                currentString += formattedStr
+                currentString1 += formattedStr
+
+            newString += currentString1
 
         if 1 == dtIdx:
-
-            if currentSize > 0:
-                currentString = self.maxSizeAsStr + currentString + "\n"
 
             dataObjectCoords = tree["doc"]
             
@@ -482,64 +485,91 @@ class FormatString( object ):
                 theTuple = beforeSameAfter[1][0]
                 targetTree = self.doidToTree[testcaseID][category][theTuple[1]]
 
-                deltaSize = self.maxSize - currentSize
-                deltaSizeAsStr = getIndentAsString( deltaSize )
+                currentIndent2 = targetTree["indent"]
+                currentIndentAsStr2 = self.getIndentAsString( currentIndent2 )
 
-                currentIndent_2 = targetTree["indent"]
-                currentIndentAsStr_2 = self.getIndentAsString( currentIndent_2 )
+                currentIndentWidth2 = currentIndent2 * len( self.indentUnit )
 
-                currentIndentSize_2 = currentIndent_2 * len( self.indentUnit )
+                label2 = targetTree["label"]
+                value2 = targetTree["value"]
 
-                label_2 = targetTree["label"]
-                value_2 = targetTree["value"]
+                currentString2 = ""
+                currentWidth2 = 0
 
-                currentString_2 = ""
-                currentSize_2 = 0
+                if None != label2:
 
-                if None != label_2:
+                    if not label2 in self.omit:
 
-                    if not label_2 in self.omit:
-
-                        if None != value_2:
-                            newStr_2 = label_2.strip() + ": " + str(value_2)
+                        if None != value2:
+                            newStr2 = label2.strip() + ": " + str(value2)
                         elif None != valuesGrp1:
-                            newStr_2 = label_2.strip() + ": "
+                            newStr2 = label2.strip() + ": "
                         else:
-                            newStr_2 = label_2.strip()
+                            newStr2 = label2.strip()
 
-                        if sizeNewStr_2 = len( newStr_2 )
+                        widthNewStr2 = len( newStr2 )
 
-                        if sizeNewStr_2 > 0:
-                            currentString_2 += currentIndentAsStr_2 + newStr_2
-                            currentSize_2 += currentIndentSize_2 + sizeNewStr_2
+                        if widthNewStr2 > 0:
+                            currentString2 += currentIndentAsStr2 + newStr2
+                            currentWidth2 += currentIndentWidth2 + widthNewStr2
 
-                        currentString_2 = self.addGroupValues( currentString_2, currentSize_2, currentIndent_2, valuesGrp1, valuesGrp2 )
+                        stringList2 = self.addGroupValues( dtIdx, currentString2, currentWidth2, currentIndent2, valuesGrp1, valuesGrp2 )
 
-                        currentString += deltaSizeAsStr + currentIndentAsStr_2 + newStr_2 + "\n"
-
-
-                elif None != value_2:
+                elif None != value2:
 
                     if self.isInpExpData:
-                        formattedStr = formatMultiLine( value_2, self.maxSize + currentIndentSize_2 )
-                        currentString += formattedStr
+                        formattedStr = formatMultiLine( value2, self.maxSize + currentIndentWidth2 )
+                        currentString2 += formattedStr
                     else:
                         formattedPartList = []
-                        for part in value_2:
-                            formattedPart = formatMultiLine( part, self.maxSize + currentIndentSize_2 )
+                        for part in value2:
+                            formattedPart = formatMultiLine( part, self.maxSize + currentIndentWidth2 )
                             formattedPartList.append( formattedPart )
                         formattedStr = ",\n".join( [ formattedPart.strip() for formattedPart in formattedPartList ] )
-                        currentString += formattedStr
+                        currentString2 += formattedStr
+
+                    newString += currentString2
 
                 print( "R2:", theTuple )
                 self.docList[testcaseID][category].remove( theTuple )
 
+        numNewStr1 = len( stringList1 )
+        numNewStr2 = len( stringList2 )
+        numNewStr = max( numNewStr1, numNewStr2 )
+
+        for idx in range( numNewStr ):
+
+            newStr = ""
+
+            if idx < numNewStr1:
+                newStr1 = stringList1[idx]
             else:
+                newStr1 = ""
 
-                if currentSize > 0:
-                    currentString += "\n"
+            if idx < numNewStr2:
+                newStr2 = stringList2[idx]
+            else:
+                newStr2 = ""
 
-        finalString = newLineBefore + currentString + newLineAfter
+            if "" != newStr1:
+                newStr += newStr1
+
+            widthNewStr = len( newStr )
+
+            if "" != newStr2:
+
+                if self.isInpExpData:
+                    deltaWidth = self.maxSize - widthNewStr
+                    deltaWidthAsStr = getIndentAsString( deltaWidth )
+                else:
+                    deltaWidth = self.widthLine - widthNewStr
+                    deltaWidthAsStr = getIndentAsString( deltaWidth )
+
+                newStr += deltaWidthAsStr + newStr2
+
+            newString += newStr + "\n"
+
+        finalString = newLineBefore + newString + newLineAfter
 
         return finalString
 
