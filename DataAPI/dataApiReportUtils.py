@@ -126,9 +126,13 @@ def getDataAsString( tree ):
 
 class FormatString( object ):
 
-    def __init__( self, indentUnit ):
+    def __init__( self, indentUnit=2, widthLine = 72, \
+                  widthGrp1=32, widthGrp2=32 ):
 
         self.indentUnit = indentUnit
+        self.widthLine = widthLine
+        self.widthGrp1 = widthGrp1
+        self.widthGrp2 = widthGrp2
 
         self.addNewLineBefore = [ "Environment", "TestCase", "Slot", "Events" ]
         self.addNewLineAfter = [ "Environment", "TestCase", "Slot", "Events" ]
@@ -136,11 +140,6 @@ class FormatString( object ):
         self.omit = [ "Header", "dtIdx"]
 
         self.categories = [ "<<GLOBAL DATA>>", "<<UUT>>", "<<SBF>>", "<<STUB>>", "<<TestCase User Code>>" ]
-
-        self.widthLine = 72
-        self.widthGrp1 = 30
-        self.widthGrp2 = 30
-        self.withMinSep = 12
 
 
     def getIndentAsString( self, numIndentUnits ):
@@ -372,6 +371,8 @@ class FormatString( object ):
             numNewStr = len( newStrList1 )
             for idx in range( numNewStr ):
 
+                newStr = ""
+
                 newStr1 = newStrList1[idx]
                 widthNewStr1 = len( newStr1 )
 
@@ -445,7 +446,7 @@ class FormatString( object ):
         elif None != value:
 
             if 1 == dtIdx:
-                offsetWidth = self.maxSize
+                offsetWidth = self.widthLine - self.widthGrp2
             else:
                 offsetWidth = 0
 
@@ -526,13 +527,15 @@ class FormatString( object ):
 
                 elif None != value2:
 
+                    offsetWidth = self.widthLine - self.widthGrp2
+
                     if self.isInpExpData:
-                        formattedStr = formatMultiLine( value2, self.maxSize + currentIndentWidth2 )
+                        formattedStr = formatMultiLine( value2, offsetWidth + currentIndentWidth2 )
                         currentString2 += formattedStr
                     else:
                         formattedPartList = []
                         for part in value2:
-                            formattedPart = formatMultiLine( part, self.maxSize + currentIndentWidth2 )
+                            formattedPart = formatMultiLine( part, offsetWidth + currentIndentWidth2 )
                             formattedPartList.append( formattedPart )
                         formattedStr = ",\n".join( [ formattedPart.strip() for formattedPart in formattedPartList ] )
                         currentString2 += formattedStr
@@ -568,7 +571,7 @@ class FormatString( object ):
             if "" != newStr2:
 
                 if self.isInpExpData:
-                    deltaWidth = self.maxSize - widthNewStr
+                    deltaWidth = self.widthLine - self.widthGrp2 - widthNewStr
                     deltaWidthAsStr = getIndentAsString( deltaWidth )
                 else:
                     deltaWidth = self.widthLine - widthNewStr
@@ -590,18 +593,22 @@ class FormatString( object ):
 
         self.isInpExpData = isInpExpData 
 
-        if 3 == dataTypeControl:
+        if isInpExpData and 3 == dataTypeControl:
 
             dataAsString = self.formatString( tree, 0, prepare=True )
 
-            self.maxSize = maxSize( dataAsString )
-            self.maxSizeAsStr = getIndentAsString( self.maxSize ) 
+            maxWidthGrp1 = maxSize( dataAsString )
+            deltaWidth = maxWidthGrp1 - self.widthGrp1
+
+            if deltaWidth > 0:
+                self.widthGrp1 += deltaWidth
+                self.widthLine += deltaWidth
 
             for testcaseID in self.docList.keys():
                 for category in self.docList[testcaseID].keys():
                     self.docList[testcaseID][category] = sort( self.docList[testcaseID][category] )
 
-            print( self.maxSize )
+            print( maxWidthGrp1 )
             pprint.pprint( tree )
             pprint.pprint( self.docList )
         
