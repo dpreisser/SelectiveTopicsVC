@@ -1366,11 +1366,13 @@ class DataAPI_Report( object ):
 
             for value in values:
                 if "<<null>>" != value:
-                    try:
-                        int_value = int( value )
-                        assocValue = self.getEnumNameByValue( parameterType, int_value )
-                    except ValueError:
-                        assocValue = value
+                    status, assocValue = self.getAssocRangeValue( parameterType, value )
+                    if not status:
+                        try:
+                            int_value = int( float(value) )
+                            assocValue = self.getEnumNameByValue( parameterType, int_value )
+                        except ValueError:
+                            assocValue = value
                 else:
                     assocValue = value
                 associatedValues.append( assocValue )
@@ -1379,20 +1381,112 @@ class DataAPI_Report( object ):
 
             for value in values:
                 if "<<null>>" != value:
-                    try:
-                        int_value = int( float(value) )
-                        assocValue = unichr( int_value )
-                    except ValueError:
-                        assocValue = value
+                    status, assocValue = self.getAssocRangeValue( parameterType, value )
+                    if not status:
+                        try:
+                            int_value = int( float(value) )
+                            assocValue = unichr( int_value )
+                        except ValueError:
+                            assocValue = value
                 else:
                     assocValue = value
                 associatedValues.append( assocValue )
 
         else:
 
-            associatedValues = values
+            for value in values:
+                if "<<null>>" != value:
+                    status, assocValue = self.getAssocRangeValue( parameterType, value )
+                    if not status:
+                        assocValue = value
+                else:
+                    assocValue = value
+                associatedValues.append( assocValue )
 
         return associatedValues
+
+
+    def getAssocRangeValue( self, parameterType, value ):
+
+        status = False
+        assocValue = None
+
+        numChar = len( value )
+
+        if numChar > 7:
+
+            if "#RANGE#" == value[:7]:
+
+                infoStr = value[7:]
+                compList = infoStr.split( "/" )
+                numComp = len( compList )
+
+                if 3 == numComp:
+                    status = True
+                    isInput = True
+
+        else:
+
+            compList = value.split( ".." )
+            numComp = len( compList )
+
+            if 2 == numComp:
+                status = True
+                isInput = False
+
+        if not status:
+            return status, assocValue
+
+        assocRangeValues = []
+
+        if "ENUMERATION" == parameterType.kind:
+
+            for idx in range( numComp ):
+
+                comp = compList[idx]
+                    
+                try:
+                    int_comp = int( float(comp) )
+                    if idx < 2:
+                        assocComp = self.getEnumNameByValue( parameterType, int_comp )
+                        assocRangeValues.append( assocComp )
+                    else:
+                        assocRangeValues.append( int_comp )
+                        
+                except ValueError:
+                    status = False
+                    return status, assocValue
+
+        elif "CHAR_ACTER" == parameterType.kind:
+
+            for idx in range( numComp ):
+
+                comp = compList[idx]
+                    
+                try:
+                    int_comp = int( float(comp) )
+                    if idx < 2:
+                        assocComp = unichr( int_comp )
+                        assocRangeValues.append( assocComp )
+                    else:
+                        assocRangeValues.append( int_comp )
+                        
+                except ValueError:
+                    status = False
+                    return status, assocValue
+
+        else:
+
+            assocRangeValues = compList
+
+        if isInput:
+            assocValue = "VARY FROM: %s TO: %s BY: %s" % \
+                         ( assocRangeValues[0], assocRangeValues[1], assocRangeValues[2] )
+        else:
+            assocValue = "BETWEEN: %s AND: %s" % \
+                         ( assocRangeValues[0], assocRangeValues[1] )
+
+        return status, assocValue
 
 
     def getEnumNameByValue( self, parameterType, value ):
