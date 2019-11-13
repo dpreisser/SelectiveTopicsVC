@@ -395,52 +395,54 @@ class FormatString( object ):
 
     def getCurrentString( self, tree, dtIdx, testcaseID, category, beforeSameAfter=None ):
 
+        stringList = []
         stringList1 = []
         stringList2 = []
         newString = ""
 
-        currentIndent1 = tree["indent"]
-        currentIndentAsStr1 = self.getIndentAsString( currentIndent1 )
+        currentIndent = tree["indent"]
+        currentIndentAsStr = self.getIndentAsString( currentIndent )
 
-        currentIndentWidth1 = currentIndent1 * len( self.indentUnit )
+        currentIndentWidth = currentIndent * len( self.indentUnit )
 
-        label1 = tree["label"]
-        value1 = tree["value"]
+        label = tree["label"]
+        value = tree["value"]
+
         valuesGrp1 = tree["valuesGrp1"]
         valuesGrp2 = tree["valuesGrp2"]
 
         newLineBefore = ""
         newLineAfter = ""
 
-        currentString1 = ""
-        currentWidth1 = 0
+        currentString = ""
+        currentWidth = 0
 
-        if None != label1:
+        if None != label:
 
-            if not label1 in self.omit:
+            if not label in self.omit:
 
-                if None != value1:
-                    newStr1 = label1.strip() + ": " + str(value1)
+                if None != value:
+                    newStr = label.strip() + ": " + str(value)
                 elif None != valuesGrp1 or None != valuesGrp2:
-                    newStr1 = label1.strip() + ": "
+                    newStr = label.strip() + ": "
                 else:
-                    newStr1 = label1.strip()
+                    newStr = label.strip()
 
-                widthNewStr1 = len( newStr1 )
+                widthNewStr = len( newStr )
 
-                if widthNewStr1 > 0:
-                    currentString1 += currentIndentAsStr1 + newStr1
-                    currentWidth1 += currentIndentWidth1 + widthNewStr1
+                if widthNewStr > 0:
+                    currentString += currentIndentAsStr + newStr
+                    currentWidth += currentIndentWidth + widthNewStr
 
-                stringList1 = self.addGroupValues( dtIdx, currentString1, currentWidth1, currentIndent1, valuesGrp1, valuesGrp2 )
+                stringList = self.addGroupValues( dtIdx, currentString, currentWidth, currentIndent, valuesGrp1, valuesGrp2 )
 
-                if label1 in self.addNewLineBefore:
+                if label in self.addNewLineBefore:
                     newLineBefore = "\n"
 
-                if label1 in self.addNewLineAfter:
+                if label in self.addNewLineAfter:
                     newLineAfter = "\n"
 
-        elif None != value1:
+        elif None != value:
 
             if 1 == dtIdx:
                 offsetWidth = self.maxSize
@@ -448,19 +450,21 @@ class FormatString( object ):
                 offsetWidth = 0
 
             if self.isInpExpData:
-                formattedStr = formatMultiLine( value1, offsetWidth + currentIndentWidth1 )
-                currentString1 += formattedStr
+                formattedStr = formatMultiLine( value, offsetWidth + currentIndentWidth )
+                currentString += formattedStr
             else:
                 formattedPartList = []
-                for part in value1:
-                    formattedPart = formatMultiLine( part, offsetSize + currentIndentWidth1 )
+                for part in value:
+                    formattedPart = formatMultiLine( part, offsetSize + currentIndentWidth )
                     formattedPartList.append( formattedPart )
                 formattedStr = ",\n".join( [ formattedPart.strip() for formattedPart in formattedPartList ] )
-                currentString1 += formattedStr
+                currentString += formattedStr
 
-            newString += currentString1
+            newString += currentString
 
         if 1 == dtIdx:
+
+            stringList2 = stringList
 
             dataObjectCoords = tree["doc"]
             
@@ -473,6 +477,8 @@ class FormatString( object ):
                 self.docList[testcaseID][category].remove( theTuple )
 
         elif 0 == dtIdx:
+
+            stringList1 = stringList
 
             extraData = False
 
@@ -492,6 +498,9 @@ class FormatString( object ):
 
                 label2 = targetTree["label"]
                 value2 = targetTree["value"]
+
+                valuesGrp1 = targetTree["valuesGrp1"]
+                valuesGrp2 = targetTree["valuesGrp2"]
 
                 currentString2 = ""
                 currentWidth2 = 0
@@ -513,7 +522,7 @@ class FormatString( object ):
                             currentString2 += currentIndentAsStr2 + newStr2
                             currentWidth2 += currentIndentWidth2 + widthNewStr2
 
-                        stringList2 = self.addGroupValues( dtIdx, currentString2, currentWidth2, currentIndent2, valuesGrp1, valuesGrp2 )
+                        stringList2 = self.addGroupValues( 1, currentString2, currentWidth2, currentIndent2, valuesGrp1, valuesGrp2 )
 
                 elif None != value2:
 
