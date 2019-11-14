@@ -1412,10 +1412,13 @@ class DataAPI_Report( object ):
         assocValue = None
 
         numChar = len( value )
+        isInputCandidate = False
 
         if numChar > 7:
 
             if "#RANGE#" == value[:7]:
+
+                isInputCandidate = True
 
                 infoStr = value[7:]
                 compList = infoStr.split( "/" )
@@ -1425,7 +1428,7 @@ class DataAPI_Report( object ):
                     status = True
                     isInput = True
 
-        else:
+        if not isInputCandidate:
 
             compList = value.split( ".." )
             numComp = len( compList )
@@ -1454,8 +1457,7 @@ class DataAPI_Report( object ):
                         assocRangeValues.append( int_comp )
                         
                 except ValueError:
-                    status = False
-                    return status, assocValue
+                    assocRangeValues.append( comp )
 
         elif "CHAR_ACTER" == parameterType.kind:
 
@@ -1472,8 +1474,7 @@ class DataAPI_Report( object ):
                         assocRangeValues.append( int_comp )
                         
                 except ValueError:
-                    status = False
-                    return status, assocValue
+                    assocRangeValues.append( comp )
 
         else:
 
