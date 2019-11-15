@@ -4,8 +4,11 @@ import argparse
 
 from traceHandler import TraceHandler
 
+from dataApiReportUtils import FormatHandler
 from dataApiReport import DataAPI_Report
+
 from testCaseReport import TestCaseReport
+
 
 def initArgParser ():
 
@@ -77,7 +80,17 @@ if "__main__" == __name__:
 
     traceHandler = TraceHandler()
 
-    dataApiRep = DataAPI_Report( workingDirVC, traceHandler )
+#    formatHandler = FormatHandler( traceHandler, \
+#                                   indentUnit = "  ", \
+#                                   widthLine = 72, \
+#                                   widthGrp1=32, widthGrp2=32 )
+
+    formatHandler = FormatHandler( traceHandler, \
+                                   indentUnit = "  ", \
+                                   widthLine = 136, \
+                                   widthGrp1=64, widthGrp2=64 )
+
+    dataApiRep = DataAPI_Report( workingDirVC, formatHandler, traceHandler )
     api = dataApiRep.getApi( envName )
 
     if None == unitName:

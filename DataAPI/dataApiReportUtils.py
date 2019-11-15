@@ -124,10 +124,14 @@ def getDataAsString( tree ):
     return dataAsString
 
 
-class FormatString( object ):
+class FormatHandler( object ):
 
-    def __init__( self, indentUnit=2, widthLine = 72, \
+    def __init__( self, traceHandler, \
+                  indentUnit=2, \
+                  widthLine=72, \
                   widthGrp1=32, widthGrp2=32 ):
+
+        self.traceHandler = traceHandler
 
         self.indentUnit = indentUnit
         self.widthLine = widthLine
@@ -180,8 +184,10 @@ class FormatString( object ):
                         leadingNumDigits_b = currentNumDigits
                         beforeSameAfter[cmp+1].append( tuple )
                     elif eqv < 0:
-                        print( "Catastrophic error in getBeforeSameAfter!!!" )
-                        sys.exit()
+                        msg = "getBeforeSameAfter:\n"
+                        msg += "Catastrophic internal logical error!!!"
+                        self.traceHandler.addErrMessage( msg )
+                        return [ [], [], [] ]
 
             elif cmp > 0:
 
@@ -203,8 +209,10 @@ class FormatString( object ):
                         leadingNumDigits_a = currentNumDigits
                         beforeSameAfter[cmp+1].append( tuple )
                     elif eqv < 0:
-                        print( "Catastrophic error in getBeforeSameAfter!!!" )
-                        sys.exit()
+                        msg = "getBeforeSameAfter:\n"
+                        msg += "Catastrophic internal logical error!!!"
+                        self.traceHandler.addErrMessage( msg )
+                        return [ [], [], [] ]
 
             else:
 
@@ -233,8 +241,6 @@ class FormatString( object ):
         widthNewStr1 = 0
 
         if None != valuesGrp1:
-            print( type( valuesGrp1 ) )
-            print( valuesGrp1 )
             numValuesGrp1 = len( valuesGrp1 )
             newStr1 = ",".join( valuesGrp1 )
             widthNewStr1 = len( newStr1 )
@@ -246,8 +252,6 @@ class FormatString( object ):
         if 0 == dtIdx:
 
             if None != valuesGrp2:
-                print( type( valuesGrp2 ) )
-                print( valuesGrp2 )
                 numValuesGrp2 = len( valuesGrp2 )
                 newStr2 = ",".join( valuesGrp2 )
                 widthNewStr2 = len( newStr2 )
@@ -488,7 +492,6 @@ class FormatString( object ):
                 data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
 
                 theTuple = ( dataObjectCoords, data_object_id )
-                print( "R1:", theTuple )
                 self.docList[testcaseID][category].remove( theTuple )
 
         elif 0 == dtIdx:
@@ -556,7 +559,6 @@ class FormatString( object ):
 
                     newString += currentString2
 
-                print( "R2:", theTuple )
                 self.docList[testcaseID][category].remove( theTuple )
 
         numNewStr1 = len( stringList1 )
@@ -623,6 +625,9 @@ class FormatString( object ):
 
             dataAsString = self.formatString( tree, 0, prepare=True )
 
+            if not self.traceHandler.getStatus():
+                return dataAsString
+
             maxWidthGrp1 = maxSize( dataAsString )
             deltaWidth = maxWidthGrp1 - self.widthGrp1
 
@@ -634,9 +639,9 @@ class FormatString( object ):
                 for category in self.docList[testcaseID].keys():
                     self.docList[testcaseID][category] = sort( self.docList[testcaseID][category] )
 
-            print( maxWidthGrp1 )
-            pprint.pprint( tree )
-            pprint.pprint( self.docList )
+            # print( maxWidthGrp1 )
+            # pprint.pprint( tree )
+            # pprint.pprint( self.docList )
         
         dataAsString = self.formatString( tree, 0, prepare=False )
 
@@ -722,12 +727,16 @@ class FormatString( object ):
                     if None != self.beforeSameAfter:
                         
                         for tuple in self.beforeSameAfter[2]:
-                            print( "a1:", tuple )
+
                             targetTree = self.doidToTree[testcaseID][self.previousCategory][tuple[1]]
+
                             appendString = self.formatString( targetTree, 1, prepare=prepare, \
                                                               testcaseID=testcaseID, category=self.previousCategory,
                                                               level=level+1 )
-                            print( "a2:", appendString )
+
+                            if not self.traceHandler.getStatus():
+                                return dataAsString
+                                
                             dataAsString += appendString
 
                         self.beforeSameAfter = None
@@ -738,10 +747,6 @@ class FormatString( object ):
                         beforeSameAfter = [ [], [], [] ]
                         beforeSameAfter[0] = self.docList[testcaseID][category]
 
-                        print( "category:", category )
-                        pprint.pprint( beforeSameAfter )
-
-
                 # Add the leading items of this category.
                 if None != category:
 
@@ -750,12 +755,12 @@ class FormatString( object ):
                     if None != dataObjectCoords:
 
                         beforeSameAfter = self.getBeforeSameAfter( testcaseID, category, dataObjectCoords )
+
+                        if not self.traceHandler.getStatus():
+                            return dataAsString
+                        
                         self.beforeSameAfter = beforeSameAfter
                         self.previousCategory = category
-
-                        print( "category:", category )
-                        print( "dataObjectCoords:", dataObjectCoords )
-                        pprint.pprint( beforeSameAfter )
 
             currentString = self.getCurrentString( tree, dtIdx, testcaseID, category, beforeSameAfter )
 
@@ -763,18 +768,20 @@ class FormatString( object ):
 
                 if None != beforeSameAfter:
 
-                    print( "currentString:", currentString )
-
                     if self.categoryLevel == level:
                         dataAsString += currentString
 
                     for tuple in beforeSameAfter[0]:
-                        print( "p1:", tuple )
+
                         targetTree = self.doidToTree[testcaseID][category][tuple[1]]
+
                         prependString = self.formatString( targetTree, 1, prepare=prepare, \
                                                            testcaseID=testcaseID, category=category, \
                                                            level=level+1 )
-                        print( "p2:", prependString )
+
+                        if not self.traceHandler.getStatus():
+                            return dataAsString
+                        
                         dataAsString += prependString
 
                     if self.categoryLevel != level:
@@ -804,18 +811,26 @@ class FormatString( object ):
         if 0 == dtIdx:
 
             for child in children:
+
                 dataAsString += self.formatString( child, dtIdx, prepare=prepare, \
                                                    testcaseID=testcaseID, category=category, \
                                                    level=level+1 )
+
+                if not self.traceHandler.getStatus():
+                    return dataAsString
 
         elif 1 == dtIdx:
 
             dataAsString_2 = ""
 
             for child in children:
+
                 dataAsString_2 += self.formatString( child, dtIdx, prepare=prepare, \
                                                      testcaseID=testcaseID, category=category, \
                                                      level=level+1 )
+
+                if not self.traceHandler.getStatus():
+                    return dataAsString
             
             if not prepare:
                 dataAsString += dataAsString_2

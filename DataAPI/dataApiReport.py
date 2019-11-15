@@ -8,8 +8,7 @@ from copy import deepcopy
 
 from vector.apps.DataAPI.api import Api
 
-from dataApiReportUtils import getDataTypeIdc, \
-    getDataAsString, FormatString
+from dataApiReportUtils import getDataTypeIdc, getDataAsString
 
 
 DEBUG = False
@@ -44,9 +43,10 @@ def getDefaultTree():
 
 class DataAPI_Report( object ):
 
-    def __init__( self, workingDirVC, traceHandler ):
+    def __init__( self, workingDirVC, formatHandler, traceHandler ):
 
         self.workingDirVC = workingDirVC
+        self.formatHandler = formatHandler
         self.traceHandler = traceHandler
 
         self.envApi = {}
@@ -136,8 +136,10 @@ class DataAPI_Report( object ):
 
         # pprint.pprint( tree )
 
-        formatString = FormatString( "  " )
-        dataAsString = formatString.getDataAsString( tree, dataTypeControl, isInpExpData )
+        if not self.traceHandler.getStatus():
+            return ""
+        
+        dataAsString = self.formatHandler.getDataAsString( tree, dataTypeControl, isInpExpData )
 
         return dataAsString
 
@@ -1217,10 +1219,6 @@ class DataAPI_Report( object ):
                                     currentData["results"][rangeItrIdx] = "fail"
 
                                 currentData["match"][rangeItrIdx] = actual.match_string
-
-        # pprint.pprint( self.ancestryInfo )
-        # pprint.pprint( self.actualInfo )
-        # pprint.pprint( self.actualData )
 
 
     def getAncestryList( self, slot_histories ):
