@@ -383,10 +383,24 @@ class FormatString( object ):
                     newStr += currentIndentAsStr1 + newStr1
 
                 if widthNewStr2 > 0:
-                    
-                    deltaWidth = self.widthLine - currentIndentWidth1 - widthNewStr1 - widthNewStr2
-                    deltaWidthAsStr = getIndentAsString( deltaWidth )
 
+                    if currentIndentWidth1 + widthNewStr1 > self.widthGrp1 or \
+                       widthNewStr2 > self.widthGrp2:
+
+                        if widthNewStr1 > 0:
+                            newStringList.append( newStr )
+                            newStr = ""
+
+                        if widthNewStr2 <= self.widthLine:
+                            deltaWidth = self.widthLine - widthNewStr2
+                        else:
+                            deltaWidth = 0
+
+                    else:
+                    
+                        deltaWidth = self.widthLine - currentIndentWidth1 - widthNewStr1 - widthNewStr2
+
+                    deltaWidthAsStr = getIndentAsString( deltaWidth )
                     newStr += deltaWidthAsStr + newStr2
 
                 newStringList.append( newStr )
@@ -563,20 +577,32 @@ class FormatString( object ):
             else:
                 newStr2 = ""
 
-            if "" != newStr1:
+            widthNewStr1 = len( newStr1 )
+            widthNewStr2 = len( newStr2 )
+
+            if widthNewStr1 > 0:
                 newStr += newStr1
 
-            widthNewStr = len( newStr )
+            if widthNewStr2 > 0:
 
-            if "" != newStr2:
+                if widthNewStr1 > self.widthGrp1 or \
+                   widthNewStr2 > self.widthGrp2:
 
-                if self.isInpExpData:
-                    deltaWidth = self.widthLine - self.widthGrp2 - widthNewStr
-                    deltaWidthAsStr = getIndentAsString( deltaWidth )
+                    if widthNewStr1 > 0:
+                        newStr += "\n"
+
+                    if widthNewStr2 <= self.widthGrp2:
+                        deltaWidth = self.widthLine - self.widthGrp2
+                    elif widthNewStr2 <= self.widthLine:
+                        deltaWidth = self.widthLine - widthNewStr2
+                    else:
+                        deltaWidth = 0
+
                 else:
-                    deltaWidth = self.widthLine - widthNewStr
-                    deltaWidthAsStr = getIndentAsString( deltaWidth )
-
+                    
+                    deltaWidth = self.widthLine - self.widthGrp2 - widthNewStr1
+                    
+                deltaWidthAsStr = getIndentAsString( deltaWidth )
                 newStr += deltaWidthAsStr + newStr2
 
             newString += newStr + "\n"
