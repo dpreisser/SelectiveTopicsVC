@@ -83,12 +83,14 @@ if "__main__" == __name__:
 #    formatHandler = FormatHandler( traceHandler, \
 #                                   indentUnit = "  ", \
 #                                   widthLine = 72, \
-#                                   widthGrp1=32, widthGrp2=32 )
+#                                   widthGrp1 = 32, widthGrp2 = 32, \
+#                                   adjustWidthGrp1 = False )
 
     formatHandler = FormatHandler( traceHandler, \
                                    indentUnit = "  ", \
                                    widthLine = 136, \
-                                   widthGrp1=64, widthGrp2=64 )
+                                   widthGrp1 = 64, widthGrp2 = 64, \
+                                   adjustWidthGrp1 = False )
 
     dataApiRep = DataAPI_Report( workingDirVC, formatHandler, traceHandler )
     api = dataApiRep.getApi( envName )

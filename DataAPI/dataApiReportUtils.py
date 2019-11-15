@@ -129,7 +129,8 @@ class FormatHandler( object ):
     def __init__( self, traceHandler, \
                   indentUnit=2, \
                   widthLine=72, \
-                  widthGrp1=32, widthGrp2=32 ):
+                  widthGrp1=32, widthGrp2=32, \
+                  adjustWidthGrp1=False ):
 
         self.traceHandler = traceHandler
 
@@ -137,6 +138,8 @@ class FormatHandler( object ):
         self.widthLine = widthLine
         self.widthGrp1 = widthGrp1
         self.widthGrp2 = widthGrp2
+
+        self.adjustWidthGrp1 = adjustWidthGrp1
 
         self.addNewLineBefore = [ "Environment", "TestCase", "Slot", "Events" ]
         self.addNewLineAfter = [ "Environment", "TestCase", "Slot", "Events" ]
@@ -628,20 +631,23 @@ class FormatHandler( object ):
             if not self.traceHandler.getStatus():
                 return dataAsString
 
-            maxWidthGrp1 = maxSize( dataAsString )
-            deltaWidth = maxWidthGrp1 - self.widthGrp1
-
-            if deltaWidth > 0:
-                self.widthGrp1 += deltaWidth
-                self.widthLine += deltaWidth
-
             for testcaseID in self.docList.keys():
                 for category in self.docList[testcaseID].keys():
                     self.docList[testcaseID][category] = sort( self.docList[testcaseID][category] )
 
-            # print( maxWidthGrp1 )
+            maxWidthGrp1 = maxSize( dataAsString )
+
+            if self.adjustWidthGrp1:
+
+                deltaWidth = maxWidthGrp1 - self.widthGrp1
+
+                if deltaWidth > 0:
+                    self.widthGrp1 += deltaWidth
+                    self.widthLine += deltaWidth
+
             # pprint.pprint( tree )
             # pprint.pprint( self.docList )
+            # print( maxWidthGrp1 )
         
         dataAsString = self.formatString( tree, 0, prepare=False )
 
