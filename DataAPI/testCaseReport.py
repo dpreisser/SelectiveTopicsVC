@@ -9,14 +9,7 @@ class TestCaseReport( object ):
         self.tcName = tcName
 
         self.dataApiReport = dataApiReport
-
-        self.clearMessage = traceHandler.clearMessage
-        self.addMessage = traceHandler.addMessage
-        self.setMessage = traceHandler.setMessage
-
-        self.clearErrMessage = traceHandler.clearErrMessage
-        self.addErrMessage = traceHandler.addErrMessage
-        self.setErrMessage = traceHandler.setErrMessage
+        self.traceHandler = traceHandler
 
         self.initialize()
 
@@ -31,7 +24,7 @@ class TestCaseReport( object ):
         if None == self.testcase:
             msg = "No testcase found for following input:"
             msg += self.__str__()
-            self.addErrMessage( msg )
+            self.traceHandler.addErrMessage( msg )
 
 
     def __str__( self ):

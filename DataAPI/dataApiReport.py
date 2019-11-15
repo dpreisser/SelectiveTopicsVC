@@ -44,15 +44,14 @@ def getDefaultTree():
 
 class DataAPI_Report( object ):
 
-    def __init__( self, workingDirVC ):
+    def __init__( self, workingDirVC, traceHandler ):
 
         self.workingDirVC = workingDirVC
+        self.traceHandler = traceHandler
 
         self.envApi = {}
         self.inputData = {}
         self.expectedData = {}
-
-        self.indentUnit = "  "
 
 
     def loadApi( self, envName ):
@@ -116,6 +115,10 @@ class DataAPI_Report( object ):
         grandChild = getDefaultTree()
         grandChild["indent"] = currentIndent
         grandChild["label"] = "%s for:" % dataTypeAsStr
+
+        if not self.traceHandler.getStatus:
+            return ""
+
         grandChild["children"] = self.getDataAsTree_slots( testcase, dataTypeControl, isInpExpData, currentIndent+1, level=0 )
 
         currentChild["children"].append( grandChild )
@@ -131,7 +134,7 @@ class DataAPI_Report( object ):
         currentChild["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, currentIndent+1 )
         tree["children"].append( currentChild )
 
-        pprint.pprint( tree )
+        # pprint.pprint( tree )
 
         formatString = FormatString( "  " )
         dataAsString = formatString.getDataAsString( tree, dataTypeControl, isInpExpData )
@@ -190,6 +193,9 @@ class DataAPI_Report( object ):
             children.append( currentChild )
 
             self.prepareData( testcase, dataTypeControl, isInpExpData )
+
+            if not self.traceHandler.getStatus:
+                return children
 
         else:
 
@@ -1031,12 +1037,13 @@ class DataAPI_Report( object ):
 
             else:
 
-                print( "Duplicated entry - catastrophic logic error.\n" )
-                print( dtIdx, testcase )
-                print( data_object_id, typeKey )
-                print( "Old value(s): %s" % currentData[data_object_id][typeKey] )
-                print( "New value(s): %s" % valuesAsStr )
-                sys.exit()
+                msg = "Duplicated entry - catastrophic logic error.\n"
+                msg += "dtIdx: %s, testcase: %s\n" % ( str(dtIdx), testcase.__str__() )
+                msg += "data_object_id: %s, typeKey: %s\n" % ( data_object_id, typeKey )
+                msg += "Old value(s): %s\n" % currentData[data_object_id][typeKey]
+                msg += "New value(s): %s" % valuesAsStr
+                self.traceHandler.addErrMessage( msg )
+                return
 
         for sourceData in source2:
 
@@ -1074,11 +1081,13 @@ class DataAPI_Report( object ):
 
             else:
 
-                print( "Duplicated entry - catastrophic logic error.\n" )
-                print( data_oject_id, typeKey )
-                print( "Old value(s): %s" % currentData[data_object_id][typeKey] )
-                print( "New value(s): %s" % valuesAsStr )
-                sys.exit()
+                msg = "Duplicated entry - catastrophic logic error.\n"
+                msg += "dtIdx: %s, testcase: %s\n" % ( str(dtIdx), testcase.__str__() )
+                msg += "data_object_id: %s, typeKey: %s\n" % ( data_object_id, typeKey )
+                msg += "Old value(s): %s\n" % currentData[data_object_id][typeKey]
+                msg += "New value(s): %s" % valuesAsStr
+                self.traceHandler.addErrMessage( msg )
+                return
 
 
     def prepareActualData( self, slot_histories ):
