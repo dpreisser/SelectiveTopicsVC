@@ -477,10 +477,11 @@ class FormatHandler( object ):
             else:
                 formattedPartList = []
                 for part in value:
-                    formattedPart = formatMultiLine( part, offsetSize + currentIndentWidth )
+                    formattedPart = formatMultiLine( part, offsetWidth + currentIndentWidth )
+                    print( formattedPart )
                     formattedPartList.append( formattedPart )
-                formattedStr = ",\n".join( [ formattedPart.strip() for formattedPart in formattedPartList ] )
-                currentString += formattedStr
+                formattedStr = ",\n".join( [ formattedPart.rstrip() for formattedPart in formattedPartList ] )
+                currentString += formattedStr + "\n"
 
             newString += currentString
 
@@ -557,8 +558,8 @@ class FormatHandler( object ):
                         for part in value2:
                             formattedPart = formatMultiLine( part, offsetWidth + currentIndentWidth2 )
                             formattedPartList.append( formattedPart )
-                        formattedStr = ",\n".join( [ formattedPart.strip() for formattedPart in formattedPartList ] )
-                        currentString2 += formattedStr
+                        formattedStr = ",\n".join( [ formattedPart.rstrip() for formattedPart in formattedPartList ] )
+                        currentString2 += formattedStr + "\n"
 
                     newString += currentString2
 

@@ -138,7 +138,7 @@ class DataAPI_Report( object ):
         currentChild["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, currentIndent+1 )
         tree["children"].append( currentChild )
 
-        # pprint.pprint( tree )
+        pprint.pprint( tree )
 
         if not self.traceHandler.getStatus():
             return ""
@@ -329,6 +329,9 @@ class DataAPI_Report( object ):
 
         else:
 
+            pprint.pprint( self.actualInfo )
+            pprint.pprint( self.actualData )
+
             for slotHistId in self.slotHistIdSequence:
 
                 slotHist = self.envApi[envName].SlotHistory.get( slotHistId )
@@ -364,22 +367,39 @@ class DataAPI_Report( object ):
 
                         container = self.actualInfo[slotHistId][itrIdx][eventIdx]
 
-                        functionName = self.actualInfo[slotHistId][itrIdx][eventIdx]["functionName"]
-
-                        if 0 == eventIdx:
-                            value = "Calling %s: " % functionName
-                        elif numEvents - 1 == eventIdx:
-                            value = "Returned from %s: " % functionName
-                        else:
-                            value = "Stubbed %s: " % functionName
-                            
                         eventList = [ str(idx) for idx in container["eventIdc"] ]
+
+                        functionName = container["functionName"]
+                        signalAtEvent = container["signalAtEvent"]
 
                         grandChild = getDefaultTree()
                         grandChild["indent"] = currentIndent
                         grandChild["label"] = "Events"
+
+                        if "<<null>>" != functionName:
+
+                            if 0 == eventIdx:
+                                value = "Calling %s: " % functionName
+                            elif numEvents - 1 == eventIdx:
+                                value = "Returned from %s: " % functionName
+                            else:
+                                value = "Stubbed %s: " % functionName
+
+                            if "<<null>>" == signalAtEvent:
+                                valueGrp1 = eventList
+                            else:
+                                signalDescription = container["signalDescription"]
+                                value += ",".join( eventList )
+                                valueGrp1 = [ signalDescription ]
+
+                        else:
+
+                            signalDescription = container["signalDescription"]
+                            value = "%s: " % signalDescription
+                            valueGrp1 = eventList
+
                         grandChild["value"] = value
-                        grandChild["valuesGrp1"] = eventList
+                        grandChild["valuesGrp1"] = valueGrp1
 
                         arrayChildren[0] = self.getDataAsTree_globals( envName,
                                                                        None, None, slotHistId, itrIdx, eventIdx, isInpExpData, \
@@ -1177,7 +1197,8 @@ class DataAPI_Report( object ):
 
                         for eventIdx in range( numEvents ):        
                             self.actualInfo[slotHistId][itrIdx][eventIdx] = deepcopy( { "eventIdc" : [], \
-                                                                                        "functionName" : "<<null>>" } )
+                                                                                        "functionName" : "<<null>>", \
+                                                                                        "signalAtEvent" : "<<null>>" } )
                             self.actualData[slotHistId][itrIdx][eventIdx] = deepcopy( {} )
 
                     for event in range_iteration.events:
@@ -1190,7 +1211,12 @@ class DataAPI_Report( object ):
                             self.ancestryInfo[slotHistId][itrIdx] = deepcopy( ancestryList )
 
                         self.actualInfo[slotHistId][itrIdx][eventIdx]["eventIdc"].append( event.index )
-                        self.actualInfo[slotHistId][itrIdx][eventIdx]["functionName"] = event.function_display_name
+
+                        if event.signal_raised:
+                            self.actualInfo[slotHistId][itrIdx][eventIdx]["signalAtEvent"] = event.index
+                            self.actualInfo[slotHistId][itrIdx][eventIdx]["signalDescription"] = event.kind.description
+                        else:
+                            self.actualInfo[slotHistId][itrIdx][eventIdx]["functionName"] = event.function_display_name
 
                         container = self.actualData[slotHistId][itrIdx][eventIdx]
 
