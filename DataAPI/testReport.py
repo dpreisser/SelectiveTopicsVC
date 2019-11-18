@@ -103,6 +103,11 @@ if "__main__" == __name__:
 
             dataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, isInpExpData, 0 )
 
+            if not traceHandler.getStatus():
+                print( traceHandler.getErrMessage() )
+            else:
+                print( dataAsString )
+
     elif None != unitName and None == functionName:
 
         unit = api.Unit.get( unitName )
@@ -110,6 +115,11 @@ if "__main__" == __name__:
         for testcase in unit.testcases:
 
             dataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, isInpExpData, 0 )
+
+            if not traceHandler.getStatus():
+                print( traceHandler.getErrMessage() )
+            else:
+                print( dataAsString )
 
     elif None != unitName and None != functionName and None == tcName:
 
@@ -123,6 +133,11 @@ if "__main__" == __name__:
 
                     dataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, isInpExpData, 0 )
 
+                    if not traceHandler.getStatus():
+                        print( traceHandler.getErrMessage() )
+                    else:
+                        print( dataAsString )
+
     elif None != unitName and None != functionName and None != tcName:
 
         tcRep = TestCaseReport( envName, unitName, functionName, tcName, dataApiRep, traceHandler )
@@ -132,7 +147,7 @@ if "__main__" == __name__:
         else:
             dataAsString = tcRep.getDataAsString_explicit( dataTypeControl, isInpExpData )
 
-    if not traceHandler.getStatus():
-        print( traceHandler.getErrMessage() )
-    else:
-        print( dataAsString )
+        if not traceHandler.getStatus():
+            print( traceHandler.getErrMessage() )
+        else:
+            print( dataAsString )

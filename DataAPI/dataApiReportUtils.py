@@ -141,9 +141,9 @@ class FormatHandler( object ):
 
         self.adjustWidthGrp1 = adjustWidthGrp1
 
-        self.addNewLineBefore = [ "Environment", "TestCase", "Slot", "Events" ]
-        self.addNewLineAfter = [ "Environment", "TestCase", "Slot", "Events" ]
-        
+        self.addNewLineBefore = [ "Environment", "TestCase", "Slots", "Test Case Data", "Notes", "Execution Results", "Slot", "Events" ]
+        self.addNewLineAfter = [ "Events" ]
+ 
         self.omit = [ "Header", "dtIdx"]
 
         self.categories = [ "<<GLOBAL DATA>>", "<<UUT>>", "<<SBF>>", "<<STUB>>", "<<TestCase User Code>>" ]

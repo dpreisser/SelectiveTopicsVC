@@ -94,16 +94,19 @@ class DataAPI_Report( object ):
 
         if isInpExpData:
 
+            label = "Test Case Data Report"
+
             if 1 == dataTypeControl:
-                dataTypeAsStr = "Input data"
+                value = "Input"
             elif 2 == dataTypeControl:
-                dataTypeAsStr = "Expected data"
+                value = "Expected"
             elif 3 == dataTypeControl:
-                dataTypeAsStr = "Input & Expected data"
+                value = "Input & Expected"
 
         else:
 
-            dataTypeAsStr = "Result data"
+            label = "Execution Results Report"
+            value = None
 
         tree = getDefaultTree()
         tree["indent"] = currentIndent
@@ -114,7 +117,8 @@ class DataAPI_Report( object ):
 
         grandChild = getDefaultTree()
         grandChild["indent"] = currentIndent
-        grandChild["label"] = "%s for:" % dataTypeAsStr
+        grandChild["label"] = label
+        grandChild["value"] = value
 
         if not self.traceHandler.getStatus:
             return ""
@@ -127,9 +131,9 @@ class DataAPI_Report( object ):
         currentChild = getDefaultTree()
         currentChild["indent"] = currentIndent
         if isInpExpData:
-            currentChild["label"] = "TestCaseData"
+            currentChild["label"] = "Test Case Data"
         else:
-            currentChild["label"] = "Results"
+            currentChild["label"] = "Execution Results"
 
         currentChild["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, currentIndent+1 )
         tree["children"].append( currentChild )
@@ -162,13 +166,17 @@ class DataAPI_Report( object ):
             parameterIndent = currentIndent + 1
             slotIndent = currentIndent + 1
 
-            if testcase.is_compound_test:
+            if testcase.is_unit_test:
+
+                tcNameAsStr = "%s (Unit)" % testcase.name
+
+            elif testcase.is_compound_test:
 
                 tcNameAsStr = "%s (Compound)" % testcase.name
 
-            elif testcase.is_unit_test:
+            elif testcase.is_init_test:
 
-                tcNameAsStr = "%s (Unit)" % testcase.name
+                tcNameAsStr = "%s (Init)" % testcase.name
 
             currentChild = getDefaultTree()
             currentChild["indent"] = envIndent
@@ -274,6 +282,17 @@ class DataAPI_Report( object ):
                         currentChild["label"] = "TestCase"
                         currentChild["value"] = testcase.name
 
+                        notesChild = getDefaultTree()
+                        notesChild["indent"] = currentIndent+1
+                        notesChild["label"] = "Notes"
+
+                        codeChild = getDefaultTree()
+                        codeChild["indent"] = currentIndent+2
+                        codeChild["value"] = testcase.notes
+
+                        notesChild["children"].append( codeChild )
+                        currentChild["children"].append( notesChild )
+
                         tmpStore[testcaseId] = currentChild
 
                     else:
@@ -288,13 +307,15 @@ class DataAPI_Report( object ):
                                                                    dtIdx, testcaseId, None, None, None, isInpExpData, \
                                                                    currentIndent+1 )
 
-                    arrayChildren[1] = self.getDataAsTree_functions( envName, testcase, \
+                    if not testcase.is_init_test:
+
+                        arrayChildren[1] = self.getDataAsTree_functions( envName, testcase, \
+                                                                         dtIdx, testcaseId, None, None, None, isInpExpData, \
+                                                                         currentIndent+1 )
+
+                        arrayChildren[2] = self.getTestcaseUserCode( envName, testcase, \
                                                                      dtIdx, testcaseId, None, None, None, isInpExpData, \
                                                                      currentIndent+1 )
-
-                    arrayChildren[2] = self.getTestcaseUserCode( envName, testcase, \
-                                                                 dtIdx, testcaseId, None, None, None, isInpExpData, \
-                                                                 currentIndent+1 )
 
                     for idx in range( len(arrayChildren) ):
                         for child in arrayChildren[idx]:
@@ -364,13 +385,15 @@ class DataAPI_Report( object ):
                                                                        None, None, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                                                        currentIndent+1 )
 
-                        arrayChildren[1] = self.getDataAsTree_functions( envName, tc, \
+                        if not tc.is_init_test:
+
+                            arrayChildren[1] = self.getDataAsTree_functions( envName, tc, \
+                                                                             None, None, slotHistId, itrIdx, eventIdx, isInpExpData, \
+                                                                             currentIndent+1 )
+
+                            arrayChildren[2] = self.getTestcaseUserCode( envName, tc, \
                                                                          None, None, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                                                          currentIndent+1 )
-
-                        arrayChildren[2] = self.getTestcaseUserCode( envName, tc, \
-                                                                     None, None, slotHistId, itrIdx, eventIdx, isInpExpData, \
-                                                                     currentIndent+1 )
 
                         for idx in range( len(arrayChildren) ):
                             for child in arrayChildren[idx]:
@@ -832,6 +855,9 @@ class DataAPI_Report( object ):
             else:
 
                 currentChild["value"] = "<<ACCESS>>"
+
+            if not isArray:
+              currentChild["value"] = None  
 
         elif "AR_RAY" == kind:
 
