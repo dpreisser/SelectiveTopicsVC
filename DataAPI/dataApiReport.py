@@ -138,7 +138,7 @@ class DataAPI_Report( object ):
         currentChild["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, currentIndent+1 )
         tree["children"].append( currentChild )
 
-        pprint.pprint( tree )
+        # pprint.pprint( tree )
 
         if not self.traceHandler.getStatus():
             return ""
@@ -328,9 +328,6 @@ class DataAPI_Report( object ):
                 children.append( currentChild )
 
         else:
-
-            pprint.pprint( self.actualInfo )
-            pprint.pprint( self.actualData )
 
             for slotHistId in self.slotHistIdSequence:
 
@@ -1256,8 +1253,8 @@ class DataAPI_Report( object ):
                                         
                             if None != actual.value:
                                 currentData["actuals"][rangeItrIdx] = actual.value
-                            else:
-                                currentData["actuals"][rangeItrIdx] = actual.usercode_name                                        
+                            elif None != actual.usercode_name:
+                                currentData["actuals"][rangeItrIdx] = actual.usercode_name
 
                             if actual.is_result:
 
