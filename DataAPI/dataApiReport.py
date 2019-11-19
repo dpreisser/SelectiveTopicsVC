@@ -1448,6 +1448,17 @@ class DataAPI_Report( object ):
                     assocValue = value
                 associatedValues.append( assocValue )
 
+        elif "STR_ING" == parameterType.kind:
+
+            print( values )
+
+            for value in values:
+                if "<<null>>" != value:
+                    assocValue = self.fixUnicode( value )
+                else:
+                    assocValue = value
+                associatedValues.append( assocValue )
+
         else:
 
             for value in values:
@@ -1557,3 +1568,40 @@ class DataAPI_Report( object ):
             return enum.name
 
         return str(value)
+
+
+    def fixUnicode( self, value ):
+
+        if 0 == len( value ):
+            return value
+        
+        if "\\" != value[0]:
+            return value
+
+        assocValue = unicode( "" )
+
+        octalStringList = value.split( "\\" )
+        numOctalStrings = len( octalStringList )
+
+        for idx in range( 1, numOctalStrings ):
+            theChar = self.convertToUniChr( octalStringList[idx] )
+            assocValue += theChar
+
+        return assocValue
+
+
+    def convertToUniChr( self, octalString ):
+
+        number = 0
+
+        numChar = len( octalString )
+        
+        for idx in range( numChar ):
+            octalChar = octalString[idx]
+            num = int(octalChar)
+            number = number*8 + num
+
+        if 10 == number:
+            return "\\n"
+        else:
+            return unichr(number)
