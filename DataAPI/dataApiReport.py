@@ -1450,8 +1450,6 @@ class DataAPI_Report( object ):
 
         elif "STR_ING" == parameterType.kind:
 
-            print( values )
-
             for value in values:
                 if "<<null>>" != value:
                     assocValue = self.fixUnicode( value )
@@ -1551,8 +1549,9 @@ class DataAPI_Report( object ):
             assocValue = "VARY FROM: %s TO: %s BY: %s" % \
                          ( assocRangeValues[0], assocRangeValues[1], assocRangeValues[2] )
         else:
-            assocValue = "BETWEEN: %s AND: %s" % \
-                         ( assocRangeValues[0], assocRangeValues[1] )
+            # assocValue = "BETWEEN: %s AND: %s" % \
+            #              ( assocRangeValues[0], assocRangeValues[1] )
+            assocValue = value
 
         return status, assocValue
 
