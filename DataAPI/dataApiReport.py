@@ -418,6 +418,30 @@ class DataAPI_Report( object ):
 
                         currentChild["children"].append( grandChild )
 
+                # Unused expected values
+
+                ancestryList = self.ancestryInfo[slotHistId][0]
+
+                ancestryStrList = []
+
+                for ancestor in ancestryList:
+
+                    ancestorAsStr = "%s Slot %s (%s)" % \
+                                    ( ancestor[0], str(ancestor[1]), \
+                                      ancestor[2] )
+
+                    ancestryStrList.append( ancestorAsStr )
+
+                currentChild = getDefaultTree()
+                currentChild["indent"] = currentIndent
+                currentChild["label"] = "Unused Expected Values"
+                currentChild["valuesGrp1"] = ancestryStrList
+                children.append( currentChild )
+
+                currentChild["children"] = self.getDataAsTree_unusedExpected( envName, \
+                                                                              None, None, slotHistId, None, None, isInpExpData, \
+                                                                              currentIndent+1 )
+
         return children
 
 
@@ -759,6 +783,42 @@ class DataAPI_Report( object ):
         return children
 
 
+    def getDataAsTree_unusedExpected( self, envName, \
+                                      dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
+                                      currentIndent ):
+
+        children = []
+
+        container = self.unusedExpectedData[slotHistId]
+
+        api = self.envApi[envName]
+
+        for unitId in sorted( container.keys() ):
+
+            unit = api.Unit.get( unitId )
+
+            for functionIndex in sorted( container[unitId].keys() ):
+
+                for parameterIndex in sorted( container[unitId][functionIndex].keys() ):
+
+                    dataObjectCoords = [ unitId, functionIndex, parameterIndex ]
+
+                    if 0 == functionIndex:
+                        parameter = unit.get_global_by_index( parameterIndex )
+                    else:
+                        function = unit.get_function( functionIndex )
+                        parameter = function.get_param_by_index( parameterIndex )
+
+                        partChildren = self.walkType_Wrapper( parameter, dataObjectCoords, \
+                                                              dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
+                                                              currentIndent )
+
+                        for child in partChildren:
+                            children.append( child )
+
+        return children
+
+
     def walkType_Wrapper( self, parameter, dataObjectCoords, \
                           dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                           currentIndent ):
@@ -783,7 +843,10 @@ class DataAPI_Report( object ):
         if isInpExpData:
             values = self.getInpExpData( dtIdx, testcaseId, dataObjectCoords, "data" )
         else:
-            values = self.getActualData( slotHistId, itrIdx, eventIdx, dataObjectCoords, "actuals" )
+            if None != itrIdx:
+                values = self.getActualData( slotHistId, itrIdx, eventIdx, dataObjectCoords, "actuals" )
+            else:
+                values = self.getUnusedExpectedData( slotHistId, dataObjectCoords )
 
         kind = parameterType.kind
         element = parameterType.element
@@ -939,10 +1002,11 @@ class DataAPI_Report( object ):
                         associatedValues = self.getAssociatedValues( parameterType, valuesAsList=values )
                         currentChild["valuesGrp1"] = associatedValues
 
-                        values = self.getActualData( slotHistId, itrIdx, eventIdx, dataObjectCoords, "match" )
-                        if None != values:
-                            associatedValues = self.getAssociatedValues( parameterType, valuesAsList=values )
-                            currentChild["valuesGrp2"] = associatedValues
+                        if None != itrIdx:
+                            values = self.getActualData( slotHistId, itrIdx, eventIdx, dataObjectCoords, "match" )
+                            if None != values:
+                                associatedValues = self.getAssociatedValues( parameterType, valuesAsList=values )
+                                currentChild["valuesGrp2"] = associatedValues
                     
                     children.append( currentChild )
 
@@ -982,7 +1046,7 @@ class DataAPI_Report( object ):
             else:
 
                 self.slotHistIdSequence = []
-                self.unusedExpected = {}
+                self.unusedExpectedData = {}
                 self.ancestryInfo = {}
                 self.actualInfo = {}
                 self.actualData = {}
@@ -1147,12 +1211,12 @@ class DataAPI_Report( object ):
 
             if not slotHistId in self.slotHistIdSequence:
                 self.slotHistIdSequence.append( slotHistId )
-                self.unusedExpected[slotHistId] = {}
+                self.unusedExpectedData[slotHistId] = {}
                 self.ancestryInfo[slotHistId] = []
                 self.actualInfo[slotHistId] = []
                 self.actualData[slotHistId] = []
 
-            container = self.unusedExpected[slotHistId]
+            container = self.unusedExpectedData[slotHistId]
 
             for unusedExpected in slot_history.unused_expected:
 
@@ -1303,7 +1367,7 @@ class DataAPI_Report( object ):
 
                                 currentData["match"][rangeItrIdx] = actual.match_string
 
-        pprint.pprint( self.unusedExpected )
+        pprint.pprint( self.unusedExpectedData )
 
 
     def getAncestryList( self, slot_histories ):
@@ -1341,7 +1405,10 @@ class DataAPI_Report( object ):
         if isInpExpData:
             container = self.inpExpData[dtIdx][testcaseId]
         else:
-            container = self.actualData[slotHistId][itrIdx][eventIdx]
+            if None != itrIdx:
+                container = self.actualData[slotHistId][itrIdx][eventIdx]
+            else:
+                container = self.unusedExpectedData[slotHistId]
 
         if not dataObjectCoords[0] in container.keys():
             return arrayIndices
@@ -1407,6 +1474,27 @@ class DataAPI_Report( object ):
             data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
             
             data = currentDataSet[data_object_id][typeKey]
+            
+        except KeyError:
+
+            return data
+
+        return data
+
+
+    def getUnusedExpectedData( self, slotHistId, dataObjectCoords ):
+
+        data = None
+
+        container = self.unusedExpectedData[slotHistId]
+
+        try:
+
+            currentDataSet = container[dataObjectCoords[0]][dataObjectCoords[1]][dataObjectCoords[2]]
+
+            data_object_id = ".".join( [str(item) for item in dataObjectCoords] )
+            
+            data = currentDataSet[data_object_id]
             
         except KeyError:
 
