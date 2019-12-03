@@ -1387,8 +1387,6 @@ class DataAPI_Report( object ):
 
                                 currentData["match"][rangeItrIdx] = actual.match_string
 
-        pprint.pprint( self.unusedExpectedData )
-
 
     def getAncestryList( self, slot_histories ):
 
