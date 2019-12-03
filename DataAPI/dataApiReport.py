@@ -4,6 +4,8 @@ import sys
 
 import pprint
 
+from datetime import datetime
+
 from copy import deepcopy
 
 from vector.apps.DataAPI.api import Api
@@ -168,15 +170,18 @@ class DataAPI_Report( object ):
 
             if testcase.is_unit_test:
 
-                tcNameAsStr = "%s (Unit)" % testcase.name
+                tcName = "%s (Unit)" % testcase.name
 
             elif testcase.is_compound_test:
 
-                tcNameAsStr = "%s (Compound)" % testcase.name
+                tcName = "%s (Compound)" % testcase.name
 
             elif testcase.is_init_test:
 
-                tcNameAsStr = "%s (Init)" % testcase.name
+                tcName = "%s (Init)" % testcase.name
+
+            dtsCreation = datetime.strftime( testcase.created, "%d-%b-%Y %H:%M:%S" )
+            dtsExecution = datetime.strftime( testcase.start_time, "%d-%b-%Y %H:%M:%S" )
 
             currentChild = getDefaultTree()
             currentChild["indent"] = envIndent
@@ -199,7 +204,19 @@ class DataAPI_Report( object ):
             currentChild = getDefaultTree()
             currentChild["indent"] = tcIndent
             currentChild["label"] = "TestCase"
-            currentChild["value"] = tcNameAsStr
+            currentChild["value"] = tcName
+            children.append( currentChild )
+
+            currentChild = getDefaultTree()
+            currentChild["indent"] = tcIndent
+            currentChild["label"] = "Date of Creation"
+            currentChild["value"] = dtsCreation
+            children.append( currentChild )
+
+            currentChild = getDefaultTree()
+            currentChild["indent"] = tcIndent
+            currentChild["label"] = "Date of Execution"
+            currentChild["value"] = dtsExecution
             children.append( currentChild )
 
             self.prepareData( testcase, dataTypeControl, isInpExpData )
@@ -436,11 +453,13 @@ class DataAPI_Report( object ):
                 currentChild["indent"] = currentIndent
                 currentChild["label"] = "Unused Expected Values"
                 currentChild["valuesGrp1"] = ancestryStrList
-                children.append( currentChild )
 
                 currentChild["children"] = self.getDataAsTree_unusedExpected( envName, \
                                                                               None, None, slotHistId, None, None, isInpExpData, \
                                                                               currentIndent+1 )
+
+                if len( currentChild["children"] ) > 0:
+                    children.append( currentChild )
 
         return children
 
