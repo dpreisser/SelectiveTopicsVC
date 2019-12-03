@@ -982,6 +982,7 @@ class DataAPI_Report( object ):
             else:
 
                 self.slotHistIdSequence = []
+                self.unusedExpected = {}
                 self.ancestryInfo = {}
                 self.actualInfo = {}
                 self.actualData = {}
@@ -1146,9 +1147,42 @@ class DataAPI_Report( object ):
 
             if not slotHistId in self.slotHistIdSequence:
                 self.slotHistIdSequence.append( slotHistId )
+                self.unusedExpected[slotHistId] = {}
                 self.ancestryInfo[slotHistId] = []
                 self.actualInfo[slotHistId] = []
                 self.actualData[slotHistId] = []
+
+            container = self.unusedExpected[slotHistId]
+
+            for unusedExpected in slot_history.unused_expected:
+
+                data_object_id = unusedExpected.data_object_id
+                comp = data_object_id.split( "." )
+
+                unitId = int( comp[0] )
+                functionIndex = int( comp[1] )
+                parameterIndex = int( comp[2] )
+
+                if not unitId in container.keys():
+                    container[unitId] = {}
+
+                if not functionIndex in container[unitId].keys():
+                    container[unitId][functionIndex] = {}
+
+                if not parameterIndex in container[unitId][functionIndex].keys():
+                    container[unitId][functionIndex][parameterIndex] = {}
+
+                currentData = container[unitId][functionIndex][parameterIndex]
+
+                if not data_object_id in currentData.keys():
+                    currentData[data_object_id] = []
+
+                currentData = currentData[data_object_id]
+
+                if None != unusedExpected.value:
+                    currentData.append( unusedExpected.value )
+                elif None != unusedExpected.usercode_name:
+                    currentData.append( unusedExpected.usercode_name )
 
             ancestry = slot_history.get_slot_ancestry()
 
@@ -1268,6 +1302,8 @@ class DataAPI_Report( object ):
                                     currentData["results"][rangeItrIdx] = "fail"
 
                                 currentData["match"][rangeItrIdx] = actual.match_string
+
+        pprint.pprint( self.unusedExpected )
 
 
     def getAncestryList( self, slot_histories ):
