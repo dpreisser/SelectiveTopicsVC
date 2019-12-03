@@ -796,8 +796,29 @@ class DataAPI_Report( object ):
         for unitId in sorted( container.keys() ):
 
             unit = api.Unit.get( unitId )
+            unitName = unit.name
+
+            unitChild = getDefaultTree()
+            unitChild["indent"] = currentIndent
+            unitChild["label"] = "Unit"
+            unitChild["value"] = unitName
+            children.append( unitChild )
 
             for functionIndex in sorted( container[unitId].keys() ):
+
+                function = None
+
+                if 0 == functionIndex:
+                    functionName = "<<GLOBAL>>"
+                else:
+                    function = unit.get_function( functionIndex )
+                    functionName = function.name
+
+                functionChild = getDefaultTree()
+                functionChild["indent"] = currentIndent+1
+                functionChild["label"] = "Subprogram"
+                functionChild["value"] = functionName
+                unitChild["children"].append( functionChild )
 
                 for parameterIndex in sorted( container[unitId][functionIndex].keys() ):
 
@@ -806,15 +827,14 @@ class DataAPI_Report( object ):
                     if 0 == functionIndex:
                         parameter = unit.get_global_by_index( parameterIndex )
                     else:
-                        function = unit.get_function( functionIndex )
                         parameter = function.get_param_by_index( parameterIndex )
 
-                        partChildren = self.walkType_Wrapper( parameter, dataObjectCoords, \
-                                                              dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
-                                                              currentIndent )
+                    partChildren = self.walkType_Wrapper( parameter, dataObjectCoords, \
+                                                          dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
+                                                          currentIndent+2 )
 
-                        for child in partChildren:
-                            children.append( child )
+                    for child in partChildren:
+                        functionChild["children"].append( child )
 
         return children
 
