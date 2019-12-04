@@ -132,10 +132,21 @@ class DataAPI_Report( object ):
 
         currentChild = getDefaultTree()
         currentChild["indent"] = currentIndent
+
         if isInpExpData:
             currentChild["label"] = "Test Case Data"
         else:
+
+            if None != testcase.passed:
+                if testcase.passed:
+                    result = "PASS"
+                else:
+                    result = "FAIL"
+            else:
+                result = "NONE"
+
             currentChild["label"] = "Execution Results"
+            currentChild["value"] = result
 
         currentChild["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, currentIndent+1 )
         tree["children"].append( currentChild )
@@ -168,17 +179,22 @@ class DataAPI_Report( object ):
             parameterIndent = currentIndent + 1
             slotIndent = currentIndent + 1
 
+            if testcase.for_compound_only:
+                compoundOnly = ", Compound Only"
+            else:
+                compoundOnly = ""
+
             if testcase.is_unit_test:
 
-                tcName = "%s (Unit)" % testcase.name
+                tcName = "%s (Unit%s)" % ( testcase.name, compoundOnly )
 
             elif testcase.is_compound_test:
 
-                tcName = "%s (Compound)" % testcase.name
+                tcName = "%s (Compound%s)" % ( testcase.name, compoundOnly )
 
             elif testcase.is_init_test:
 
-                tcName = "%s (Init)" % testcase.name
+                tcName = "%s (Init%s)" % ( testcase.name, compoundOnly )
 
             if None != testcase.created:
                 dtsCreation = datetime.strftime( testcase.created, "%d-%b-%Y %H:%M:%S" )
@@ -188,9 +204,7 @@ class DataAPI_Report( object ):
             if None != testcase.start_time:
                 dtsExecution = datetime.strftime( testcase.start_time, "%d-%b-%Y %H:%M:%S" )
             else:
-                dtsExecution = "Testcase does not bear results on its own."
-                if testcase.for_compound_only:
-                    dtsExecution += " " + "Testcase is compound only."
+                dtsExecution = "Testcase does not bear any results on its own."
 
             currentChild = getDefaultTree()
             currentChild["indent"] = envIndent
