@@ -180,8 +180,17 @@ class DataAPI_Report( object ):
 
                 tcName = "%s (Init)" % testcase.name
 
-            dtsCreation = datetime.strftime( testcase.created, "%d-%b-%Y %H:%M:%S" )
-            dtsExecution = datetime.strftime( testcase.start_time, "%d-%b-%Y %H:%M:%S" )
+            if None != testcase.created:
+                dtsCreation = datetime.strftime( testcase.created, "%d-%b-%Y %H:%M:%S" )
+            else:
+                dtsCreation = "Date not available."
+
+            if None != testcase.start_time:
+                dtsExecution = datetime.strftime( testcase.start_time, "%d-%b-%Y %H:%M:%S" )
+            else:
+                dtsExecution = "Testcase does not bear results on its own."
+                if testcase.for_compound_only:
+                    dtsExecution += " " + "Testcase is compound only."
 
             currentChild = getDefaultTree()
             currentChild["indent"] = envIndent
@@ -590,19 +599,19 @@ class DataAPI_Report( object ):
         functionChild["indent"] = functionIndent
         functionChild["label"] = "Subprogram"
 
-        functionNameAsStr = "%s" % function.name
-        functionDataAsStr = None
+        functionName = function.name
+        functionData = None
 
         if isInpExpData:
         
             if unit.stub_by_function:
                 dataObjectCoords = [ unit.id, function.index, function.sbf_index ]
-                functionDataAsStr = self.getInpExpData( dtIdx, testcaseId, dataObjectCoords, "data" )
+                functionData = self.getInpExpData( dtIdx, testcaseId, dataObjectCoords, "data" )
 
-            if None != functionDataAsStr:
-                functionNameAsStr = "%s: %s" % ( function.name, functionDataAsStr )
+            if None != functionData:
+                functionName = "%s: %s" % ( function.name, functionData )
 
-        functionChild["value"] = functionNameAsStr
+        functionChild["value"] = functionName
 
         parameterIndex = 1
         parameter = function.get_param_by_index( parameterIndex )
@@ -679,7 +688,7 @@ class DataAPI_Report( object ):
         unitId = unit.id
         functionIndex = 0
 
-        functionNameAsStr = "<<GLOBAL>>"
+        functionName = "<<GLOBAL>>"
 
         if isInpExpData:
             container = self.inpExpData[dtIdx][testcaseId]
@@ -695,7 +704,7 @@ class DataAPI_Report( object ):
         functionChild = getDefaultTree()
         functionChild["doc"] = [ unit.id, functionIndex ]
         functionChild["indent"] = functionIndent
-        functionChild["label"] = functionNameAsStr
+        functionChild["label"] = functionName
 
         currentData = container[unitId][functionIndex]
         
@@ -737,7 +746,7 @@ class DataAPI_Report( object ):
 
         function = testcase.function
         
-        tcNameAsStr = "%s: %s" % ( testcase.name, "<<User Code>>" )
+        tcName = "%s: %s" % ( testcase.name, "<<User Code>>" )
 
         currentChild = getDefaultTree()
         currentChild["indent"] = currentIndent
@@ -760,7 +769,7 @@ class DataAPI_Report( object ):
         tcChild["indent"] = tcIndent
         tcChild["doc"] = [ unit.id, function.index, testcase.index ]
         tcChild["label"] = "TestCase "
-        tcChild["value"] = tcNameAsStr
+        tcChild["value"] = tcName
 
         codeChild = None
 
