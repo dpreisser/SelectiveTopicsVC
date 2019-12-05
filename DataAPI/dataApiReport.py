@@ -94,6 +94,8 @@ class DataAPI_Report( object ):
 
     def getDataAsString_explicit( self, testcase, dataTypeControl, isInpExpData, currentIndent ):
 
+        dtsCreation = datetime.strftime( datetime.now(), "%d-%b-%Y %H:%M:%S" )
+
         if isInpExpData:
 
             label = "Test Case Data Report"
@@ -112,23 +114,24 @@ class DataAPI_Report( object ):
 
         tree = getDefaultTree()
         tree["indent"] = currentIndent
+        tree["label"] = label
+        tree["value"] = value
+
+        dtsChild = getDefaultTree()
+        dtsChild["indent"] = currentIndent
+        dtsChild["label"] = "Date of Creation"
+        dtsChild["value"] = dtsCreation
+        tree["children"].append( dtsChild )
 
         currentChild = getDefaultTree()
         currentChild["indent"] = currentIndent
         currentChild["label"] = "Header"
-
-        grandChild = getDefaultTree()
-        grandChild["indent"] = currentIndent
-        grandChild["label"] = label
-        grandChild["value"] = value
+        tree["children"].append( currentChild )
 
         if not self.traceHandler.getStatus:
             return ""
 
-        grandChild["children"] = self.getDataAsTree_slots( testcase, dataTypeControl, isInpExpData, currentIndent+1, level=0 )
-
-        currentChild["children"].append( grandChild )
-        tree["children"].append( currentChild )
+        currentChild["children"] = self.getDataAsTree_slots( testcase, dataTypeControl, isInpExpData, currentIndent+1, level=0 )
 
         currentChild = getDefaultTree()
         currentChild["indent"] = currentIndent
