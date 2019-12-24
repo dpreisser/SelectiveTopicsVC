@@ -209,6 +209,42 @@ def delete_testcase( file_name, tc_id ):
     extension_repo_helper.delete_testcase( tc_id )
 
 
+def general( file_name ):
+
+    repo_helper = rgw_data.RepoDataHelper( file_name )
+    extension_repo_helper = extension_rgw_data.ExtensionRepoDataHelper( file_name )
+
+    req_tuples = extension_repo_helper.get_req_export()
+
+    for req_tuple in req_tuples:
+
+        print( req_tuple )
+
+        req_id = req_tuple[0]
+        req_key = req_tuple[1]
+        tc_id = req_tuple[2]
+
+        req_data_type_tuples = repo_helper.get_data_types_on_req( req_id )
+
+        for req_data_type_tuple in req_data_type_tuples:
+
+            req_data_type_id = req_data_type_tuple[0]
+            req_data_type_name = repo_helper.get_data_type_name_on_id( req_data_type_id )
+
+            req_data_tuple = repo_helper.get_requirement_data_latest( req_id, req_data_type_id )
+            req_data_type_content = req_data_tuple[2]
+
+            print( req_data_type_id, req_data_type_name, req_data_type_content )
+
+        tc_tuple = repo_helper.get_testcase_detail( tc_id )
+        pprint.pprint( tc_tuple )
+
+        tc_data_tuples = repo_helper.get_testcase_data_latest_all( tc_id )
+
+        for tc_data_tuple in tc_data_tuples:
+            pprint.pprint( tc_data_tuple )
+
+
 def rgw_cbt(file_name, dry_run):
     repo_helper = rgw_data.RepoDataHelper(file_name)
     # for all test-cases, select the most recent run date across the whole environment
@@ -277,6 +313,7 @@ def main(argv):
         # report_2( opts.file_name )
         # delete_requirement( opts.file_name, "FR11" )
         # delete_testcase( opts.file_name, 10 )
+        general( opts.file_name )
     elif opts.operation == "cbt":
         rgw_cbt(opts.file_name, opts.dry_run)
 

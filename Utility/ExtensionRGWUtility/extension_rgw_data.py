@@ -16,6 +16,22 @@ class ExtensionRepoDataHelper:
         self.cur = self.connection.cursor()
 
 
+    def _q_select_req_export( self ):
+        return \
+            ("SELECT "
+             "requirements.id as id, "
+             "requirements.external_key as key, "
+             "requirements_test_cases.test_case_id as test_case_id "
+             "FROM requirements "
+             "INNER JOIN requirements_test_cases "
+             "ON requirements.id = requirements_test_cases.requirement_id "
+             "WHERE requirements.needs_sync = 1;")
+
+    def get_req_export( self ):
+        self.cur.execute( self._q_select_req_export() )
+        return self.cur.fetchall()
+
+
     def _q_select_req_links_for_tc( self ):
         return \
             ("SELECT "
