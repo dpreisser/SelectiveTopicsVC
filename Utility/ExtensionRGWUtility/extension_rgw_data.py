@@ -15,22 +15,46 @@ class ExtensionRepoDataHelper:
         self.use_max_counts = True
         self.cur = self.connection.cursor()
 
+    # requirement
+
+    def _q_select_req_for_req( self ):
+        return \
+            ("SELECT "
+             "id "
+             "FROM requirements "
+             "WHERE external_key = ?;")
+
+    def get_req_from_req( self, req_key ):
+        self.cur.execute( self._q_select_req_for_req(), (req_key,) )
+        return self.cur.fetchall()
 
     def _q_select_req_export( self ):
         return \
             ("SELECT "
              "requirements.id as id, "
-             "requirements.external_key as key, "
-             "requirements_test_cases.test_case_id as test_case_id "
+             "requirements.external_key as key "
              "FROM requirements "
-             "INNER JOIN requirements_test_cases "
-             "ON requirements.id = requirements_test_cases.requirement_id "
              "WHERE requirements.needs_sync = 1;")
 
     def get_req_export( self ):
         self.cur.execute( self._q_select_req_export() )
         return self.cur.fetchall()
 
+    # tc_links and req_links
+
+    def _q_select_tc_links_for_req( self ):
+        return \
+            ("SELECT "
+             "requirements_test_cases.test_case_id, "
+             "test_cases.test_case_unique_id "
+             "FROM requirements_test_cases "
+             "INNER JOIN test_cases "
+             "ON requirements_test_cases.test_case_id = test_cases.id "
+             "WHERE requirements_test_cases.requirement_id = ?;")
+
+    def get_tc_links_for_req( self, req_id ):
+        self.cur.execute( self._q_select_tc_links_for_req(), (req_id,) )
+        return self.cur.fetchall()
 
     def _q_select_req_links_for_tc( self ):
         return \
@@ -44,17 +68,6 @@ class ExtensionRepoDataHelper:
 
     def get_req_links_for_tc( self, tc_id ):
         self.cur.execute( self._q_select_req_links_for_tc(), (tc_id,) )
-        return self.cur.fetchall()
-
-    def _q_select_req_for_req( self ):
-        return \
-            ("SELECT "
-             "id "
-             "FROM requirements "
-             "WHERE external_key = ?;")
-
-    def get_req_from_req( self, req_key ):
-        self.cur.execute( self._q_select_req_for_req(), (req_key,) )
         return self.cur.fetchall()
 
     # deletion requirement

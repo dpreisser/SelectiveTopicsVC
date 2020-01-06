@@ -222,7 +222,6 @@ def general( file_name ):
 
         req_id = req_tuple[0]
         req_key = req_tuple[1]
-        tc_id = req_tuple[2]
 
         req_data_type_tuples = repo_helper.get_data_types_on_req( req_id )
 
@@ -236,13 +235,20 @@ def general( file_name ):
 
             print( req_data_type_id, req_data_type_name, req_data_type_content )
 
-        tc_tuple = repo_helper.get_testcase_detail( tc_id )
-        pprint.pprint( tc_tuple )
+        tc_link_tuples = extension_repo_helper.get_tc_links_for_req( req_id )
 
-        tc_data_tuples = repo_helper.get_testcase_data_latest_all( tc_id )
+        for tc_link_tuple in tc_link_tuples:
 
-        for tc_data_tuple in tc_data_tuples:
-            pprint.pprint( tc_data_tuple )
+            tc_id = tc_link_tuple[0]
+            tc_unique_id = tc_link_tuple[1]
+
+            tc_tuple = repo_helper.get_testcase_detail( tc_id )
+            pprint.pprint( tc_tuple )
+
+            tc_data_tuples = repo_helper.get_testcase_data_latest_all( tc_id )
+
+            for tc_data_tuple in tc_data_tuples:
+                pprint.pprint( tc_data_tuple )
 
 
 def rgw_cbt(file_name, dry_run):
