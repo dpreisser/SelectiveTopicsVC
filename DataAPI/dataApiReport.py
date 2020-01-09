@@ -301,7 +301,7 @@ class DataAPI_Report( object ):
 
         children = []
 
-        envDir = testcase.get_environment().path
+        envDir = testcase_p.get_environment().path
         api = self.envApi[envDir]
 
         dataTypeIdc = getDataTypeIdc( dataTypeControl )
