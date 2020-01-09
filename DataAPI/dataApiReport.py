@@ -56,22 +56,28 @@ class DataAPI_Report( object ):
         self.expectedData = {}
 
 
-    def loadApi( self, envName ):
+    def loadApi( self, envName, envDir=None ):
 
-        if not envName in self.envApi.keys():
-            full_env_dir = os.path.join( self.workingDirVC, envName )
-            self.envApi[envName] = Api( full_env_dir )
+        if None == envDir:
+            envDir = os.path.abspath( os.path.join( self.workingDirVC, envName ) )
+
+        if not envDir in self.envApi.keys():
+            self.envApi[envDir] = Api( envDir )
 
         
-    def getApi( self, envName ):
+    def getApi( self, envName, envDir=None ):
 
-        self.loadApi( envName )
-        return self.envApi[envName]
+        if None == envDir:
+            envDir = os.path.join( self.workingDirVC, envName )
+
+        self.loadApi( envName, envDir )
+
+        return self.envApi[envDir]
 
 
-    def getTestcase( self, envName, unitName, functionName, tcName ):
+    def getTestcase( self, envName, unitName, functionName, tcName, envDir=None ):
 
-        api = self.getApi( envName )
+        api = self.getApi( envName, envDir )
         testcase = api.TestCase.get( tcName )
 
         if None == testcase:
@@ -295,8 +301,8 @@ class DataAPI_Report( object ):
 
         children = []
 
-        envName = testcase_p.get_environment().name
-        api = self.envApi[envName]
+        envDir = testcase.get_environment().path
+        api = self.envApi[envDir]
 
         dataTypeIdc = getDataTypeIdc( dataTypeControl )
 
@@ -346,17 +352,17 @@ class DataAPI_Report( object ):
                     trace( "testcaseId:", testcaseId, newLine=True )
                     trace( "Input & Expected Data:", self.inpExpData[dtIdx][testcaseId], newLine=True )
 
-                    arrayChildren[0] = self.getDataAsTree_globals( envName,
+                    arrayChildren[0] = self.getDataAsTree_globals( envDir,
                                                                    dtIdx, testcaseId, None, None, None, isInpExpData, \
                                                                    currentIndent+1 )
 
                     if not testcase.is_init_test:
 
-                        arrayChildren[1] = self.getDataAsTree_functions( envName, testcase, \
+                        arrayChildren[1] = self.getDataAsTree_functions( envDir, testcase, \
                                                                          dtIdx, testcaseId, None, None, None, isInpExpData, \
                                                                          currentIndent+1 )
 
-                        arrayChildren[2] = self.getTestcaseUserCode( envName, testcase, \
+                        arrayChildren[2] = self.getTestcaseUserCode( envDir, testcase, \
                                                                      dtIdx, testcaseId, None, None, None, isInpExpData, \
                                                                      currentIndent+1 )
 
@@ -374,7 +380,7 @@ class DataAPI_Report( object ):
 
             for slotHistId in self.slotHistIdSequence:
 
-                slotHist = self.envApi[envName].SlotHistory.get( slotHistId )
+                slotHist = api.SlotHistory.get( slotHistId )
                 tc = slotHist.testcase
 
                 numItr = len( self.actualData[slotHistId] )
@@ -441,17 +447,17 @@ class DataAPI_Report( object ):
                         grandChild["value"] = value
                         grandChild["valuesGrp1"] = valueGrp1
 
-                        arrayChildren[0] = self.getDataAsTree_globals( envName,
+                        arrayChildren[0] = self.getDataAsTree_globals( envDir,
                                                                        None, None, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                                                        currentIndent+1 )
 
                         if not tc.is_init_test:
 
-                            arrayChildren[1] = self.getDataAsTree_functions( envName, tc, \
+                            arrayChildren[1] = self.getDataAsTree_functions( envDir, tc, \
                                                                              None, None, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                                                              currentIndent+1 )
 
-                            arrayChildren[2] = self.getTestcaseUserCode( envName, tc, \
+                            arrayChildren[2] = self.getTestcaseUserCode( envDir, tc, \
                                                                          None, None, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                                                          currentIndent+1 )
 
@@ -480,7 +486,7 @@ class DataAPI_Report( object ):
                 currentChild["label"] = "Unused Expected Values"
                 currentChild["valuesGrp1"] = ancestryStrList
 
-                currentChild["children"] = self.getDataAsTree_unusedExpected( envName, \
+                currentChild["children"] = self.getDataAsTree_unusedExpected( envDir, \
                                                                               None, None, slotHistId, None, None, isInpExpData, \
                                                                               currentIndent+1 )
 
@@ -490,7 +496,7 @@ class DataAPI_Report( object ):
         return children
 
 
-    def getDataAsTree_functions( self, envName, testcase, \
+    def getDataAsTree_functions( self, envDir, testcase, \
                                  dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                  currentIndent ):
 
@@ -501,7 +507,7 @@ class DataAPI_Report( object ):
         else:
             container = self.actualData[slotHistId][itrIdx][eventIdx]
 
-        api = self.envApi[envName]
+        api = self.envApi[envDir]
 
         # UUT
 
@@ -654,7 +660,7 @@ class DataAPI_Report( object ):
         return children
 
 
-    def getDataAsTree_globals( self, envName, \
+    def getDataAsTree_globals( self, envDir, \
                                dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                currentIndent ):
 
@@ -669,7 +675,7 @@ class DataAPI_Report( object ):
         else:
             container = self.actualData[slotHistId][itrIdx][eventIdx]
 
-        api = self.envApi[envName]
+        api = self.envApi[envDir]
 
         functionIndex = 0
 
@@ -680,7 +686,7 @@ class DataAPI_Report( object ):
 
             unit = api.Unit.get( unitId )
 
-            grandChildren = self.getDataAsTree_globalsInUnit( envName, unit, \
+            grandChildren = self.getDataAsTree_globalsInUnit( envDir, unit, \
                                                               dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                                               currentIndent )
 
@@ -692,7 +698,7 @@ class DataAPI_Report( object ):
         return children
 
     
-    def getDataAsTree_globalsInUnit( self, envName, unit, \
+    def getDataAsTree_globalsInUnit( self, envDir, unit, \
                                      dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                      currentIndent ):
 
@@ -729,7 +735,7 @@ class DataAPI_Report( object ):
 
             dataObjectCoords = [ unitId, functionIndex, globalVarIndex ]
 
-            # globalVar = self.getGlobalVarByIndex( envName, unitId, globalVarIndex )
+            # globalVar = self.getGlobalVarByIndex( envDir, unitId, globalVarIndex )
             globalVar = unit.get_global_by_index( globalVarIndex )
 
             partChildren = self.walkType_Wrapper( globalVar, dataObjectCoords, \
@@ -746,7 +752,7 @@ class DataAPI_Report( object ):
         return children
 
 
-    def getTestcaseUserCode( self, envName, testcase, \
+    def getTestcaseUserCode( self, envDir, testcase, \
                              dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData,
                              currentIndent ):
 
@@ -756,7 +762,7 @@ class DataAPI_Report( object ):
         functionIndent = currentIndent + 1
         tcIndent = currentIndent + 2
 
-        api = self.envApi[envName]
+        api = self.envApi[envDir]
 
         unitName = testcase.unit_display_name
         unit = api.Unit.get( unitName )
@@ -828,7 +834,7 @@ class DataAPI_Report( object ):
         return children
 
 
-    def getDataAsTree_unusedExpected( self, envName, \
+    def getDataAsTree_unusedExpected( self, envDir, \
                                       dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                       currentIndent ):
 
@@ -836,7 +842,7 @@ class DataAPI_Report( object ):
 
         container = self.unusedExpectedData[slotHistId]
 
-        api = self.envApi[envName]
+        api = self.envApi[envDir]
 
         for unitId in sorted( container.keys() ):
 
@@ -1566,9 +1572,9 @@ class DataAPI_Report( object ):
         return data
 
 
-    def getGlobalVarByIndex( self, envName, unitId, globalVarIndex ):
+    def getGlobalVarByIndex( self, envDir, unitId, globalVarIndex ):
 
-        api = self.envApi[envName]
+        api = self.envApi[envDir]
 
         globalVarId = 1
         globalVar = api.Global.get( globalVarId )
