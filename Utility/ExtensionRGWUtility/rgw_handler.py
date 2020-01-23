@@ -40,7 +40,16 @@ class RGW_Handler( object ):
 
     def processGroup( self, group ):
 
-        print( group["@name"] )
+        groupName = group["@name"]
+
+        if groupName in self.req_groupNameToGroupId.keys():
+            groupId = self.req_groupNameToGroupId[groupName]
+        else:
+            self.extension_repo_helper.create_req_group( groupName )
+            groupRecord = self.extension_repo_helper.get_req_group_on_name( groupName )
+            groupId = groupRecord[0]
+            groupName = groupRecord[1]
+            self.req_groupNameToGroupId[groupName] = groupId
 
         if isinstance( group["requirement"], list ):
             
@@ -68,13 +77,13 @@ class RGW_Handler( object ):
 
     def addReqToDatabase( self, file ):
 
-        req_groups = self.extension_repo_helper.get_req_groups()
+        groupRecords = self.extension_repo_helper.get_req_groups()
 
         self.req_groupNameToGroupId = {}
         
-        for req_group in req_groups:
-            groupId = req_group[0]
-            groupName = req_group[1]
+        for groupRecord in groupRecords:
+            groupId = groupRecord[0]
+            groupName = groupRecord[1]
             self.req_groupNameToGroupId[groupName] = groupId
 
         xmlAsDict = self.parseXmlFile( file )

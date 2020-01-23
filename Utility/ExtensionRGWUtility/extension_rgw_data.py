@@ -28,6 +28,28 @@ class ExtensionRepoDataHelper:
         self.cur.execute( self._q_select_req_groups() )
         return self.cur.fetchall()
 
+    def _q_select_req_group_on_name( self ):
+        return \
+            ("SELECT "
+             "id, "
+             "name "
+             "FROM requirement_groups "
+             "WHERE name = ?;")
+
+    def get_req_group_on_name( self, groupName ):
+        self.cur.execute( self._q_select_req_group_on_name(), (groupName,) )
+        return self.cur.fetchone()
+
+    def _q_create_req_group( self ):
+        return \
+            ("INSERT INTO requirement_groups "
+             "(name) "
+             "VALUES (?)")
+
+    def create_req_group( self, groupName ):
+        self.cur.execute( self._q_create_req_group(), (groupName,) )
+        self.connection.commit()
+
     # requirement
 
     def _q_select_req_for_req( self ):
