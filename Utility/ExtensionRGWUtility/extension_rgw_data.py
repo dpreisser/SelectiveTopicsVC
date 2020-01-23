@@ -15,6 +15,19 @@ class ExtensionRepoDataHelper:
         self.use_max_counts = True
         self.cur = self.connection.cursor()
 
+    # requirement group
+
+    def _q_select_req_groups( self ):
+        return \
+            ("SELECT "
+             "id, "
+             "name "
+             "FROM requirement_groups;")
+
+    def get_req_groups( self ):
+        self.cur.execute( self._q_select_req_groups() )
+        return self.cur.fetchall()
+
     # requirement
 
     def _q_select_req_for_req( self ):
@@ -24,7 +37,7 @@ class ExtensionRepoDataHelper:
              "FROM requirements "
              "WHERE external_key = ?;")
 
-    def get_req_from_req( self, req_key ):
+    def get_req_for_req( self, req_key ):
         self.cur.execute( self._q_select_req_for_req(), (req_key,) )
         return self.cur.fetchall()
 
