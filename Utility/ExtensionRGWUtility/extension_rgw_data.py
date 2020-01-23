@@ -65,7 +65,7 @@ class ExtensionRepoDataHelper:
 
     # requirement
 
-    def _q_select_req_on_key( self ):
+    def _q_select_req_on_req_key( self ):
         return \
             ("SELECT "
              "max(id), "
@@ -76,8 +76,8 @@ class ExtensionRepoDataHelper:
              "FROM requirements "
              "WHERE external_key = ?;")
 
-    def get_req_on_key( self, req_key ):
-        self.cur.execute( self._q_select_req_on_key(), (req_key,) )
+    def get_req_on_req_key( self, reqKey ):
+        self.cur.execute( self._q_select_req_on_req_key(), (reqKey,) )
         return self.cur.fetchone()
 
     def _q_select_req_export( self ):
@@ -101,6 +101,32 @@ class ExtensionRepoDataHelper:
     def create_req( self, objectTypeId, groupId, reqKey, needsSync ):
         self.cur.execute( self._q_create_req(), (objectTypeId, groupId, reqKey, needsSync) )
         self.connection.commit()
+
+    # requirement tracking
+
+    def _q_select_req_tracking_on_req_id( self ):
+        return \
+            ("SELECT "
+             "max(id), "
+             "requirement_id, "
+             "action_id, "
+             "date_time "
+             "FROM requirement_tracking "
+             "WHERE requirement_id = ?;")
+
+    def get_req_tracking_on_req_id( self, reqId ):
+        self.cur.execute( self._q_select_req_tracking_on_req_id(), (reqId,) )
+        return self.cur.fetchone()
+
+    def _q_create_req_tracking( self ):
+        return \
+            ("INSERT INTO requirement_tracking "
+             "(requirement_id, action_id, date_time) "
+             "VALUES (?, ?, ?)")
+
+    def create_req_tracking( self, reqId, actionTypeId, dts ):
+        self.cur.execute( self._q_create_req_tracking(), (reqId, actionTypeId, dts) )
+        self.connection.commit()    
 
     # tc_links and req_links
 

@@ -5,6 +5,8 @@ import codecs
 
 import xmltodict
 
+import time
+
 import pprint
 
 from vector.apps.RGWUtility import rgw_data
@@ -55,14 +57,30 @@ class RGW_Handler( object ):
                 objectTypeId = 1
                 needsSync = 0
 
-                reqRecord = self.extension_repo_helper.get_req_on_key( reqKey )
+                reqRecord = self.extension_repo_helper.get_req_on_req_key( reqKey )
                 print( reqRecord )
-                
                 reqId = reqRecord[0]
+
                 if isinstance( reqId, type(None) ):
-                     self.extension_repo_helper.create_req( objectTypeId, groupId, reqKey, needsSync )
-                     reqRecord = self.extension_repo_helper.get_req_on_key( reqKey )
-                     print( reqRecord )
+                    actionTypeName = "IMPORT"
+                else:
+                    actionTypeName = "UPDATE"
+
+                actionTypeId = self.actionType_nameToId[actionTypeName]
+                print( actionTypeName, actionTypeId )
+
+                self.extension_repo_helper.create_req( objectTypeId, groupId, reqKey, needsSync )
+                reqRecord = self.extension_repo_helper.get_req_on_req_key( reqKey )
+                print( reqRecord )
+                reqId = reqRecord[0]
+
+                gmtime = time.gmtime()
+                dts = time.strftime( "%Y-%m-%d %H:%M:%S", gmtime )
+                self.extension_repo_helper.create_req_tracking( reqId, actionTypeId, dts )
+
+                reqTrackingRecord = self.extension_repo_helper.get_req_tracking_on_req_id( reqId )
+                print( reqTrackingRecord )
+                reqTrackingId = reqTrackingRecord[0]
 
             # if attributeName in self.knownAttributes:
             #     dataTypeId = self.dataType_nameToId[key]
