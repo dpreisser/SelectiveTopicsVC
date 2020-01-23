@@ -15,6 +15,19 @@ class ExtensionRepoDataHelper:
         self.use_max_counts = True
         self.cur = self.connection.cursor()
 
+    # action types
+
+    def _q_select_action_types( self ):
+        return \
+            ("SELECT "
+             "id, "
+             "text "
+             "FROM action_types;")
+
+    def get_action_types( self ):
+        self.cur.execute( self._q_select_action_types() )
+        return self.cur.fetchall()
+
     # requirement group
 
     def _q_select_req_groups( self ):
@@ -52,16 +65,20 @@ class ExtensionRepoDataHelper:
 
     # requirement
 
-    def _q_select_req_for_req( self ):
+    def _q_select_req_on_key( self ):
         return \
             ("SELECT "
-             "id "
+             "max(id), "
+             "object_type_id, "
+             "group_id, "
+             "external_key, "
+             "needs_sync "
              "FROM requirements "
              "WHERE external_key = ?;")
 
-    def get_req_for_req( self, req_key ):
-        self.cur.execute( self._q_select_req_for_req(), (req_key,) )
-        return self.cur.fetchall()
+    def get_req_on_key( self, req_key ):
+        self.cur.execute( self._q_select_req_on_key(), (req_key,) )
+        return self.cur.fetchone()
 
     def _q_select_req_export( self ):
         return \
@@ -74,6 +91,16 @@ class ExtensionRepoDataHelper:
     def get_req_export( self ):
         self.cur.execute( self._q_select_req_export() )
         return self.cur.fetchall()
+
+    def _q_create_req( self ):
+        return \
+            ("INSERT INTO requirements "
+             "(object_type_id, group_id, external_key, needs_sync) "
+             "VALUES (?, ?, ?, ?)")
+
+    def create_req( self, objectTypeId, groupId, reqKey, needsSync ):
+        self.cur.execute( self._q_create_req(), (objectTypeId, groupId, reqKey, needsSync) )
+        self.connection.commit()
 
     # tc_links and req_links
 
