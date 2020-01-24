@@ -213,13 +213,126 @@ class RGW_Handler( object ):
             self.extension_repo_helper.create_tc_data( tcId, tcTrackingId, tcDataTypeId, tcDataTypeValue )
 
 
+    def getDataForExport( self ):
+
+        export_req_data = {}
+        export_tc_data = {}
+
+        req_records = self.extension_repo_helper.get_req_export()
+
+        for req_record in req_records:
+
+            print( "req_record: ", req_record )
+
+            lst_env_names = []
+            lst_tc_names = []
+            lst_tc_unique_ids = []        
+            lst_tc_statuses = []
+
+            req_id = req_record[0]
+            req_key = req_record[1]
+
+            export_req_data[req_key] = {}
+            export_data = export_req_data[req_key]
+
+            export_data["key"] = req_key
+            export_data["modified"] = True
+
+            last_update_dts = self.repo_helper.get_requirement_tracking_max_date_on_key( req_key )
+            export_data["last_update_dts"] = last_update_dts
+
+            req_data_type_records = self.repo_helper.get_data_types_on_req( req_id )
+
+            for req_data_type_record in req_data_type_records:
+
+                req_data_type_id = req_data_type_record[0]
+                req_data_type_name = self.repo_helper.get_data_type_name_on_id( req_data_type_id )
+
+                req_data_record = self.repo_helper.get_requirement_data_latest( req_id, req_data_type_id )
+                req_data_type_content = req_data_record[2]
+
+                print( req_data_type_id, req_data_type_name, req_data_type_content )
+
+                if "External ID" == req_data_type_name:
+                    export_data["id"] = req_data_type_content
+                elif "Title" == req_data_type_name:
+                    export_data["title"] = req_data_type_content
+                elif "Description" == req_data_type_name:
+                    export_data["description"] = req_data_type_content
+                else:
+                    export_data[req_data_type_name] = req_data_type_content
+
+                tc_link_records = self.extension_repo_helper.get_tc_links_on_req_id( req_id )
+
+                for tc_link_record in tc_link_records:
+
+                    tc_id = tc_link_record[0]
+                    tc_unique_id = tc_link_record[1]
+
+                    if tc_unique_id in export_tc_data.keys():
+
+                        env_name = export_tc_data[tc_unique_id]["environment_name"]
+                        tc_name = export_tc_data[tc_unique_id]["test_name"]
+                        tc_unique_id = export_tc_data[tc_unique_id]["test_unique_id"]
+                        tc_status = export_tc_data[tc_unique_id]["test_status"]
+
+                    else:
+
+                        export_tc_data[tc_unique_id] = {}
+
+                    tc_record = self.repo_helper.get_testcase_detail( tc_id )
+                    print( "tc_record: ", tc_record )
+
+                    env_name = tc_record[0]
+                    tc_name = tc_record[3]
+
+                    if tc_record[4] != tc_unique_id:
+                        print( "Internal error." )
+                        sys.exit()
+
+                    tc_data_records = self.repo_helper.get_testcase_data_latest_all( tc_id )
+
+                    tc_data_record = tc_data_records[-1]
+                    print( "tc_data_record: ", tc_data_record )
+
+                    tc_status = "none"
+
+                    # 7 means action RUN
+                    if 7 == tc_data_record[2]:
+                        tc_status = tc_data_record[4]
+
+                    export_tc_data[tc_unique_id]["environment_name"] = env_name
+                    export_tc_data[tc_unique_id]["test_name"] = tc_name
+                    export_tc_data[tc_unique_id]["test_unique_id"] = tc_unique_id
+                    export_tc_data[tc_unique_id]["test_status"] = tc_status
+                    export_tc_data[tc_unique_id]["test_req_keys"] = []
+
+                    lst_env_names.append( env_name )
+                    lst_tc_names.append( tc_name )
+                    lst_tc_unique_ids.append( tc_unique_id )
+                    lst_tc_statuses.append( tc_status )
+
+                    export_tc_data[tc_unique_id]["test_req_keys"].append( req_key )
+
+            export_data["environment_name"] = "\n".join( lst_env_names )
+            export_data["test_name"] = "\n".join( lst_tc_names )
+            export_data["test_unique_id"] = "\n".join( lst_tc_unique_ids )
+            export_data["test_status"] = "\n".join( lst_tc_statuses )
+
+        print( "export_req_data: " )
+        pprint.pprint( export_req_data )
+
+        print( "export_tc_data: " )
+        pprint.pprint( export_tc_data )
+
+        return export_req_data, export_tc_data
+
+
 if "__main__" == __name__:
 
-    file = "C:\\Work\\GitHub\\FAE\\FAE\\products\\VectorCAST_Requirements_Gateway\\Polarion\\reqs_for_import.xml"
     db_path = "C:\\Work\\Training\\Demo\\MinGW_WorkDir\\RGW_Polarion"
+    file = "C:\\Work\\GitHub\\FAE\\FAE\\products\\VectorCAST_Requirements_Gateway\\Polarion\\reqs_for_import.xml"
 
     instance = RGW_Handler( db_path )
-    instance.addRequirementsToDatabase( file )
-
-
-
+    # instance.addRequirementsToDatabase( file )
+    # instance.getDataForExport()

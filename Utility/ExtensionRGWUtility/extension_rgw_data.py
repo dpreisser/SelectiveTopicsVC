@@ -49,7 +49,7 @@ class ExtensionRepoDataHelper:
              "FROM data_types "
              "WHERE text = ?;")
 
-    def get_req_group_on_name( self, dataTypeName ):
+    def get_data_type_on_name( self, dataTypeName ):
         self.cur.execute( self._q_select_data_type_on_name(), (dataTypeName,) )
         return self.cur.fetchone()
 
@@ -191,7 +191,7 @@ class ExtensionRepoDataHelper:
         self.cur.execute( self._q_select_tc_links_on_req_id(), (reqId,) )
         return self.cur.fetchall()
 
-    def _q_select_req_links_for_tc( self ):
+    def _q_select_req_links_on_tc_id( self ):
         return \
             ("SELECT "
              "requirements_test_cases.requirement_id, "
@@ -201,8 +201,8 @@ class ExtensionRepoDataHelper:
              "ON requirements_test_cases.requirement_id = requirements.id "
              "WHERE requirements_test_cases.test_case_id = ?;")
 
-    def get_req_links_for_tc( self, tc_id ):
-        self.cur.execute( self._q_select_req_links_for_tc(), (tc_id,) )
+    def get_req_links_on_tc_id( self, tcId ):
+        self.cur.execute( self._q_select_req_links_on_tc_id(), (tcId,) )
         return self.cur.fetchall()
 
     # test_case tracking
@@ -245,74 +245,74 @@ class ExtensionRepoDataHelper:
 
     # deletion requirement
 
-    def _q_delete_requirements_test_cases_for_req( self ):
+    def _q_delete_requirements_test_cases_on_req_id( self ):
         return \
             ("delete "
              "from requirements_test_cases "
              "where requirement_id = ?;")
 
-    def _q_delete_requirement_tracking_for_req( self ):
+    def _q_delete_requirement_tracking_on_req_id( self ):
         return \
             ("delete "
              "from requirement_tracking "
              "where requirement_id = ?;")
 
-    def _q_delete_requirement_data_for_req( self ):
+    def _q_delete_requirement_data_on_req_id( self ):
         return \
             ("delete "
              "from requirement_data "
              "where requirement_id = ?;")
 
-    def _q_delete_requirements_for_req( self ):
+    def _q_delete_requirements_on_req_id( self ):
         return \
             ("delete "
              "from requirements "
              "where id = ?;")
 
-    def delete_requirement( self, req_id ):
-        self.cur.execute( self._q_delete_requirements_test_cases_for_req(), (req_id,) )
+    def delete_requirement_on_req_id( self, req_id ):
+        self.cur.execute( self._q_delete_requirements_test_cases_on_req_id(), (req_id,) )
         print ( "Removed %s requirements_test_cases records." % (self.cur.rowcount,) )
-        self.cur.execute( self._q_delete_requirement_tracking_for_req(), (req_id,) )
+        self.cur.execute( self._q_delete_requirement_tracking_on_req_id(), (req_id,) )
         print ( "Removed %s requirement_tracking records." % (self.cur.rowcount,) )
-        self.cur.execute( self._q_delete_requirement_data_for_req(), (req_id,) )
+        self.cur.execute( self._q_delete_requirement_data_on_req_id(), (req_id,) )
         print ( "Removed %s requirement_data records." % (self.cur.rowcount,) )
-        self.cur.execute( self._q_delete_requirements_for_req(), (req_id,) )
+        self.cur.execute( self._q_delete_requirements_on_req_id(), (req_id,) )
         print ( "Removed %s requirements records." % (self.cur.rowcount,) )
         self.connection.commit()
 
     # deletion test case
 
-    def _q_delete_requirements_test_cases_for_tc( self ):
+    def _q_delete_requirements_test_cases_on_tc_ic( self ):
         return \
             ("delete "
              "from requirements_test_cases "
              "where test_case_id = ?;")
 
-    def _q_delete_test_case_tracking_for_tc( self ):
+    def _q_delete_test_case_tracking_on_tc_id( self ):
         return \
             ("delete "
              "from test_case_tracking "
              "where test_case_id = ?;")
 
-    def _q_delete_test_case_data_for_tc( self ):
+    def _q_delete_test_case_data_on_tc_id( self ):
         return \
             ("delete "
              "from test_case_data "
              "where test_case_id = ?;")
 
-    def _q_delete_test_cases_for_tc( self ):
+    def _q_delete_test_cases_on_tc_id( self ):
         return \
             ("delete "
              "from test_cases "
              "where id = ?;")
 
-    def delete_testcase( self, tc_id ):
-        self.cur.execute( self._q_delete_requirements_test_cases_for_tc(), (tc_id,) )
+    def delete_testcase_on_req_id( self, tc_id ):
+        self.cur.execute( self._q_delete_requirements_test_cases_on_tc_id(), (tc_id,) )
         print ( "Removed %s requirements_test_cases records." % (self.cur.rowcount,) )
-        self.cur.execute( self._q_delete_test_case_tracking_for_tc(), (tc_id,) )
+        self.cur.execute( self._q_delete_test_case_tracking_on_tc_id(), (tc_id,) )
         print ( "Removed %s test_case_tracking records." % (self.cur.rowcount,) )
-        self.cur.execute( self._q_delete_test_case_data_for_tc(), (tc_id,) )
+        self.cur.execute( self._q_delete_test_case_data_on_tc_id(), (tc_id,) )
         print ( "Removed %s test_case_data records." % (self.cur.rowcount,) )
-        self.cur.execute( self._q_delete_test_cases_for_tc(), (tc_id,) )
+        self.cur.execute( self._q_delete_test_cases_on_tc_id(), (tc_id,) )
         print ( "Removed %s test_cases records." % (self.cur.rowcount,) )
         self.connection.commit()
