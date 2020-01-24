@@ -24,7 +24,7 @@ class RGW_Handler( object ):
 
         # These are the required keys with fixed names for each requirement.
         self.knownAttributes = [ "key", "id", "title", "description" ]
-        self.knownDataTypeNames = [ "External ID", "Title", "Description", "Test Status", "Needs Sync" ]
+        self.knownDataTypeNames = [ "External ID", "Title", "Description", "Test Status", "Needs Sync", "Last System Value" ]
 
         self.attributeToDataTypeName = {}
         self.attributeToDataTypeName["id"] = "External ID"
@@ -48,9 +48,12 @@ class RGW_Handler( object ):
 
         dataTypeInfoList = []
 
+        gmtime = time.gmtime()
+        dts = time.strftime( "%Y-%m-%d %H:%M:%S", gmtime )
+
         for attributeName,attributeValue in requirement.items():
 
-            print( attributeName,attributeValue )
+            print( "Attribute: ", attributeName, attributeValue )
 
             if "key" == attributeName:
 
@@ -59,28 +62,38 @@ class RGW_Handler( object ):
                 needsSync = 0
 
                 reqRecord = self.extension_repo_helper.get_req_on_req_key( reqKey )
-                print( reqRecord )
+                print( "reqRecord: ", reqRecord )
                 reqId = reqRecord[0]
 
-                if isinstance( reqId, type(None) ):
+                if reqId is None:
                     actionTypeName = "IMPORT"
                 else:
                     actionTypeName = "UPDATE"
 
                 actionTypeId = self.actionType_nameToId[actionTypeName]
-                print( actionTypeName, actionTypeId )
+                print( "Action: ", actionTypeName, actionTypeId )
 
-                self.extension_repo_helper.create_req( objectTypeId, groupId, reqKey, needsSync )
-                reqRecord = self.extension_repo_helper.get_req_on_req_key( reqKey )
-                print( reqRecord )
-                reqId = reqRecord[0]
+                if "IMPORT" == actionTypeName:
 
-                gmtime = time.gmtime()
-                dts = time.strftime( "%Y-%m-%d %H:%M:%S", gmtime )
+                    self.extension_repo_helper.create_req( objectTypeId, groupId, reqKey, needsSync )
+                    reqRecord = self.extension_repo_helper.get_req_on_req_key( reqKey )
+                    print( "reqRecord: ", reqRecord )
+                    reqId = reqRecord[0]
+
+                else:
+
+                    tcActionTypeName = "FLAG_FOR_REVIEW"
+                    tcActionTypeId = self.actionType_nameToId[tcActionTypeName]
+
+                    tcLinkRecords = self.extension_repo_helper.get_tc_links_on_req_id( reqId )
+                    for tcLinkRecord in tcLinkRecords: 
+                        tcId = tcLinkRecord[0]
+                        if tcId is not None:
+                            self.tcTrackingInfo[tcId] = ( tcId, tcActionTypeId, dts )
+
                 self.extension_repo_helper.create_req_tracking( reqId, actionTypeId, dts )
-
                 reqTrackingRecord = self.extension_repo_helper.get_req_tracking_on_req_id( reqId )
-                print( reqTrackingRecord )
+                print( "reqTrackingRecord: ", reqTrackingRecord )
                 reqTrackingId = reqTrackingRecord[0]
 
             else:
@@ -95,7 +108,7 @@ class RGW_Handler( object ):
                 else:
                     self.extension_repo_helper.create_data_type( dataTypeName )
                     dataTypeRecord = self.extension_repo_helper.get_data_type_on_name( dataTypeName )
-                    print( reqTypeRecord )
+                    print( "reqTypeRecord: ", reqTypeRecord )
                     dataTypeId = reqTypeRecord[0]
                     self.dataType_nameToId[dataTypeName] = dataTypeId
 
@@ -135,6 +148,8 @@ class RGW_Handler( object ):
 
     def processXmlAsDict( self, xmlAsDict ):
 
+        self.tcTrackingInfo = {}
+
         if isinstance( xmlAsDict["req_data"]["group"], list ):
 
             for group in xmlAsDict["req_data"]["group"]:
@@ -151,11 +166,13 @@ class RGW_Handler( object ):
         actionTypeRecords = self.extension_repo_helper.get_action_types()
 
         self.actionType_nameToId = {}
+        self.actionType_idToName = {}
 
         for actionTypeRecord in actionTypeRecords:
             actionTypeId = actionTypeRecord[0]
             actionTypeName = actionTypeRecord[1]
             self.actionType_nameToId[actionTypeName] = actionTypeId
+            self.actionType_idToName[actionTypeId] = actionTypeName
 
         dataTypeRecords = self.extension_repo_helper.get_data_types()
 
@@ -178,6 +195,22 @@ class RGW_Handler( object ):
         xmlAsDict = self.parseXmlFile( file )
 
         self.processXmlAsDict( xmlAsDict )
+
+        for tcId, tcTrackingInfo in self.tcTrackingInfo.items():
+
+            tcId = tcTrackingInfo[0]
+            tcActionTypeId = tcTrackingInfo[1]
+            dts = tcTrackingInfo[2]
+            self.extension_repo_helper.create_tc_tracking( tcId, tcActionTypeId, dts )
+
+            tcTrackingRecord = self.extension_repo_helper.get_tc_tracking_on_tc_id( tcId )
+            print( "tcTrackingRecord: ", tcTrackingRecord )
+            tcTrackingId = tcTrackingRecord[0]
+
+            tcDataTypeName = "Test Status"
+            tcDataTypeId = self.dataType_nameToId[tcDataTypeName]
+            tcDataTypeValue = self.actionType_idToName[tcActionTypeId]
+            self.extension_repo_helper.create_tc_data( tcId, tcTrackingId, tcDataTypeId, tcDataTypeValue )
 
 
 if "__main__" == __name__:

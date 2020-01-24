@@ -63,7 +63,7 @@ class ExtensionRepoDataHelper:
         self.cur.execute( self._q_create_data_type(), (dataTypeName,) )
         self.connection.commit()
 
-    # requirement group
+    # requirement groups
 
     def _q_select_req_groups( self ):
         return \
@@ -175,9 +175,9 @@ class ExtensionRepoDataHelper:
         self.cur.execute( self._q_create_req_data(), (reqId, reqTrackingId, dataTypeId, dataTypeValue) )
         self.connection.commit()
 
-    # tc_links and req_links
+    # requirements test_cases
 
-    def _q_select_tc_links_for_req( self ):
+    def _q_select_tc_links_on_req_id( self ):
         return \
             ("SELECT "
              "requirements_test_cases.test_case_id, "
@@ -187,8 +187,8 @@ class ExtensionRepoDataHelper:
              "ON requirements_test_cases.test_case_id = test_cases.id "
              "WHERE requirements_test_cases.requirement_id = ?;")
 
-    def get_tc_links_for_req( self, req_id ):
-        self.cur.execute( self._q_select_tc_links_for_req(), (req_id,) )
+    def get_tc_links_on_req_id( self, reqId ):
+        self.cur.execute( self._q_select_tc_links_on_req_id(), (reqId,) )
         return self.cur.fetchall()
 
     def _q_select_req_links_for_tc( self ):
@@ -204,6 +204,44 @@ class ExtensionRepoDataHelper:
     def get_req_links_for_tc( self, tc_id ):
         self.cur.execute( self._q_select_req_links_for_tc(), (tc_id,) )
         return self.cur.fetchall()
+
+    # test_case tracking
+
+    def _q_select_tc_tracking_on_tc_id( self ):
+        return \
+            ("SELECT "
+             "max(id), "
+             "test_case_id, "
+             "action_id, "
+             "date_time "
+             "FROM test_case_tracking "
+             "WHERE test_case_id = ?;")
+
+    def get_tc_tracking_on_tc_id( self, tcId ):
+        self.cur.execute( self._q_select_tc_tracking_on_tc_id(), (tcId,) )
+        return self.cur.fetchone()
+
+    def _q_create_tc_tracking( self ):
+        return \
+            ("INSERT INTO test_case_tracking "
+             "(test_case_id, action_id, date_time) "
+             "VALUES (?, ?, ?)")
+
+    def create_tc_tracking( self, tcId, actionTypeId, dts ):
+        self.cur.execute( self._q_create_tc_tracking(), (tcId, actionTypeId, dts) )
+        self.connection.commit()
+
+    # test_case data
+
+    def _q_create_tc_data( self ):
+        return \
+            ("INSERT INTO test_case_data "
+             "(test_case_id, test_case_tracking_id, data_type_id, text) "
+             "VALUES (?, ?, ?, ?)")
+
+    def create_tc_data( self, tcId, tcTrackingId, dataTypeId, dataTypeValue ):
+        self.cur.execute( self._q_create_tc_data(), (tcId, tcTrackingId, dataTypeId, dataTypeValue) )
+        self.connection.commit()
 
     # deletion requirement
 
