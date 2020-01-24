@@ -262,68 +262,73 @@ class RGW_Handler( object ):
                 else:
                     export_data[req_data_type_name] = req_data_type_content
 
-                tc_link_records = self.extension_repo_helper.get_tc_links_on_req_id( req_id )
+            tc_link_records = self.extension_repo_helper.get_tc_links_on_req_id( req_id )
 
-                for tc_link_record in tc_link_records:
+            for tc_link_record in tc_link_records:
 
-                    tc_id = tc_link_record[0]
-                    tc_unique_id = tc_link_record[1]
+                tc_id = tc_link_record[0]
+                tc_unique_id = tc_link_record[1]
 
-                    if tc_unique_id in export_tc_data.keys():
+                if tc_unique_id in export_tc_data.keys():
 
-                        env_name = export_tc_data[tc_unique_id]["environment_name"]
-                        tc_name = export_tc_data[tc_unique_id]["test_name"]
-                        tc_unique_id = export_tc_data[tc_unique_id]["test_unique_id"]
-                        tc_status = export_tc_data[tc_unique_id]["test_status"]
+                    env_name = export_tc_data[tc_unique_id]["environment_name"]
+                    tc_name = export_tc_data[tc_unique_id]["test_name"]
+                    tc_unique_id = export_tc_data[tc_unique_id]["test_unique_id"]
+                    tc_status = export_tc_data[tc_unique_id]["test_status"]
 
-                    else:
+                else:
 
-                        export_tc_data[tc_unique_id] = {}
-
-                    tc_record = self.repo_helper.get_testcase_detail( tc_id )
-                    print( "tc_record: ", tc_record )
-
-                    env_name = tc_record[0]
-                    tc_name = tc_record[3]
-
-                    if tc_record[4] != tc_unique_id:
-                        print( "Internal error." )
-                        sys.exit()
-
-                    tc_data_records = self.repo_helper.get_testcase_data_latest_all( tc_id )
-
-                    tc_data_record = tc_data_records[-1]
-                    print( "tc_data_record: ", tc_data_record )
-
-                    tc_status = "none"
-
-                    # 7 means action RUN
-                    if 7 == tc_data_record[2]:
-                        tc_status = tc_data_record[4]
-
-                    export_tc_data[tc_unique_id]["environment_name"] = env_name
-                    export_tc_data[tc_unique_id]["test_name"] = tc_name
-                    export_tc_data[tc_unique_id]["test_unique_id"] = tc_unique_id
-                    export_tc_data[tc_unique_id]["test_status"] = tc_status
+                    export_tc_data[tc_unique_id] = {}
                     export_tc_data[tc_unique_id]["test_req_keys"] = []
 
-                    lst_env_names.append( env_name )
-                    lst_tc_names.append( tc_name )
-                    lst_tc_unique_ids.append( tc_unique_id )
-                    lst_tc_statuses.append( tc_status )
+                tc_record = self.repo_helper.get_testcase_detail( tc_id )
+                print( "tc_record: ", tc_record )
 
-                    export_tc_data[tc_unique_id]["test_req_keys"].append( req_key )
+                env_name = tc_record[0]
+                tc_name = tc_record[3]
+
+                if tc_record[4] != tc_unique_id:
+                    print( "Internal error." )
+                    sys.exit()
+
+                tc_data_records = self.repo_helper.get_testcase_data_latest_all( tc_id )
+
+                tc_data_record = tc_data_records[-1]
+                print( "tc_data_record: ", tc_data_record )
+
+                tc_status = "none"
+
+                # 7 means action RUN
+                if 7 == tc_data_record[2]:
+                    tc_status = tc_data_record[4]
+
+                lst_env_names.append( env_name )
+                lst_tc_names.append( tc_name )
+                lst_tc_unique_ids.append( tc_unique_id )
+                lst_tc_statuses.append( tc_status )
+
+                export_tc_data[tc_unique_id]["environment_name"] = env_name
+                export_tc_data[tc_unique_id]["test_name"] = tc_name
+                export_tc_data[tc_unique_id]["test_unique_id"] = tc_unique_id
+                export_tc_data[tc_unique_id]["test_status"] = tc_status
+
+                export_tc_data[tc_unique_id]["test_req_keys"].append( req_key )
 
             export_data["environment_name"] = "\n".join( lst_env_names )
             export_data["test_name"] = "\n".join( lst_tc_names )
             export_data["test_unique_id"] = "\n".join( lst_tc_unique_ids )
             export_data["test_status"] = "\n".join( lst_tc_statuses )
 
+        for tc_unique_id, export_tc_data_curr in export_tc_data.items():
+            export_tc_data_curr["test_req_keys"] = "\n".join( export_tc_data_curr["test_req_keys"] )
+
         print( "export_req_data: " )
         pprint.pprint( export_req_data )
 
         print( "export_tc_data: " )
         pprint.pprint( export_tc_data )
+
+        sys.exit()
 
         return export_req_data, export_tc_data
 
