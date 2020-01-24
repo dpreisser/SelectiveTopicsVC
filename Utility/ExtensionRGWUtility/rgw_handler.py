@@ -43,12 +43,13 @@ class RGW_Handler( object ):
 
     def processRequirement( self, requirement, groupId ):
 
-        attribute_nameToValue = {}
-        attribute_nameToId = {}
+        reqId = None
+        reqTrackingId = None
+
+        dataTypeInfoList = []
 
         for attributeName,attributeValue in requirement.items():
 
-            attribute_nameToValue[attributeName] = attributeValue
             print( attributeName,attributeValue )
 
             if "key" == attributeName:
@@ -97,6 +98,15 @@ class RGW_Handler( object ):
                     print( reqTypeRecord )
                     dataTypeId = reqTypeRecord[0]
                     self.dataType_nameToId[dataTypeName] = dataTypeId
+
+                dataTypeInfoList.append( (dataTypeId,attributeValue) )
+
+        if None != reqId and None != reqTrackingId:
+
+            for dataTypeInfo in dataTypeInfoList:
+                dataTypeId = dataTypeInfo[0]
+                dataTypeValue = dataTypeInfo[1]
+                self.extension_repo_helper.create_req_data( reqId, reqTrackingId, dataTypeId, dataTypeValue ) 
 
 
     def processGroup( self, group ):

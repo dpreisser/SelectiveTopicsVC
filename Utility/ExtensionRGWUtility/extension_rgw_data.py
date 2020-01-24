@@ -161,7 +161,19 @@ class ExtensionRepoDataHelper:
 
     def create_req_tracking( self, reqId, actionTypeId, dts ):
         self.cur.execute( self._q_create_req_tracking(), (reqId, actionTypeId, dts) )
-        self.connection.commit()    
+        self.connection.commit()
+
+    # requirement data
+
+    def _q_create_req_data( self ):
+        return \
+            ("INSERT INTO requirement_data "
+             "(requirement_id, requirement_tracking_id, data_type_id, text) "
+             "VALUES (?, ?, ?, ?)")
+
+    def create_req_data( self, reqId, reqTrackingId, dataTypeId, dataTypeValue ):
+        self.cur.execute( self._q_create_req_data(), (reqId, reqTrackingId, dataTypeId, dataTypeValue) )
+        self.connection.commit()
 
     # tc_links and req_links
 
