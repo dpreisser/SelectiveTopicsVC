@@ -28,6 +28,41 @@ class ExtensionRepoDataHelper:
         self.cur.execute( self._q_select_action_types() )
         return self.cur.fetchall()
 
+    # data types
+
+    def _q_select_data_types( self ):
+        return \
+            ("SELECT "
+             "id, "
+             "text "
+             "FROM data_types;")
+
+    def get_data_types( self ):
+        self.cur.execute( self._q_select_data_types() )
+        return self.cur.fetchall()
+
+    def _q_select_data_type_on_name( self ):
+        return \
+            ("SELECT "
+             "id, "
+             "text "
+             "FROM data_types "
+             "WHERE text = ?;")
+
+    def get_req_group_on_name( self, dataTypeName ):
+        self.cur.execute( self._q_select_data_type_on_name(), (dataTypeName,) )
+        return self.cur.fetchone()
+
+    def _q_create_data_type( self ):
+        return \
+            ("INSERT INTO data_types "
+             "(text) "
+             "VALUES (?)")
+
+    def create_data_type( self, dataTypeName ):
+        self.cur.execute( self._q_create_data_type(), (dataTypeName,) )
+        self.connection.commit()
+
     # requirement group
 
     def _q_select_req_groups( self ):

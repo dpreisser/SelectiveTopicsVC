@@ -82,10 +82,21 @@ class RGW_Handler( object ):
                 print( reqTrackingRecord )
                 reqTrackingId = reqTrackingRecord[0]
 
-            # if attributeName in self.knownAttributes:
-            #     dataTypeId = self.dataType_nameToId[key]
+            else:
 
-            # self.repo_helper.get_create_data_type_id(self, tcDataType):
+                if attributeName in self.attributeToDataTypeName.keys():
+                    dataTypeName = self.attributeToDataTypeName[attributeName]
+                else:
+                    dataTypeName = attributeName
+
+                if dataTypeName in self.dataType_nameToId.keys():
+                    dataTypeId = self.dataType_nameToId[dataTypeName]
+                else:
+                    self.extension_repo_helper.create_data_type( dataTypeName )
+                    dataTypeRecord = self.extension_repo_helper.get_data_type_on_name( dataTypeName )
+                    print( reqTypeRecord )
+                    dataTypeId = reqTypeRecord[0]
+                    self.dataType_nameToId[dataTypeName] = dataTypeId
 
 
     def processGroup( self, group ):
@@ -135,6 +146,15 @@ class RGW_Handler( object ):
             actionTypeId = actionTypeRecord[0]
             actionTypeName = actionTypeRecord[1]
             self.actionType_nameToId[actionTypeName] = actionTypeId
+
+        dataTypeRecords = self.extension_repo_helper.get_data_types()
+
+        self.dataType_nameToId = {}
+
+        for dataTypeRecord in dataTypeRecords:
+            dataTypeId = dataTypeRecord[0]
+            dataTypeName = dataTypeRecord[1]
+            self.dataType_nameToId[dataTypeName] = dataTypeId
 
         groupRecords = self.extension_repo_helper.get_req_groups()
 
