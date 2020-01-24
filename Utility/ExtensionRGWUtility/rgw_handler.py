@@ -215,6 +215,20 @@ class RGW_Handler( object ):
 
     def getDataForExport( self ):
 
+        actionTypeRecords = self.extension_repo_helper.get_action_types()
+
+        self.actionType_nameToId = {}
+        self.actionType_idToName = {}
+
+        for actionTypeRecord in actionTypeRecords:
+            actionTypeId = actionTypeRecord[0]
+            actionTypeName = actionTypeRecord[1]
+            self.actionType_nameToId[actionTypeName] = actionTypeId
+            self.actionType_idToName[actionTypeId] = actionTypeName
+
+        runTypeName = "RUN"
+        runTypeId = self.actionType_nameToId[runTypeName]
+
         export_req_data = {}
         export_tc_data = {}
 
@@ -281,54 +295,62 @@ class RGW_Handler( object ):
                     export_tc_data[tc_unique_id] = {}
                     export_tc_data[tc_unique_id]["test_req_keys"] = []
 
-                tc_record = self.repo_helper.get_testcase_detail( tc_id )
-                print( "tc_record: ", tc_record )
+                    tc_record = self.repo_helper.get_testcase_detail( tc_id )
+                    print( "tc_record: ", tc_record )
 
-                env_name = tc_record[0]
-                tc_name = tc_record[3]
+                    env_name = tc_record[0]
+                    tc_name = tc_record[3]
 
-                if tc_record[4] != tc_unique_id:
-                    print( "Internal error." )
-                    sys.exit()
+                    if tc_record[4] != tc_unique_id:
+                        print( "Internal error." )
+                        sys.exit()
 
-                tc_data_records = self.repo_helper.get_testcase_data_latest_all( tc_id )
+                    tc_data_records = self.repo_helper.get_testcase_data_latest_all( tc_id )
 
-                tc_data_record = tc_data_records[-1]
-                print( "tc_data_record: ", tc_data_record )
+                    tc_data_record = tc_data_records[-1]
+                    print( "tc_data_record: ", tc_data_record )
 
-                tc_status = "none"
+                    tc_status = None
 
-                # 7 means action RUN
-                if 7 == tc_data_record[2]:
-                    tc_status = tc_data_record[4]
+                    if runTypeId == tc_data_record[2]:
+                        tc_status = tc_data_record[4]
 
-                lst_env_names.append( env_name )
-                lst_tc_names.append( tc_name )
-                lst_tc_unique_ids.append( tc_unique_id )
-                lst_tc_statuses.append( tc_status )
+                    export_tc_data[tc_unique_id]["environment_name"] = env_name
+                    export_tc_data[tc_unique_id]["test_name"] = tc_name
+                    export_tc_data[tc_unique_id]["test_unique_id"] = tc_unique_id
+                    export_tc_data[tc_unique_id]["test_status"] = tc_status
 
-                export_tc_data[tc_unique_id]["environment_name"] = env_name
-                export_tc_data[tc_unique_id]["test_name"] = tc_name
-                export_tc_data[tc_unique_id]["test_unique_id"] = tc_unique_id
-                export_tc_data[tc_unique_id]["test_status"] = tc_status
+                if None != tc_status:
 
-                export_tc_data[tc_unique_id]["test_req_keys"].append( req_key )
+                    lst_env_names.append( env_name )
+                    lst_tc_names.append( tc_name )
+                    lst_tc_unique_ids.append( tc_unique_id )
+                    lst_tc_statuses.append( tc_status )
+
+                    export_tc_data[tc_unique_id]["test_req_keys"].append( req_key )
 
             export_data["environment_name"] = "\n".join( lst_env_names )
             export_data["test_name"] = "\n".join( lst_tc_names )
             export_data["test_unique_id"] = "\n".join( lst_tc_unique_ids )
             export_data["test_status"] = "\n".join( lst_tc_statuses )
 
+        needDeletion = []
+
         for tc_unique_id, export_tc_data_curr in export_tc_data.items():
-            export_tc_data_curr["test_req_keys"] = "\n".join( export_tc_data_curr["test_req_keys"] )
+            if None == export_tc_data_curr["test_status"]:
+                needDeletion.append( tc_unique_id )
+            else:
+                export_tc_data_curr["test_req_keys"] = "\n".join( export_tc_data_curr["test_req_keys"] )
+
+        for tc_unique_id in needDeletion:
+            print( "Remove: ", export_tc_data[tc_unique_id]["test_name"] )
+            del export_tc_data[tc_unique_id]
 
         print( "export_req_data: " )
         pprint.pprint( export_req_data )
 
         print( "export_tc_data: " )
         pprint.pprint( export_tc_data )
-
-        sys.exit()
 
         return export_req_data, export_tc_data
 
