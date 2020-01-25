@@ -127,6 +127,17 @@ class ExtensionRepoDataHelper:
         self.cur.execute( self._q_select_req_export() )
         return self.cur.fetchall()
 
+    def _q_update_needs_sync_on_req_key( self ):
+        return \
+            ("UPDATE requirements "
+             "SET needs_sync = ? "
+             "WHERE external_key = ?")
+
+    def update_needs_sync_on_req_key( self, needsSync, reqKey ):
+        self.cur.execute( self._q_update_needs_sync_on_req_key(), (needsSync,reqKey) )
+        self.connection.commit()
+
+
     def _q_create_req( self ):
         return \
             ("INSERT INTO requirements "

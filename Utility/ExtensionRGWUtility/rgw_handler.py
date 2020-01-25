@@ -7,6 +7,8 @@ import xmltodict
 
 import time
 
+import re
+
 import pprint
 
 from vector.apps.RGWUtility import rgw_data
@@ -31,10 +33,35 @@ class RGW_Handler( object ):
         self.attributeToDataTypeName["title"] = "Title"
         self.attributeToDataTypeName["description"] = "Description"
 
+        self.initialize()
 
-    def parseXmlFile( self, file ):
 
-        fileStream = codecs.open( file, "rb", "utf-8" )
+    def initialize( self ):
+
+        actionTypeRecords = self.extension_repo_helper.get_action_types()
+
+        self.actionType_nameToId = {}
+        self.actionType_idToName = {}
+
+        for actionTypeRecord in actionTypeRecords:
+            actionTypeId = actionTypeRecord[0]
+            actionTypeName = actionTypeRecord[1]
+            self.actionType_nameToId[actionTypeName] = actionTypeId
+            self.actionType_idToName[actionTypeId] = actionTypeName
+
+        dataTypeRecords = self.extension_repo_helper.get_data_types()
+
+        self.dataType_nameToId = {}
+
+        for dataTypeRecord in dataTypeRecords:
+            dataTypeId = dataTypeRecord[0]
+            dataTypeName = dataTypeRecord[1]
+            self.dataType_nameToId[dataTypeName] = dataTypeId
+
+
+    def parseXmlFile( self, fileName ):
+
+        fileStream = codecs.open( fileName, "rb", "utf-8" )
         xmlAsDict = xmltodict.parse( fileStream.read() )
         fileStream.close()
 
@@ -161,27 +188,7 @@ class RGW_Handler( object ):
             self.processGroup( group )
 
 
-    def addRequirementsToDatabase( self, file ):
-
-        actionTypeRecords = self.extension_repo_helper.get_action_types()
-
-        self.actionType_nameToId = {}
-        self.actionType_idToName = {}
-
-        for actionTypeRecord in actionTypeRecords:
-            actionTypeId = actionTypeRecord[0]
-            actionTypeName = actionTypeRecord[1]
-            self.actionType_nameToId[actionTypeName] = actionTypeId
-            self.actionType_idToName[actionTypeId] = actionTypeName
-
-        dataTypeRecords = self.extension_repo_helper.get_data_types()
-
-        self.dataType_nameToId = {}
-
-        for dataTypeRecord in dataTypeRecords:
-            dataTypeId = dataTypeRecord[0]
-            dataTypeName = dataTypeRecord[1]
-            self.dataType_nameToId[dataTypeName] = dataTypeId
+    def addRequirementsToDatabase( self, fileName ):
 
         groupRecords = self.extension_repo_helper.get_req_groups()
 
@@ -192,7 +199,7 @@ class RGW_Handler( object ):
             groupName = groupRecord[1]
             self.req_groupNameToGroupId[groupName] = groupId
 
-        xmlAsDict = self.parseXmlFile( file )
+        xmlAsDict = self.parseXmlFile( fileName )
 
         self.processXmlAsDict( xmlAsDict )
 
@@ -214,17 +221,6 @@ class RGW_Handler( object ):
 
 
     def getDataForExport( self ):
-
-        actionTypeRecords = self.extension_repo_helper.get_action_types()
-
-        self.actionType_nameToId = {}
-        self.actionType_idToName = {}
-
-        for actionTypeRecord in actionTypeRecords:
-            actionTypeId = actionTypeRecord[0]
-            actionTypeName = actionTypeRecord[1]
-            self.actionType_nameToId[actionTypeName] = actionTypeId
-            self.actionType_idToName[actionTypeId] = actionTypeName
 
         runTypeName = "RUN"
         runTypeId = self.actionType_nameToId[runTypeName]
@@ -355,11 +351,70 @@ class RGW_Handler( object ):
         return export_req_data, export_tc_data
 
 
+    def reportOnExport( self, export_req_data, fileName ):
+
+        regexp = r'^\s*(\S+)\s+OK$'
+
+        exportTypeName = "EXPORT"
+        exportTypeId = self.actionType_nameToId[exportTypeName]
+
+        gmtime = time.gmtime()
+        dts = time.strftime( "%Y-%m-%d %H:%M:%S", gmtime )
+
+        tc_unique_ids = []
+
+        fileStream = open( fileName, "rb" )
+        line = fileStream.readline()
+
+        while line:
+            
+            exp_match = re.match( regexp, line )
+
+            if None != exp_match:
+                
+                reqKey = exp_match.group(1)
+
+                if reqKey in export_req_data.keys():
+
+                    needsSync = 0
+                    self.extension_repo_helper.update_needs_sync_on_req_key( needsSync, reqKey )
+
+                    str_tc_unique_ids = export_req_data[reqKey]["test_unique_id"]
+
+                    if "" != str_tc_unique_ids:
+                        lst_tc_unique_ids = str_tc_unique_ids.split( "\n" )
+                    else:
+                        lst_tc_unique_ids = []
+
+                    for tc_unique_id in lst_tc_unique_ids:
+                        if not tc_unique_id in tc_unique_ids:
+                            tc_unique_ids.append( tc_unique_id )
+
+            line = fileStream.readline()
+
+        for tc_unique_id in tc_unique_ids:
+
+            tcRecord = self.repo_helper.get_testcase_detail_on_unique_id( tc_unique_id )
+            print( "tcRecord: ", tcRecord )
+            tcId = tcRecord[0]
+
+            self.extension_repo_helper.create_tc_tracking( tcId, exportTypeId, dts )
+
+            tcTrackingRecord = self.extension_repo_helper.get_tc_tracking_on_tc_id( tcId )
+            print( "tcTrackingRecord: ", tcTrackingRecord )
+            tcTrackingId = tcTrackingRecord[0]
+
+            tcDataTypeName = "Test Status"
+            tcDataTypeId = self.dataType_nameToId[tcDataTypeName] 
+            tcDataTypeValue = "exported"
+            self.extension_repo_helper.create_tc_data( tcId, tcTrackingId, tcDataTypeId, tcDataTypeValue )
+
+
 if "__main__" == __name__:
 
     db_path = "C:\\Work\\Training\\Demo\\MinGW_WorkDir\\RGW_Polarion"
-    file = "C:\\Work\\GitHub\\FAE\\FAE\\products\\VectorCAST_Requirements_Gateway\\Polarion\\reqs_for_import.xml"
+    fileName = "C:\\Work\\GitHub\\FAE\\FAE\\products\\VectorCAST_Requirements_Gateway\\Polarion\\reqs_for_import.xml"
 
     instance = RGW_Handler( db_path )
-    # instance.addRequirementsToDatabase( file )
+    # instance.addRequirementsToDatabase( fileName )
     # instance.getDataForExport()
