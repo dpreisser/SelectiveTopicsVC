@@ -7,8 +7,6 @@ from traceHandler import TraceHandler
 from dataApiReportUtils import FormatHandler
 from dataApiReport import DataAPI_Report
 
-from testCaseReport import TestCaseReport
-
 
 def initArgParser ():
 
@@ -51,17 +49,7 @@ def initArgParser ():
     return parser
 
 
-
-if "__main__" == __name__:
-
-    parser = initArgParser()
-
-    # Read the aguments.
-    try:
-        args = parser.parse_args()
-    except SystemExit:
-        # exit on failure
-        sys.exit() 
+def createReport( args ):
 
     workingDirVC = args.working_directory
 
@@ -140,14 +128,30 @@ if "__main__" == __name__:
 
     elif None != unitName and None != functionName and None != tcName:
 
-        tcRep = TestCaseReport( envName, unitName, functionName, tcName, dataApiRep, traceHandler )
+        testcase = dataApiRep.getTestcase( envName, unitName, \
+                                           functionName, tcName )
 
         if not traceHandler.getStatus():
             print( traceHandler.getErrMessage() )
+            return
         else:
-            dataAsString = tcRep.getDataAsString_explicit( dataTypeControl, isInpExpData )
+            dataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, isInpExpData, 0, True )
 
         if not traceHandler.getStatus():
             print( traceHandler.getErrMessage() )
         else:
             print( dataAsString )
+
+
+if "__main__" == __name__:
+
+    parser = initArgParser()
+
+    # Read the aguments.
+    try:
+        args = parser.parse_args()
+    except SystemExit:
+        # exit on failure
+        sys.exit() 
+
+    createReport( args )

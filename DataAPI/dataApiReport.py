@@ -81,7 +81,15 @@ class DataAPI_Report( object ):
         testcase = api.TestCase.get( tcName )
 
         if None == testcase:
-            return testcase
+
+            msg = "No testcase found for following input:\n"
+            msg += "Environment: %s\n" % envName
+            msg += "Unit: %s\n" % unitName
+            msg += "Function: %s\n" % functionName
+            msg += "TestCase: %s\n" % tcName
+            self.traceHandler.addErrMessage( msg )
+
+            return None
 
         if testcase.unit_display_name == unitName:
             if testcase.function_display_name == functionName:
@@ -95,10 +103,18 @@ class DataAPI_Report( object ):
                     if testcase.name == tcName:
                         return testcase
 
+        msg = "No testcase found for following input:"
+        msg += "Environment: %s\n" % envName
+        msg += "Unit: %s\n" % unitName
+        msg += "Function: %s\n" % functionName
+        msg += "TestCase: %s\n" % tcName
+        self.traceHandler.addErrMessage( msg )
+
         return None
 
 
-    def getDataAsString_explicit( self, testcase, dataTypeControl, isInpExpData, currentIndent ):
+    def getDataAsString_explicit( self, testcase, dataTypeControl, isInpExpData, currentIndent, \
+                                  enable_dtsCreation=True ):
 
         dtsCreation = datetime.strftime( datetime.now(), "%d-%b-%Y %H:%M:%S" )
 
@@ -123,11 +139,12 @@ class DataAPI_Report( object ):
         tree["label"] = label
         tree["value"] = value
 
-        dtsChild = getDefaultTree()
-        dtsChild["indent"] = currentIndent
-        dtsChild["label"] = "Date of Creation"
-        dtsChild["value"] = dtsCreation
-        tree["children"].append( dtsChild )
+        if enable_dtsCreation:
+            dtsChild = getDefaultTree()
+            dtsChild["indent"] = currentIndent
+            dtsChild["label"] = "Date of Creation"
+            dtsChild["value"] = dtsCreation
+            tree["children"].append( dtsChild )
 
         currentChild = getDefaultTree()
         currentChild["indent"] = currentIndent
