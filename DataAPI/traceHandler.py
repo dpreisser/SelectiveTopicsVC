@@ -7,17 +7,39 @@ TRACE_LOG_FILE = "traceLog.txt"
 
 class TraceHandler( object ):
 
-    def __init__( self ):
+    def __init__( self, \
+                  error_msg=None, trace_buffer=None, \
+                  message=None, err_message=None, \
+                  trace_level=TRACE_LEVEL, \
+                  trace_to_file=TRACE_TO_FILE, \
+                  trace_log_file=TRACE_LOG_FILE ):
 
-        self.trace_buffer = ""
+        # This will correspond to an external source.
+        if None != error_msg:
+            self._error_msg = error_msg
+        else:
+            self._error_msg = ""
 
-        self._message = ""
-        self._err_message = ""
+        # This might get referenced externally.
+        if None != trace_buffer:
+            self._trace_buffer = trace_buffer
+        else:
+            self._trace_buffer = ""
 
-        self.trace_level = TRACE_LEVEL
+        if None != message:
+            self._message = message
+        else:
+            self._message = ""
 
-        if TRACE_TO_FILE:
-            self.traceLogStream = open( TRACE_LOG_FILE, "wb" )
+        if None != err_message:
+            self._err_message = err_message
+        else:
+            self._err_message = ""
+
+        self._trace_level = trace_level
+
+        if trace_to_file:
+            self.traceLogStream = open( trace_log_file, "wb" )
         else:
             self.traceLogStream = None
 
@@ -67,24 +89,28 @@ class TraceHandler( object ):
 
     def trace( self, msg, lvl ):
 
-        if lvl <= self.trace_level:
+        if lvl <= self._trace_level:
 
             record = msg + "\n"
 
             # Record trace data to be shown to the user.
-            self.trace_buffer += record
+            self._trace_buffer += record
 
             if None != self.traceLogStream:
                 self.traceLogStream.write( record )
 
 
     def set_error_trace( self, msg ):
-        self._trace( msg, 1 )
-        # self._set_error( msg )
+        self.trace( msg, 1 )
+        self.set_error( msg )
+
+
+    def set_error( self, msg ):
+        self._error_msg = msg
 
 
     def read_trace_log( self ):
         # Return the trace data.
-        return_trace = self.trace_buffer
-        self.trace_buffer = ""
+        return_trace = self._trace_buffer
+        self._trace_buffer = ""
         return (True, return_trace)
