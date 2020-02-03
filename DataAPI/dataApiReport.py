@@ -55,6 +55,15 @@ class DataAPI_Report( object ):
         self.inputData = {}
         self.expectedData = {}
 
+        self.enable_dtsCreation = True
+        self.enable_dtsExecution = True
+
+
+    def setControlDTS( self, enable_dtsCreation, enable_dtsExecution ):
+
+        self.enable_dtsCreation = enable_dtsCreation
+        self.enable_dtsExecution = enable_dtsExecution
+
 
     def loadApi( self, envName, envDir=None ):
 
@@ -113,8 +122,7 @@ class DataAPI_Report( object ):
         return None
 
 
-    def getDataAsString_explicit( self, testcase, dataTypeControl, isInpExpData, currentIndent, \
-                                  enable_dtsCreation=True ):
+    def getDataAsString_explicit( self, testcase, dataTypeControl, isInpExpData, currentIndent ):
 
         dtsCreation = datetime.strftime( datetime.now(), "%d-%b-%Y %H:%M:%S" )
 
@@ -139,7 +147,7 @@ class DataAPI_Report( object ):
         tree["label"] = label
         tree["value"] = value
 
-        if enable_dtsCreation:
+        if self.enable_dtsCreation:
             dtsChild = getDefaultTree()
             dtsChild["indent"] = currentIndent
             dtsChild["label"] = "Date of Creation"
@@ -262,11 +270,12 @@ class DataAPI_Report( object ):
             currentChild["value"] = dtsCreation
             children.append( currentChild )
 
-            currentChild = getDefaultTree()
-            currentChild["indent"] = tcIndent
-            currentChild["label"] = "Date of Execution"
-            currentChild["value"] = dtsExecution
-            children.append( currentChild )
+            if self.enable_dtsExecution:
+                currentChild = getDefaultTree()
+                currentChild["indent"] = tcIndent
+                currentChild["label"] = "Date of Execution"
+                currentChild["value"] = dtsExecution
+                children.append( currentChild )
 
             self.prepareData( testcase, dataTypeControl, isInpExpData )
 

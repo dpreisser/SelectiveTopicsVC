@@ -83,6 +83,8 @@ def createReport( args ):
     dataApiRep = DataAPI_Report( workingDirVC, formatHandler, traceHandler )
     api = dataApiRep.getApi( envName )
 
+    # dataApiRep.setControlDTS( False, False )
+
     if None == unitName:
 
         testcases = api.TestCase.all()
@@ -135,7 +137,7 @@ def createReport( args ):
             print( traceHandler.getErrMessage() )
             return
         else:
-            dataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, isInpExpData, 0, True )
+            dataAsString = dataApiRep.getDataAsString_explicit( testcase, dataTypeControl, isInpExpData, 0 )
 
         if not traceHandler.getStatus():
             print( traceHandler.getErrMessage() )
