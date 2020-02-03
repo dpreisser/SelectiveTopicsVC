@@ -59,10 +59,17 @@ class DataAPI_Report( object ):
         self.enable_dtsExecution = True
 
 
-    def setControlDTS( self, enable_dtsCreation, enable_dtsExecution ):
+    def getControlDTS( self ):
+        return self.enable_dtsCreation, self.enable_dtsExecution 
 
-        self.enable_dtsCreation = enable_dtsCreation
-        self.enable_dtsExecution = enable_dtsExecution
+
+    def setControlDTS( self, enable_dtsCreation=None, enable_dtsExecution=None ):
+
+        if None != enable_dtsCreation:
+            self.enable_dtsCreation = enable_dtsCreation
+
+        if None != enable_dtsExecution:
+            self.enable_dtsExecution = enable_dtsExecution
 
 
     def loadApi( self, envName, envDir=None ):
