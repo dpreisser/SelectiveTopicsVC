@@ -141,9 +141,11 @@ class FormatHandler( object ):
 
         self.adjustWidthGrp1 = adjustWidthGrp1
 
-        self.addNewLineBefore = [ "Environment", "TestCase", "Slots", "Test Case Data", "Notes", \
+        self.addNewLineBefore = [ "Environment", "TestCase", "Requirements", \
+                                  "Slots", "Test Case Data", "Notes", \
                                   "Execution Results", "Slot", "Events", \
                                   "Unused Expected Values" ]
+
         self.addNewLineAfter = [ "Events", "Unused Expected Values" ]
  
         self.omit = [ "Header", "dtIdx"]
@@ -480,7 +482,6 @@ class FormatHandler( object ):
                 formattedPartList = []
                 for part in value:
                     formattedPart = formatMultiLine( part, offsetWidth + currentIndentWidth )
-                    print( formattedPart )
                     formattedPartList.append( formattedPart )
                 formattedStr = ",\n".join( [ formattedPart.rstrip() for formattedPart in formattedPartList ] )
                 currentString += formattedStr + "\n"

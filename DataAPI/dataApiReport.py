@@ -284,6 +284,25 @@ class DataAPI_Report( object ):
                 currentChild["value"] = dtsExecution
                 children.append( currentChild )
 
+            # Requirements
+            requirements = testcase.requirements
+
+            if len(requirements) > 0:
+
+                currentChild = getDefaultTree()
+                currentChild["indent"] = tcIndent
+                currentChild["label"] = "Requirements"
+                children.append( currentChild )
+
+                for req in requirements:
+                    
+                    reqAsStr = "%s %s" % ( req.external_key, req.title )
+
+                    reqChild = getDefaultTree()
+                    reqChild["indent"] = tcIndent+1
+                    reqChild["label"] = reqAsStr
+                    currentChild["children"].append( reqChild )
+
             self.prepareData( testcase, dataTypeControl, isInpExpData )
 
             if not self.traceHandler.getStatus:
