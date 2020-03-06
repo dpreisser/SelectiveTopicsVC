@@ -91,6 +91,14 @@ class DataAPI_Report( object ):
         return self.envApi[envDir]
 
 
+    def closeAllApi( self ):
+
+        for envDir,api in self.envApi.items():
+            api.close()
+
+        self.envApi = {}
+
+
     def getTestcase( self, envName, unitName, functionName, tcName, envDir=None ):
 
         api = self.getApi( envName, envDir )
