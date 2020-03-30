@@ -33,6 +33,7 @@ def trace( str1, str2, newLine=False ):
 def getDefaultTree():
 
     defaultTree = { "children" : [], \
+                    "type" : None, \
                     "doc" : None, \
                     "indent" : None, \
                     "label" : None, \
@@ -1084,6 +1085,64 @@ class DataAPI_Report( object ):
             isBasicType = False
 
             child_fields = parameterType.child_fields
+
+        elif "CLASS" == kind:
+
+            isBasicType = False
+
+            child_fields = parameterType.child_fields
+
+        elif "CLASS_PTR" == kind:
+
+            subclassIndices = self.getDataObjectCoords_arrayIndices( dataObjectCoords, \
+                                                                     dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData )
+
+            print( "Subclass: subclassIndices:", str(subclassIndices) )
+
+            numSubclassIndices = len(subclassIndices)
+
+            if 0 == numSubclassIndices:
+                return
+            elif numSubclassIndices > 1:
+                msg = "Noneuniqueness of subclass candidates: %s" % str(subclassIndices) )
+                print( msg ) 
+                return
+
+            subclasses = parameterType.subclasses
+
+            subclassIndex = None
+
+            for subclass in subclasses:
+                if subclass.index == subclassIndices[0]:
+                    subclassIndex = subclassIndices[0]
+                    break
+
+            if None == subclassIndex:
+                msg = "A subclass with index %s has not been found." % subclassIndices[0]
+                print( msg )
+                return
+
+            subclass = subclasses[subclassIndex].subclass
+
+            if 0 == dtIdx:
+
+                constr_dataObjectCoords = deepcopy( dataObjectCoords )
+                constr_dataObjectCoords.append( subclassIndex )
+                constr_dataObjectCoords.append( 0 )
+
+                contructorIndices = self.getDataObjectCoords_arrayIndices( constr_dataObjectCoords, \
+                                                                           dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData )
+
+                numConstructorIndices = len(constructorIndices)
+
+                if 0 == numConstructorIndices:
+                    return
+                elif numConstructorIndices > 1:
+                    msg = "Noneuniqueness of constructor candidates: %s" % str(constructorIndices) )
+                    print( msg ) 
+                    return
+
+
 
         if isArray:
 
