@@ -1109,12 +1109,15 @@ class DataAPI_Report( object ):
                 return
 
             subclasses = parameterType.subclasses
+            numSubclasses = len(subclasses)
 
             subclassIndex = None
+            subclass = None
 
-            for subclass in subclasses:
-                if subclass.index == subclassIndices[0]:
-                    subclassIndex = subclassIndices[0]
+            for idx in range( numSubclasses ):
+                if subclasses[idx].index == subclassIndices[0]:
+                    subclassIndex = subclasses[idx].index
+                    subclass = subclasses[idx].subclass
                     break
 
             if None == subclassIndex:
@@ -1122,7 +1125,8 @@ class DataAPI_Report( object ):
                 print( msg )
                 return
 
-            subclass = subclasses[subclassIndex].subclass
+            currentChild["value"] = subclass.long_name
+            children.append( currentChild )
 
             if 0 == dtIdx:
 
@@ -1142,6 +1146,44 @@ class DataAPI_Report( object ):
                     print( msg ) 
                     return
 
+                constructors = subclass.constructors
+
+                constructor = None
+
+                for constr in constructors:
+                    if constr.index == contructorIndices[0]:
+                        constructor = constr
+
+                if None == constructor:
+                    msg = "A constructor with index %s has not been found." % constructorIndices[0]
+                    print( msg )
+                    return
+
+                constr_dataObjectCoords.append( constructor.index  )
+
+                constrChild = getDefaultTree()
+                constrChild["doc"] = constr_dataObjectCoords
+                constrChild["indent"] = currentIndent+1
+                constrChild["label"] = "constructor"
+                constrChild["value"] = constructor.long_name
+
+                currentChild["children"].append( constrChild )
+
+                constr_children = []
+
+                parameters = constructor.parameters
+
+                for parameter in parameters:
+
+                    param_dataObjectCoords = deepcopy( constr_dataObjectCoords )
+                    param_dataObjectCoords.append( parameters.index ) 
+
+                    paraChildren = self.walkType( parameter.name, parameter.type, param_dataObjectCoords, \
+                                                  dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
+                                                  currentIndent )
+
+                    for paraChild in paraChildren:
+                        constrChild["children"].append( paraChild )
 
 
         if isArray:
