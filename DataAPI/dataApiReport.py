@@ -1102,7 +1102,7 @@ class DataAPI_Report( object ):
             numSubclassIndices = len(subclassIndices)
 
             if 0 == numSubclassIndices:
-                return
+                return children
             elif numSubclassIndices > 1:
                 msg = "Nonuniqueness of subclass candidates: %s\n" % str(subclassIndices)
                 msg +="dataObjectCoords: %s" % str(dataObjectCoords)
@@ -1189,6 +1189,27 @@ class DataAPI_Report( object ):
                     for paraChild in paraChildren:
                         constrChild["children"].append( paraChild )
 
+            # Subclass members
+
+            subclass_dataObjectCoords = deepcopy( dataObjectCoords )
+            subclass_dataObjectCoords.append( subclassIndex )
+
+            nextChildren = self.walkType( subclass.long_name, subclass, subclass_dataObjectCoords, \
+                                          dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
+                                          currentIndent+2 )
+
+            if len(nextChildren) > 0:
+
+                subclassChild = getDefaultTree()
+                subclassChild["doc"] = subclass_dataObjectCoords
+                subclassChild["indent"] = currentIndent+2
+                subclassChild["label"] = "class member"
+                subclassChild["value"] = subclass.long_name
+
+                currentChild["children"].append( subclassChild )
+                
+                for nextChild in nextChildren:
+                    subclassChild["children"].append( nextChild )
 
         if isArray:
 
