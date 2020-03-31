@@ -1138,10 +1138,12 @@ class DataAPI_Report( object ):
                 constructorIndices = self.getDataObjectCoords_arrayIndices( constr_dataObjectCoords, \
                                                                             dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData )
 
+                print( "Constructor: constructorIndices:", str(constructorIndices) )
+
                 numConstructorIndices = len(constructorIndices)
 
                 if 0 == numConstructorIndices:
-                    return
+                    return children
                 elif numConstructorIndices > 1:
                     msg = "Nonuniqueness of constructor candidates: %s\n" % str(constructorIndices)
                     msg +="dataObjectCoords: %s" % str(constr_dataObjectCoords)
@@ -1153,7 +1155,7 @@ class DataAPI_Report( object ):
                 constructor = None
 
                 for constr in constructors:
-                    if constr.index == contructorIndices[0]:
+                    if constr.constructor_index == constructorIndices[0]:
                         constructor = constr
 
                 if None == constructor:
@@ -1161,13 +1163,13 @@ class DataAPI_Report( object ):
                     print( msg )
                     return children
 
-                constr_dataObjectCoords.append( constructor.index  )
+                constr_dataObjectCoords.append( constructor.constructor_index  )
 
                 constrChild = getDefaultTree()
                 constrChild["doc"] = constr_dataObjectCoords
                 constrChild["indent"] = currentIndent+1
                 constrChild["label"] = "constructor"
-                constrChild["value"] = constructor.long_name
+                constrChild["value"] = constructor.long_name + constructor.parameterization
 
                 currentChild["children"].append( constrChild )
 
@@ -1657,12 +1659,26 @@ class DataAPI_Report( object ):
 
         for data_object_id in currentData.keys():
 
-            currrentObjectCoords = data_object_id.split( "." )
-            numCurrentObjectCoords = len( currrentObjectCoords )
+            currentObjectCoords = data_object_id.split( "." )
+            numCurrentObjectCoords = len( currentObjectCoords )
 
             if numCurrentObjectCoords > numDataObjectCoords:
 
-                arrayIndex = int( currrentObjectCoords[numDataObjectCoords] )
+                candidate = True
+
+                for idx in range( 3, numDataObjectCoords ):
+                    currentIndex = int( currentObjectCoords[idx] )
+                    if currentIndex != dataObjectCoords[idx]:
+                        candidate = False
+                        break
+
+            else:
+
+                candidate = False
+
+            if candidate:
+
+                arrayIndex = int( currentObjectCoords[numDataObjectCoords] )
 
                 if not arrayIndex in arrayIndices:
                     arrayIndices.append( arrayIndex )
