@@ -110,7 +110,7 @@ class DataAPI_Report( object ):
             msg = "No testcase found for following input:\n"
             msg += "Environment: %s\n" % envName
             msg += "Unit: %s\n" % unitName
-            msg += "Function: %s\n" % functionName
+            msg += "Subprogram: %s\n" % functionName
             msg += "TestCase: %s\n" % tcName
             self.traceHandler.addErrMessage( msg )
 
@@ -131,7 +131,7 @@ class DataAPI_Report( object ):
         msg = "No testcase found for following input:"
         msg += "Environment: %s\n" % envName
         msg += "Unit: %s\n" % unitName
-        msg += "Function: %s\n" % functionName
+        msg += "Subprogram: %s\n" % functionName
         msg += "TestCase: %s\n" % tcName
         self.traceHandler.addErrMessage( msg )
 
@@ -270,7 +270,7 @@ class DataAPI_Report( object ):
 
             currentChild = getDefaultTree()
             currentChild["indent"] = functionIndent
-            currentChild["label"] = "Function"
+            currentChild["label"] = "Subprogram"
             currentChild["value"] = functionName
             children.append( currentChild )
 
@@ -683,7 +683,7 @@ class DataAPI_Report( object ):
         functionChild["indent"] = functionIndent
         functionChild["label"] = "Subprogram"
 
-        functionName = function.name
+        functionName = function.display_name
         functionData = None
 
         if isInpExpData:
@@ -955,7 +955,12 @@ class DataAPI_Report( object ):
                           dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                           currentIndent ):
 
-        children = self.walkType( parameter.name, parameter.type, dataObjectCoords, \
+        if hasattr( parameter, "harness_item" ):
+            parameterName = parameter.harness_item.string_path[-1]
+        else:
+            parameterName = parameter.name
+
+        children = self.walkType( parameterName, parameter.type, dataObjectCoords, \
                                   dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                   currentIndent )
 
@@ -1174,7 +1179,7 @@ class DataAPI_Report( object ):
                 constrChild["doc"] = constr_dataObjectCoords
                 constrChild["indent"] = currentIndent+1
                 constrChild["label"] = "constructor"
-                constrChild["value"] = constructor.long_name + constructor.parameterization
+                constrChild["value"] = constructor.name + constructor.parameterization
 
                 currentChild["children"].append( constrChild )
 
