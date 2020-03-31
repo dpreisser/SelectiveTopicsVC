@@ -1105,16 +1105,17 @@ class DataAPI_Report( object ):
             subclassIndices = self.getDataObjectCoords_arrayIndices( dataObjectCoords, \
                                                                      dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData )
 
-            print( "Subclass: subclassIndices:", str(subclassIndices) )
+            trace( "Subclass: subclassIndices:", str(subclassIndices) )
 
             numSubclassIndices = len(subclassIndices)
 
             if 0 == numSubclassIndices:
+                trace( "No subclass candidates:", str(subclassIndices) )
+                trace( "dataObjectCoords:", str(dataObjectCoords) )
                 return children
             elif numSubclassIndices > 1:
-                msg = "Nonuniqueness of subclass candidates: %s\n" % str(subclassIndices)
-                msg +="dataObjectCoords: %s" % str(dataObjectCoords)
-                print( msg ) 
+                trace( "Nonuniqueness of subclass candidates:", str(subclassIndices) )
+                trace( "dataObjectCoords:", str(dataObjectCoords) )
                 return children
 
             subclasses = parameterType.subclasses
@@ -1131,7 +1132,7 @@ class DataAPI_Report( object ):
 
             if None == subclassIndex:
                 msg = "A subclass with index %s has not been found." % subclassIndices[0]
-                print( msg )
+                trace( msg, "" )
                 return children
 
             currentChild["value"] = subclass.long_name
@@ -1148,16 +1149,17 @@ class DataAPI_Report( object ):
                 constructorIndices = self.getDataObjectCoords_arrayIndices( constr_dataObjectCoords, \
                                                                             dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData )
 
-                print( "Constructor: constructorIndices:", str(constructorIndices) )
+                trace( "Constructor: constructorIndices:", str(constructorIndices) )
 
                 numConstructorIndices = len(constructorIndices)
 
                 if 0 == numConstructorIndices:
+                    trace( "No constructor candidates:", str(constructorIndices) )
+                    trace( "dataObjectCoords:", str(dataObjectCoords) )
                     return children
                 elif numConstructorIndices > 1:
-                    msg = "Nonuniqueness of constructor candidates: %s\n" % str(constructorIndices)
-                    msg +="dataObjectCoords: %s" % str(constr_dataObjectCoords)
-                    print( msg ) 
+                    trace( "Nonuniqueness of constructor candidates:", str(constructorIndices) )
+                    trace( "dataObjectCoords:", str(constr_dataObjectCoords) )
                     return children
 
                 constructors = subclass.constructors
@@ -1170,7 +1172,7 @@ class DataAPI_Report( object ):
 
                 if None == constructor:
                     msg = "A constructor with index %s has not been found." % constructorIndices[0]
-                    print( msg )
+                    trace( msg, "" )
                     return children
 
                 constr_dataObjectCoords.append( constructor.constructor_index  )
@@ -1188,7 +1190,7 @@ class DataAPI_Report( object ):
                 for parameter in parameters:
 
                     param_dataObjectCoords = deepcopy( constr_dataObjectCoords )
-                    param_dataObjectCoords.append( parameters.index ) 
+                    param_dataObjectCoords.append( parameter.index ) 
 
                     paraChildren = self.walkType( parameter.name, parameter.type, param_dataObjectCoords, \
                                                   dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
