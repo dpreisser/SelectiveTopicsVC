@@ -1088,6 +1088,9 @@ class DataAPI_Report( object ):
 
         elif "CLASS" == kind:
 
+            currentChild["label"] = "class members"
+            currentChild["value"] = parameterName
+
             isBasicType = False
 
             child_fields = parameterType.child_fields
@@ -1128,6 +1131,8 @@ class DataAPI_Report( object ):
 
             currentChild["value"] = subclass.long_name
             children.append( currentChild )
+
+            # Constructor (only input data)
 
             if 0 == dtIdx:
 
@@ -1173,8 +1178,6 @@ class DataAPI_Report( object ):
 
                 currentChild["children"].append( constrChild )
 
-                constr_children = []
-
                 parameters = constructor.parameters
 
                 for parameter in parameters:
@@ -1184,7 +1187,7 @@ class DataAPI_Report( object ):
 
                     paraChildren = self.walkType( parameter.name, parameter.type, param_dataObjectCoords, \
                                                   dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
-                                                  currentIndent )
+                                                  currentIndent+2 )
 
                     for paraChild in paraChildren:
                         constrChild["children"].append( paraChild )
@@ -1196,20 +1199,12 @@ class DataAPI_Report( object ):
 
             nextChildren = self.walkType( subclass.long_name, subclass, subclass_dataObjectCoords, \
                                           dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
-                                          currentIndent+2 )
+                                          currentIndent+1 )
 
-            if len(nextChildren) > 0:
+            for nextChild in nextChildren:
+                children.append( nextChild )
 
-                subclassChild = getDefaultTree()
-                subclassChild["doc"] = subclass_dataObjectCoords
-                subclassChild["indent"] = currentIndent+2
-                subclassChild["label"] = "class member"
-                subclassChild["value"] = subclass.long_name
-
-                currentChild["children"].append( subclassChild )
-                
-                for nextChild in nextChildren:
-                    subclassChild["children"].append( nextChild )
+            return children
 
         if isArray:
 
