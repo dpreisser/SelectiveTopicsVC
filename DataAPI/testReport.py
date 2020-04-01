@@ -117,7 +117,7 @@ def createReport( args ):
 
         for function in unit.functions:
 
-            if function.name == functionName:
+            if function.display_name == functionName:
 
                 for testcase in function.testcases:
 

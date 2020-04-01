@@ -107,7 +107,7 @@ class DataAPI_Report( object ):
 
         if None == testcase:
 
-            msg = "No testcase found for following input:\n"
+            msg = "No testcase found for following input (1):\n"
             msg += "Environment: %s\n" % envName
             msg += "Unit: %s\n" % unitName
             msg += "Subprogram: %s\n" % functionName
@@ -128,7 +128,7 @@ class DataAPI_Report( object ):
                     if testcase.name == tcName:
                         return testcase
 
-        msg = "No testcase found for following input:"
+        msg = "No testcase found for following input (2):\n"
         msg += "Environment: %s\n" % envName
         msg += "Unit: %s\n" % unitName
         msg += "Subprogram: %s\n" % functionName
@@ -1102,8 +1102,8 @@ class DataAPI_Report( object ):
 
         elif "CLASS_PTR" == kind:
 
-            subclassIndices = self.getDataObjectCoords_arrayIndices( dataObjectCoords, \
-                                                                     dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData )
+            subclassIndices = self.getDataObjectCoords_indices( dataObjectCoords, \
+                                                                dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData )
 
             trace( "Subclass: subclassIndices:", str(subclassIndices) )
 
@@ -1146,8 +1146,8 @@ class DataAPI_Report( object ):
                 constr_dataObjectCoords.append( subclassIndex )
                 constr_dataObjectCoords.append( 0 )
 
-                constructorIndices = self.getDataObjectCoords_arrayIndices( constr_dataObjectCoords, \
-                                                                            dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData )
+                constructorIndices = self.getDataObjectCoords_indices( constr_dataObjectCoords, \
+                                                                       dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData )
 
                 trace( "Constructor: constructorIndices:", str(constructorIndices) )
 
@@ -1215,8 +1215,8 @@ class DataAPI_Report( object ):
 
         if isArray:
 
-            arrayIndices = self.getDataObjectCoords_arrayIndices( dataObjectCoords, \
-                                                                  dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData )
+            arrayIndices = self.getDataObjectCoords_indices( dataObjectCoords, \
+                                                             dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData )
 
             trace( "Array: arrayIndices:", str(arrayIndices) )
 
@@ -1654,8 +1654,8 @@ class DataAPI_Report( object ):
         return ancestryList
 
 
-    def getDataObjectCoords_arrayIndices( self, dataObjectCoords, \
-                                          dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData ):
+    def getDataObjectCoords_indices( self, dataObjectCoords, \
+                                     dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData ):
 
         arrayIndices = []
 
