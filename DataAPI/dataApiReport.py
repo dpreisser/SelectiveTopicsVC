@@ -33,7 +33,6 @@ def trace( str1, str2, newLine=False ):
 def getDefaultTree():
 
     defaultTree = { "children" : [], \
-                    "type" : None, \
                     "doc" : None, \
                     "indent" : None, \
                     "label" : None, \
@@ -201,7 +200,7 @@ class DataAPI_Report( object ):
         currentChild["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, currentIndent+1 )
         tree["children"].append( currentChild )
 
-        # pprint.pprint( tree )
+        pprint.pprint( tree )
 
         if not self.traceHandler.getStatus():
             return ""
@@ -987,6 +986,7 @@ class DataAPI_Report( object ):
 
         kind = parameterType.kind
         element = parameterType.element
+        typeAsStr = self.getTypeAsString( parameterType )
 
         trace( "Parameter/Field name:", parameterName )
         trace( "Type kind:", kind )
@@ -995,7 +995,7 @@ class DataAPI_Report( object ):
         currentChild = getDefaultTree()
         currentChild["doc"] = dataObjectCoords
         currentChild["indent"] = currentIndent
-        currentChild["label"] = parameterName
+        currentChild["label"] = parameterName + typeAsStr
 
         if isInpExpData:
 
@@ -1093,8 +1093,7 @@ class DataAPI_Report( object ):
 
         elif "CLASS" == kind:
 
-            currentChild["label"] = "class members"
-            currentChild["value"] = parameterName
+            currentChild["label"] = "class members" + typeAsStr
 
             isBasicType = False
 
@@ -1135,8 +1134,10 @@ class DataAPI_Report( object ):
                 trace( msg, "" )
                 return children
 
-            currentChild["value"] = subclass.long_name
+            currentChild["value"] = subclass.short_name
             children.append( currentChild )
+
+            typeAsStr = self.getTypeAsString( subclass )
 
             # Constructor (only input data)
 
@@ -1180,7 +1181,7 @@ class DataAPI_Report( object ):
                 constrChild = getDefaultTree()
                 constrChild["doc"] = constr_dataObjectCoords
                 constrChild["indent"] = currentIndent+1
-                constrChild["label"] = "constructor"
+                constrChild["label"] = "constructor" + typeAsStr
                 constrChild["value"] = constructor.name + constructor.parameterization
 
                 currentChild["children"].append( constrChild )
@@ -1802,6 +1803,19 @@ class DataAPI_Report( object ):
                 return function
 
         return None
+
+
+    def getTypeAsString( self, parameterType ):
+
+        short_name = parameterType.short_name
+
+        if "" != short_name:
+            if parameterType.is_pointer:
+                return " (%s *)" % short_name
+            else:
+                return " (%s)" % short_name
+        else:
+            return ""
 
 
     def getAssociatedValues( self, parameterType, valuesAsStr=None, valuesAsList=None ):
