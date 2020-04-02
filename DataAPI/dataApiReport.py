@@ -200,7 +200,7 @@ class DataAPI_Report( object ):
         currentChild["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, currentIndent+1 )
         tree["children"].append( currentChild )
 
-        pprint.pprint( tree )
+        # pprint.pprint( tree )
 
         if not self.traceHandler.getStatus():
             return ""
@@ -1091,14 +1091,6 @@ class DataAPI_Report( object ):
 
             child_fields = parameterType.child_fields
 
-        elif "CLASS" == kind:
-
-            currentChild["label"] = "class members" + typeAsStr
-
-            isBasicType = False
-
-            child_fields = parameterType.child_fields
-
         elif "CLASS_PTR" == kind:
 
             subclassIndices = self.getDataObjectCoords_indices( dataObjectCoords, \
@@ -1137,14 +1129,32 @@ class DataAPI_Report( object ):
             currentChild["value"] = subclass.short_name
             children.append( currentChild )
 
-            typeAsStr = self.getTypeAsString( subclass )
+            subclass_dataObjectCoords = deepcopy( dataObjectCoords )
+            subclass_dataObjectCoords.append( subclassIndex )
+
+            nextChildren = self.walkType( subclass.short_name, subclass, subclass_dataObjectCoords, \
+                                          dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
+                                          currentIndent+1 )
+
+            for nextChild in nextChildren:
+                currentChild["children"].append( nextChild )
+
+            return children
+
+        elif "CLASS" == kind:
+
+            currentChild["label"] = "class"
+            currentChild["value"] = parameterName
+
+            isBasicType = False
+
+            child_fields = parameterType.child_fields
 
             # Constructor (only input data)
 
             if 0 == dtIdx:
 
                 constr_dataObjectCoords = deepcopy( dataObjectCoords )
-                constr_dataObjectCoords.append( subclassIndex )
                 constr_dataObjectCoords.append( 0 )
 
                 constructorIndices = self.getDataObjectCoords_indices( constr_dataObjectCoords, \
@@ -1155,64 +1165,55 @@ class DataAPI_Report( object ):
                 numConstructorIndices = len(constructorIndices)
 
                 if 0 == numConstructorIndices:
+
                     trace( "No constructor candidates:", str(constructorIndices) )
                     trace( "dataObjectCoords:", str(dataObjectCoords) )
-                    return children
+                
                 elif numConstructorIndices > 1:
+
                     trace( "Nonuniqueness of constructor candidates:", str(constructorIndices) )
                     trace( "dataObjectCoords:", str(constr_dataObjectCoords) )
-                    return children
 
-                constructors = subclass.constructors
+                else:
 
-                constructor = None
+                    constructors = parameterType.constructors
 
-                for constr in constructors:
-                    if constr.constructor_index == constructorIndices[0]:
-                        constructor = constr
+                    constructor = None
 
-                if None == constructor:
-                    msg = "A constructor with index %s has not been found." % constructorIndices[0]
-                    trace( msg, "" )
-                    return children
+                    for constr in constructors:
+                        if constr.constructor_index == constructorIndices[0]:
+                            constructor = constr
 
-                constr_dataObjectCoords.append( constructor.constructor_index  )
+                    if None == constructor:
 
-                constrChild = getDefaultTree()
-                constrChild["doc"] = constr_dataObjectCoords
-                constrChild["indent"] = currentIndent+1
-                constrChild["label"] = "constructor" + typeAsStr
-                constrChild["value"] = constructor.name + constructor.parameterization
+                        msg = "A constructor with index %s has not been found." % constructorIndices[0]
+                        trace( msg, "" )
 
-                currentChild["children"].append( constrChild )
+                    else:
 
-                parameters = constructor.parameters
+                        constr_dataObjectCoords.append( constructor.constructor_index  )
 
-                for parameter in parameters:
+                        constrChild = getDefaultTree()
+                        constrChild["doc"] = constr_dataObjectCoords
+                        constrChild["indent"] = currentIndent+1
+                        constrChild["label"] = "constructor"
+                        constrChild["value"] = constructor.name + constructor.parameterization
 
-                    param_dataObjectCoords = deepcopy( constr_dataObjectCoords )
-                    param_dataObjectCoords.append( parameter.index ) 
+                        currentChild["children"].append( constrChild )
 
-                    paraChildren = self.walkType( parameter.name, parameter.type, param_dataObjectCoords, \
-                                                  dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
-                                                  currentIndent+2 )
+                        parameters = constructor.parameters
 
-                    for paraChild in paraChildren:
-                        constrChild["children"].append( paraChild )
+                        for parameter in parameters:
 
-            # Subclass members
+                            param_dataObjectCoords = deepcopy( constr_dataObjectCoords )
+                            param_dataObjectCoords.append( parameter.index ) 
 
-            subclass_dataObjectCoords = deepcopy( dataObjectCoords )
-            subclass_dataObjectCoords.append( subclassIndex )
+                            paraChildren = self.walkType( parameter.name, parameter.type, param_dataObjectCoords, \
+                                                          dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
+                                                          currentIndent+2 )
 
-            nextChildren = self.walkType( subclass.long_name, subclass, subclass_dataObjectCoords, \
-                                          dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
-                                          currentIndent+1 )
-
-            for nextChild in nextChildren:
-                children.append( nextChild )
-
-            return children
+                            for paraChild in paraChildren:
+                                constrChild["children"].append( paraChild )
 
         if isArray:
 
