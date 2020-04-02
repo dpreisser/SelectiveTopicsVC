@@ -1143,8 +1143,10 @@ class DataAPI_Report( object ):
 
         elif "CLASS" == kind:
 
-            currentChild["label"] = "class"
-            currentChild["value"] = parameterName
+            if parameterName == parameterType.short_name:
+
+                currentChild["label"] = "class"
+                currentChild["value"] = parameterName
 
             isBasicType = False
 
