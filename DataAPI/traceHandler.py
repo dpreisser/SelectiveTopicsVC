@@ -1,4 +1,5 @@
 
+import codecs
 
 TRACE_LEVEL = 1
 TRACE_TO_FILE = True
@@ -8,54 +9,50 @@ TRACE_LOG_FILE = "traceLog.txt"
 class TraceHandler( object ):
 
     def __init__( self, \
-                  error_msg=None, trace_buffer=None, \
-                  message=None, err_message=None, \
                   trace_level=TRACE_LEVEL, \
                   trace_to_file=TRACE_TO_FILE, \
                   trace_log_file=TRACE_LOG_FILE ):
 
-        # This will correspond to an external source.
-        if None != error_msg:
-            self._error_msg = error_msg
-        else:
-            self._error_msg = ""
+        self._message = u""
+        self._err_message = u""
 
-        # This might get referenced externally.
-        if None != trace_buffer:
-            self._trace_buffer = trace_buffer
-        else:
-            self._trace_buffer = ""
-
-        if None != message:
-            self._message = message
-        else:
-            self._message = ""
-
-        if None != err_message:
-            self._err_message = err_message
-        else:
-            self._err_message = ""
+        self._trace_buffer = u""
 
         self._trace_level = trace_level
 
         if trace_to_file:
-            self.traceLogStream = open( trace_log_file, "wb" )
+            # self.traceLogStream = open( trace_log_file, "wb" )
+            self.traceLogStream = codecs.open( trace_log_file, "wb", "utf-8" )
         else:
             self.traceLogStream = None
 
+        self.trace( "TraceHandler.__init__", 6 )
+
+
+    def _convertToUnicode( self, msg ):
+
+        if isinstance( msg, str ):
+            u_msg = msg.decode("utf-8")
+        else:
+            u_msg = msg
+
+        u_msg += u"\n"
+
+        return u_msg
+
 
     def clearMessage( self ):
-        self._message = ""
+        self._message = u""
 
 
     def addMessage( self, msg ):
-        self._message += msg
-        self._message += "\n"
+        u_msg = self._convertToUnicode( msg )
+        self._message += u_msg
 
 
     def setMessage( self, msg ):
-        self._message = msg
-        self._message += "\n"
+        u_msg = self._convertToUnicode( msg )
+        self._message = u_msg
 
 
     def getMessage( self ):
@@ -63,17 +60,17 @@ class TraceHandler( object ):
 
 
     def clearErrMessage( self ):
-        self._err_message = ""
+        self._err_message = u""
 
 
     def addErrMessage( self, msg ):
-        self._err_message += msg
-        self._err_message += "\n"
+        u_msg = self._convertToUnicode( msg )
+        self._err_message += u_msg
 
 
     def setErrMessage( self, msg ):
-        self._err_message = msg
-        self._err_message += "\n"
+        u_msg = self._convertToUnicode( msg )
+        self._err_message = u_msg
 
 
     def getErrMessage( self ):
@@ -81,36 +78,35 @@ class TraceHandler( object ):
 
 
     def getStatus( self ):
-        if "" == self._err_message:
+        if u"" == self._err_message:
             return True
         else:
             return False
 
 
+    def clearTrace( self ):
+        self._trace_buffer = u""
+
+    
     def trace( self, msg, lvl ):
 
         if lvl <= self._trace_level:
 
-            record = msg + "\n"
+            u_msg = self._convertToUnicode( msg )
 
             # Record trace data to be shown to the user.
-            self._trace_buffer += record
+            self._trace_buffer += u_msg
 
             if None != self.traceLogStream:
-                self.traceLogStream.write( record )
+                # self.traceLogStream.write( u_msg.encode("utf-8") )
+                self.traceLogStream.write( u_msg )
 
 
-    def set_error_trace( self, msg ):
-        self.trace( msg, 1 )
-        self.set_error( msg )
+    def getTrace( self ):
+        return self._trace_buffer
 
 
-    def set_error( self, msg ):
-        self._error_msg = msg
-
-
-    def read_trace_log( self ):
-        # Return the trace data.
-        return_trace = self._trace_buffer
-        self._trace_buffer = ""
-        return (True, return_trace)
+    def finalize( self ):
+        self.trace( "TraceHandler.finalize", 6 )
+        if None != self.traceLogStream:
+            self.traceLogStream.close()
