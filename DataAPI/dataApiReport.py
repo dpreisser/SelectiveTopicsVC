@@ -364,6 +364,8 @@ class DataAPI_Report( object ):
         envDir = testcase_p.get_environment().path
         api = self.envApi[envDir]
 
+        self.functionPointers = api.FunctionPointerCandidate.all()
+
         dataTypeIdc = getDataTypeIdc( dataTypeControl )
 
         arrayChildren = [ [], [], [] ]
@@ -1869,6 +1871,19 @@ class DataAPI_Report( object ):
                     assocValue = value
                 associatedValues.append( assocValue )
 
+        elif "PROCEDURE_POINTER" == parameterType.kind:
+
+            for value in values:
+                if "<<null>>" != value:
+                    functionPtr = self.getFunctionPtrByIndex( int(value) )
+                    if None != functionPtr:
+                        assocValue = functionPtr.name
+                    else:
+                        assocValue = str( functionPtr )
+                else:
+                    assocValue = value
+                associatedValues.append( assocValue )
+
         else:
 
             for value in values:
@@ -2016,3 +2031,12 @@ class DataAPI_Report( object ):
             return "\\n"
         else:
             return unichr(number)
+
+
+    def getFunctionPtrByIndex( self, functionPtrIndex ):
+
+        for functionPtr in self.functionPointers:
+            if functionPtr.index == functionPtrIndex:
+                return functionPtr
+
+        return None
