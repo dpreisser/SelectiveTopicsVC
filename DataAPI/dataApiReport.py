@@ -677,7 +677,13 @@ class DataAPI_Report( object ):
         unitChild["doc"] = [ unit.id ]
         unitChild["indent"] = unitIndent
         unitChild["label"] = "Unit"
-        unitChild["value"] = unit.name
+        unitChild["value"] = unit.display_name
+
+        fileName = function.get_file_path()
+        fileName = os.path.basename( fileName )
+        if "vcast_preprocess" == fileName[:16]:
+            fileName = "vcast_preprocess.c"
+        unitChild["value"] = fileName
 
         functionChild = getDefaultTree()
         functionChild["doc"] = [ unit.id, function.index ]
@@ -715,9 +721,8 @@ class DataAPI_Report( object ):
             parameterIndex += 1
             parameter = function.get_param_by_index( parameterIndex )
 
-        if len( functionChild["children"] ) > 0:
-            unitChild["children"].append( functionChild )
-            children.append( unitChild )
+        unitChild["children"].append( functionChild )
+        children.append( unitChild )
 
         return children
 
@@ -784,7 +789,7 @@ class DataAPI_Report( object ):
         unitChild["doc"] = [ unit.id ]
         unitChild["indent"] = unitIndent
         unitChild["label"] = "Unit"
-        unitChild["value"] = unit.name
+        unitChild["value"] = unit.display_name
 
         functionChild = getDefaultTree()
         functionChild["doc"] = [ unit.id, functionIndex ]
@@ -842,7 +847,7 @@ class DataAPI_Report( object ):
         unitChild["doc"] = [ unit.id ]
         unitChild["indent"] = unitIndent
         unitChild["label"] = "Unit"
-        unitChild["value"] = unit.name
+        unitChild["value"] = unit.display_name
 
         functionChild = getDefaultTree()
         functionChild["indent"] = functionIndent
@@ -909,7 +914,7 @@ class DataAPI_Report( object ):
         for unitId in sorted( container.keys() ):
 
             unit = api.Unit.get( unitId )
-            unitName = unit.name
+            unitName = unit.display_name
 
             unitChild = getDefaultTree()
             unitChild["indent"] = currentIndent
@@ -1875,11 +1880,15 @@ class DataAPI_Report( object ):
 
             for value in values:
                 if "<<null>>" != value:
-                    functionPtr = self.getFunctionPtrByIndex( int(value) )
-                    if None != functionPtr:
-                        assocValue = functionPtr.name
-                    else:
-                        assocValue = str( functionPtr )
+                    try:
+                        int_value = int( float(value) )
+                        functionPtr = self.getFunctionPtrByIndex( int_value )
+                        if None != functionPtr:
+                            assocValue = functionPtr.name
+                        else:
+                            assocValue = str( functionPtr )
+                    except ValueError:
+                        assocValue = value
                 else:
                     assocValue = value
                 associatedValues.append( assocValue )
