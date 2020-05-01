@@ -202,7 +202,7 @@ class DataAPI_Report( object ):
         currentChild["children"] = self.getDataAsTree_all( testcase, dataTypeControl, isInpExpData, currentIndent+1 )
         tree["children"].append( currentChild )
 
-        # print.pprint( tree )
+        # pprint.pprint( tree )
 
         if not self.traceHandler.getStatus():
             return ""
@@ -359,18 +359,16 @@ class DataAPI_Report( object ):
         return children
 
 
-    def getDataAsTree_all( self, testcase_p, dataTypeControl, isInpExpData, currentIndent ):
+    def getDataAsTree_all( self, testcase, dataTypeControl, isInpExpData, currentIndent ):
 
         children = []
 
-        envDir = testcase_p.get_environment().path
+        envDir = testcase.get_environment().path
         api = self.envApi[envDir]
 
         self.functionPointers = api.FunctionPointerCandidate.all()
 
         dataTypeIdc = getDataTypeIdc( dataTypeControl )
-
-        arrayChildren = []
 
         if isInpExpData:
 
@@ -379,25 +377,25 @@ class DataAPI_Report( object ):
             for dtIdx in dataTypeIdc:
 
                 if 0 == dtIdx:
-                    theChildren = self.getDataAsTree_environment( testcase_p, currentIndent+1 )
-                    arrayChildren.append( theChildren )
+                    theChildren = self.getDataAsTree_environment( testcase, currentIndent )
+                    children.append( theChildren[0] )
 
-                for testcaseId in self.tcIdSequence:
+                for tcId in self.tcIdSequence:
 
-                    testcase = api.TestCase.get( testcaseId )
+                    tc = api.TestCase.get( tcId )
 
                     grandChild = getDefaultTree()
                     grandChild["indent"] = currentIndent
                     grandChild["label"] = "dtIdx"
                     grandChild["value"] = dtIdx
 
-                    if not testcaseId in tmpStore.keys():
+                    if not tcId in tmpStore.keys():
 
                         currentChild = getDefaultTree()
                         currentChild["indent"] = currentIndent
-                        currentChild["ID"] = testcaseId
+                        currentChild["ID"] = tcId
                         currentChild["label"] = "TestCase"
-                        currentChild["value"] = testcase.name
+                        currentChild["value"] = tc.name
 
                         notesChild = getDefaultTree()
                         notesChild["indent"] = currentIndent+1
@@ -405,36 +403,38 @@ class DataAPI_Report( object ):
 
                         codeChild = getDefaultTree()
                         codeChild["indent"] = currentIndent+2
-                        codeChild["value"] = testcase.notes
+                        codeChild["value"] = tc.notes
 
                         notesChild["children"].append( codeChild )
                         currentChild["children"].append( notesChild )
 
-                        tmpStore[testcaseId] = currentChild
+                        tmpStore[tcId] = currentChild
 
                     else:
 
-                        currentChild = tmpStore[testcaseId]
+                        currentChild = tmpStore[tcId]
 
                     trace( "dtIdx:", dtIdx, newLine=True )
-                    trace( "testcaseId:", testcaseId, newLine=True )
-                    trace( "Input & Expected Data:", self.inpExpData[dtIdx][testcaseId], newLine=True )
+                    trace( "tcId:", tcId, newLine=True )
+                    trace( "Input & Expected Data:", self.inpExpData[dtIdx][tcId], newLine=True )
+
+                    arrayChildren = []
 
                     theChildren = self.getDataAsTree_globals( envDir,
-                                                              dtIdx, testcaseId, None, None, None, isInpExpData, \
+                                                              dtIdx, tcId, None, None, None, isInpExpData, \
                                                               currentIndent+1 )
                     arrayChildren.append( theChildren )
 
-                    if not testcase.is_init_test:
+                    if not tc.is_init_test:
 
-                        theChildren = self.getDataAsTree_functions( envDir, testcase, \
-                                                                    dtIdx, testcaseId, None, None, None, isInpExpData, \
+                        theChildren = self.getDataAsTree_functions( envDir, tc, \
+                                                                    dtIdx, tcId, None, None, None, isInpExpData, \
                                                                     currentIndent+1 )
                         arrayChildren.append( theChildren )
 
-                        theChildren = self.getTestcaseUserCode( envDir, testcase, \
-                                                                     dtIdx, testcaseId, None, None, None, isInpExpData, \
-                                                                     currentIndent+1 )
+                        theChildren = self.getTestcaseUserCode( envDir, tc, \
+                                                                dtIdx, tcId, None, None, None, isInpExpData, \
+                                                                currentIndent+1 )
                         arrayChildren.append( theChildren )
 
                     for idx in range( len(arrayChildren) ):
@@ -443,8 +443,8 @@ class DataAPI_Report( object ):
 
                     currentChild["children"].append( grandChild )
 
-            for testcaseId in self.tcIdSequence:
-                currentChild = tmpStore[testcaseId]
+            for tcId in self.tcIdSequence:
+                currentChild = tmpStore[tcId]
                 children.append( currentChild )
 
         else:
@@ -518,6 +518,8 @@ class DataAPI_Report( object ):
                         grandChild["value"] = value
                         grandChild["valuesGrp1"] = valueGrp1
 
+                        arrayChildren = []
+
                         theChildren = self.getDataAsTree_globals( envDir,
                                                                   None, None, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                                                   currentIndent+1 )
@@ -529,11 +531,10 @@ class DataAPI_Report( object ):
                                                                         None, None, slotHistId, itrIdx, eventIdx, isInpExpData, \
                                                                         currentIndent+1 )
                             arrayChildren.append( theChildren )
-                            
 
                             theChildren = self.getTestcaseUserCode( envDir, tc, \
-                                                                         None, None, slotHistId, itrIdx, eventIdx, isInpExpData, \
-                                                                         currentIndent+1 )
+                                                                    None, None, slotHistId, itrIdx, eventIdx, isInpExpData, \
+                                                                    currentIndent+1 )
                             arrayChildren.append( theChildren )
 
                         for idx in range( len(arrayChildren) ):
@@ -1682,7 +1683,7 @@ class DataAPI_Report( object ):
         numSlotHistories = len( slot_histories )
         slotHistory = None
         
-        for idx in range( numSlotHostories ):
+        for idx in range( numSlotHistories ):
 
             slotHistory = slot_histories[idx]
 

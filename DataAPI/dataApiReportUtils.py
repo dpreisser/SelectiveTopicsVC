@@ -141,7 +141,8 @@ class FormatHandler( object ):
 
         self.adjustWidthGrp1 = adjustWidthGrp1
 
-        self.addNewLineBefore = [ "Environment", "TestCase", "Requirements", \
+        self.addNewLineBefore = [ "<<ENVIRONMENT DATA>>", \
+                                  "Environment", "TestCase", "Requirements", \
                                   "Slots", "Test Case Data", "Notes", \
                                   "Execution Results", "Slot", "Events", \
                                   "Unused Expected Values" ]
