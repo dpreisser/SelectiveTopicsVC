@@ -609,20 +609,28 @@ class DataAPI_Report( object ):
 
         api = self.envApi[envDir]
 
+        unitName = testcase.unit_display_name
+        unit = api.Unit.get( unitName )
+
+        function = testcase.function
+
+        tc_unitId = unit.id
+        tc_functionIndex = function.index
+
         # UUT
 
         currentChild = getDefaultTree()
         currentChild["indent"] = currentIndent
         currentChild["label"] = "<<UUT>>"
 
-        unitName = testcase.unit_display_name
-        unit = api.Unit.get( unitName )
+        if tc_unitId in container.keys():
 
-        function = testcase.function
+            if tc_functionIndex in container[tc_unitId].keys():
 
-        currentChild["children"] = self.getDataAsTree_parameters( unit, function, \
-                                                                  dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
-                                                                  currentIndent )
+
+                currentChild["children"] = self.getDataAsTree_parameters( unit, function, \
+                                                                          dtIdx, testcaseId, slotHistId, itrIdx, eventIdx, isInpExpData, \
+                                                                          currentIndent )
 
         children.append( currentChild )
 
@@ -631,9 +639,6 @@ class DataAPI_Report( object ):
         currentChild = getDefaultTree()
         currentChild["indent"] = currentIndent
         currentChild["label"] = "<<SBF>>"
-
-        tc_unitId = unit.id
-        tc_functionIndex = function.index
 
         for unitId in container.keys():
 
