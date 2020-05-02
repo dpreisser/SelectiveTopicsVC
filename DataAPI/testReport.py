@@ -83,7 +83,7 @@ def createReport( args ):
     dataApiRep = DataAPI_Report( workingDirVC, formatHandler, traceHandler )
     api = dataApiRep.getApi( envName )
 
-    # dataApiRep.setControlDTS( False, False )
+    # dataApiRep.setControlDTS( False, False, False )
 
     if None == unitName:
 

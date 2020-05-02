@@ -55,15 +55,20 @@ class DataAPI_Report( object ):
         self.inputData = {}
         self.expectedData = {}
 
+        self.enable_dtsReportCreation = True
+
         self.enable_dtsCreation = True
         self.enable_dtsExecution = True
 
 
     def getControlDTS( self ):
-        return self.enable_dtsCreation, self.enable_dtsExecution 
+        return self.enable_dtsReportCreation, self.enable_dtsCreation, self.enable_dtsExecution 
 
 
-    def setControlDTS( self, enable_dtsCreation=None, enable_dtsExecution=None ):
+    def setControlDTS( self, enable_dtsReportCreation=None, enable_dtsCreation=None, enable_dtsExecution=None ):
+
+        if None != enable_dtsReportCreation:
+            self.enable_dtsReportCreation = enable_dtsReportCreation
 
         if None != enable_dtsCreation:
             self.enable_dtsCreation = enable_dtsCreation
@@ -162,7 +167,7 @@ class DataAPI_Report( object ):
         tree["label"] = label
         tree["value"] = value
 
-        if self.enable_dtsCreation:
+        if self.enable_dtsReportCreation:
             dtsChild = getDefaultTree()
             dtsChild["indent"] = currentIndent
             dtsChild["label"] = "Date of Creation"
@@ -281,11 +286,12 @@ class DataAPI_Report( object ):
             currentChild["value"] = tcName
             children.append( currentChild )
 
-            currentChild = getDefaultTree()
-            currentChild["indent"] = tcIndent
-            currentChild["label"] = "Date of Creation"
-            currentChild["value"] = dtsCreation
-            children.append( currentChild )
+            if self.enable_dtsCreation:
+                currentChild = getDefaultTree()
+                currentChild["indent"] = tcIndent
+                currentChild["label"] = "Date of Creation"
+                currentChild["value"] = dtsCreation
+                children.append( currentChild )
 
             if self.enable_dtsExecution:
                 currentChild = getDefaultTree()
