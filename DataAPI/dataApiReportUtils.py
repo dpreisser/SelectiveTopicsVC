@@ -302,13 +302,13 @@ class FormatHandler( object ):
             newStr2 = ""
             widthNewStr2 = 0
 
-            if numValuesGrp1 > 0:
+            if idx < numValuesGrp1:
                 value1 = valuesGrp1[idx]
                 width1 = len( value1 ) + 1
             else:
                 width1 = 0
 
-            if numValuesGrp2 > 0:
+            if idx < numValuesGrp2:
                 value2 = valuesGrp2[idx]
                 width2 = len( value2 ) + 1
             else:
@@ -329,13 +329,13 @@ class FormatHandler( object ):
 
                 idx += 1
 
-                if numValuesGrp1 > 0:
+                if idx < numValuesGrp1:
                     value1 = valuesGrp1[idx]
                     width1 = len( value1 ) + 1
                 else:
                     width1 = 0
 
-                if numValuesGrp2 > 0:
+                if idx < numValuesGrp2:
                     value2 = valuesGrp2[idx]
                     width2 = len( value2 ) + 1
                 else:

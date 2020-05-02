@@ -378,7 +378,8 @@ class DataAPI_Report( object ):
 
                 if 0 == dtIdx:
                     theChildren = self.getDataAsTree_environment( testcase, currentIndent )
-                    children.append( theChildren[0] )
+                    for theChild in theChildren:
+                        children.append( theChild )
 
                 for tcId in self.tcIdSequence:
 
