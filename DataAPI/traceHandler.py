@@ -19,12 +19,15 @@ class TraceHandler( object ):
         self._trace_buffer = u""
 
         self._trace_level = trace_level
+        self._trace_to_file = trace_to_file
+        self._trace_log_file = trace_log_file
 
-        if trace_to_file:
-            # self.traceLogStream = open( trace_log_file, "wb" )
-            self.traceLogStream = codecs.open( trace_log_file, "wb", "utf-8" )
+        if self._trace_to_file:
+            # self._traceLogStream = open( self._trace_log_file, "wb" )
+            self._traceLogStream = codecs.open( self._trace_log_file, "wb", "utf-8" )
+            # self._traceLogStream = None
         else:
-            self.traceLogStream = None
+            self._traceLogStream = None
 
         self.trace( "TraceHandler.__init__", 6 )
 
@@ -97,9 +100,9 @@ class TraceHandler( object ):
             # Record trace data to be shown to the user.
             self._trace_buffer += u_msg
 
-            if None != self.traceLogStream:
-                # self.traceLogStream.write( u_msg.encode("utf-8") )
-                self.traceLogStream.write( u_msg )
+            if None != self._traceLogStream:
+                # self._traceLogStream.write( u_msg.encode("utf-8") )
+                self._traceLogStream.write( u_msg )
 
 
     def getTrace( self ):
@@ -107,6 +110,23 @@ class TraceHandler( object ):
 
 
     def finalize( self ):
+
         self.trace( "TraceHandler.finalize", 6 )
-        if None != self.traceLogStream:
-            self.traceLogStream.close()
+
+        if None != self._traceLogStream:
+
+            self._traceLogStream.flush()
+            self._traceLogStream.close()
+
+        else:
+
+            if self._trace_to_file:
+
+                # self._traceLogStream = open( self._trace_log_file, "wb" )
+                self._traceLogStream = codecs.open( self._trace_log_file, "wb", "utf-8" )
+
+                # self._traceLogStream.write( self._trace_buffer.encode("utf-8") )
+                self._traceLogStream.write( self._trace_buffer )
+
+                self._traceLogStream.flush()
+                self._traceLogStream.close()
