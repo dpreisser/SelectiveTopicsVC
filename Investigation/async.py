@@ -9,6 +9,9 @@ from datetime import datetime
 import time
 
 
+TIME_SLEEP = 5
+
+
 class AsyncPrint( QtCore.QObject ):
 
     addMessageSignal = QtCore.Signal(str)
@@ -24,11 +27,10 @@ class AsyncPrint( QtCore.QObject ):
         dts = datetime.now() 
         # self.myWidget.addMessage( "Entering asyncPrint: %s" % str(dts) )
         self.addMessageSignal.emit( "Entering asyncPrint: %s" % str(dts) )
-        time.sleep( 3 )
+        time.sleep( TIME_SLEEP )
         dts = datetime.now()
         # self.myWidget.addMessage( "Leaving asyncPrint: %s" % str(dts) )
         self.addMessageSignal.emit( "Leaving asyncPrint: %s" % str(dts) )
-        
 
 
 class MyWidget( QtGui.QWidget ):
@@ -37,7 +39,7 @@ class MyWidget( QtGui.QWidget ):
 
         super( MyWidget, self ).__init__( parent )
 
-        # self.aboutToQuit.connect( self.forceAsyncPrintThreadToQuit )
+        # self.aboutToQuit.connect( self.quitAsyncPrintThread )
         self.asyncPrint = AsyncPrint( None )
         self.asyncPrint.addMessageSignal.connect( self.addMessage )
 
@@ -101,16 +103,26 @@ class MyWidget( QtGui.QWidget ):
         self.asyncPrintThread.start()
 
 
-    def forceAsyncPrintThreadToQuit( self ):
+    def quitAsyncPrintThread( self ):
+
         if self.asyncPrintThread.isRunning():
-            self.asyncPrintThread.terminate()
+            print( "Running..." )
+            self.asyncPrintThread.quit()
+            print( "Before wait..." )
             self.asyncPrintThread.wait()
+            print( "After wait..." )
+            self.asyncPrintThread.deleteLater()
+        else:
+            print( "Not running..." )
+
+        print( self.asyncPrintThread.isRunning() )
+        print( self.asyncPrintThread.isFinished() )
 
 
     def sync_clicked( self ):
         dts = datetime.now() 
         self.addMessage( "Entering sync_clicked: %s" % str(dts) )
-        time.sleep( 3 )
+        time.sleep( TIME_SLEEP )
         dts = datetime.now()
         self.addMessage( "Leaving sync_clicked: %s" % str(dts) )
 
@@ -124,7 +136,8 @@ class MyWidget( QtGui.QWidget ):
 
 
     def closeEvent( self, event ):
-        self.forceAsyncPrintThreadToQuit()
+        print( "closeEvent" )
+        self.quitAsyncPrintThread()
         event.accept() # let the window close
 
 
